@@ -269,6 +269,7 @@ def generate_macros():
     add_macro("numConfPredValRMSE", f"{conf['Y1_Val_RMSE']['predicted_mean']:.4f}")
     add_macro("numConfPiLowValRMSE", f"{conf['Y1_Val_RMSE']['prediction_interval_95'][0]:.4f}")
     add_macro("numConfPiHighValRMSE", f"{conf['Y1_Val_RMSE']['prediction_interval_95'][1]:.4f}")
+    add_macro("numConfNuEffMo", f"{conf['Y1_Val_RMSE']['nu_eff']:.1f}")
     add_macro("numConfEmpValRMSE", f"{conf['Y1_Val_RMSE']['empirical_mean']:.4f}")
     add_macro("numConfEmpValRMSEStd", f"{conf['Y1_Val_RMSE']['empirical_std']:.4f}")
     add_macro("numConfEmpTestRMSE", f"{conf['Y1_Test_RMSE']['empirical_mean']:.4f}")
@@ -286,6 +287,7 @@ def generate_macros():
     add_macro("numConfSoPredValRMSE", f"{so_conf['predicted_val_rmse']:.4f}")
     add_macro("numConfSoPiLowValRMSE", f"{so_conf['prediction_interval_95_val'][0]:.4f}")
     add_macro("numConfSoPiHighValRMSE", f"{so_conf['prediction_interval_95_val'][1]:.4f}")
+    add_macro("numConfSoNuEffSo", f"{so_conf['nu_eff']:.1f}")
     add_macro("numConfSoEmpValRMSE", f"{so_conf['empirical_val_rmse']:.4f}")
     add_macro("numConfSoEmpValRMSEStd", f"{so_conf['empirical_val_std']:.4f}")
     add_macro("numConfSoEmpTestRMSE", f"{so_conf['empirical_test_rmse']:.4f}")
@@ -608,8 +610,11 @@ def generate_tables():
 
     status_pass = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
     bias_val = so_conf['empirical_val_rmse'] - so_conf['predicted_val_rmse']
-    status_bias = "\\makecell[c]{\\textbf{Empirical Opt}\\\\(Bias: " + f"{bias_val:+.4f}" + ")}"
+    status_bias = "\\makecell[c]{\\textbf{Not Confirmed}\\\\(Optimism: " + f"{bias_val:+.4f}" + ")}"
     status_lat = "\\makecell[c]{Borderline\\\\(At Lower PI)}"
+
+    pi_y1_mo_str = f"[{conf['Y1_Val_RMSE']['prediction_interval_95'][0]:.4f}, {conf['Y1_Val_RMSE']['prediction_interval_95'][1]:.4f}]"
+    pi_y1_so_str = f"[{so_conf['prediction_interval_95_val'][0]:.4f}, {so_conf['prediction_interval_95_val'][1]:.4f}]"
 
     tex_conf = [
         "\\begin{tabular}{lcccc}",
@@ -617,12 +622,12 @@ def generate_tables():
         "\\makecell[l]{\\textbf{Configuration /}\\\\\\textbf{Response Metric}} & \\makecell{\\textbf{Surrogate}\\\\\\textbf{Pred ($\\hat{y}$)}} & \\makecell{\\textbf{95\\% Pred}\\\\\\textbf{Interval (PI)}} & \\makecell{\\textbf{Empirical}\\\\\\textbf{Mean $\\pm$ SD}} & \\makecell{\\textbf{Confirmation}\\\\\\textbf{Status}} \\\\",
         "\\midrule",
         "\\multicolumn{5}{l}{\\textbf{DOE Multi-Objective Optimum $\\mathbf{x}^*_{\\text{MO}}$ (Depth 4)}} \\\\",
-        f"Validation RMSE ($Y_1$) & ${conf['Y1_Val_RMSE']['predicted_mean']:.4f}$ & $[0.4677, 0.4932]$ & ${conf['Y1_Val_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Val_RMSE']['empirical_std']:.4f}$ & " + status_pass + " \\\\",
+        f"Validation RMSE ($Y_1$) & ${conf['Y1_Val_RMSE']['predicted_mean']:.4f}$ & ${pi_y1_mo_str}$ & ${conf['Y1_Val_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Val_RMSE']['empirical_std']:.4f}$ & " + status_pass + " \\\\",
         f"Holdout Test RMSE & --- & --- & ${conf['Y1_Test_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Test_RMSE']['empirical_std']:.4f}$ & Holdout Test Set \\\\",
         f"Inference Latency ($\\mu$s) & ${conf['Y2_Latency']['predicted_mean']:.1f}$ & $[{conf['Y2_Latency']['prediction_interval_95'][0]:.1f}, {conf['Y2_Latency']['prediction_interval_95'][1]:.1f}]$ & ${conf['Y2_Latency']['empirical_mean']:.1f} \\pm {conf['Y2_Latency']['empirical_std']:.1f}$ & " + status_pass + " \\\\",
         "\\midrule",
         "\\multicolumn{5}{l}{\\textbf{DOE Single-Objective Candidate $\\mathbf{x}^*_{\\text{SO}}$ (Depth 7)}} \\\\",
-        f"Validation RMSE ($Y_1$) & ${so_conf['predicted_val_rmse']:.4f}$ & $[0.4354, 0.4612]$ & ${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$ & " + status_bias + " \\\\",
+        f"Validation RMSE ($Y_1$) & ${so_conf['predicted_val_rmse']:.4f}$ & ${pi_y1_so_str}$ & ${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$ & " + status_bias + " \\\\",
         f"Holdout Test RMSE & --- & --- & ${so_conf['empirical_test_rmse']:.4f} \\pm {so_conf['empirical_test_std']:.4f}$ & Holdout Test Set \\\\",
         f"Inference Latency ($\\mu$s) & ${so_conf['predicted_latency']:.1f}$ & $[{so_conf['prediction_interval_95_lat'][0]:.1f}, {so_conf['prediction_interval_95_lat'][1]:.1f}]$ & ${so_conf['empirical_latency']:.1f} \\pm {so_conf['empirical_latency_std']:.1f}$ & " + status_lat + " \\\\",
         "\\bottomrule",

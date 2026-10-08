@@ -15,23 +15,25 @@
   "Y1_Val_RMSE": {
     "predicted_mean": 0.4804257992108739,
     "prediction_interval_95": [
-      0.4686555447837495,
-      0.49219605363799834
+      0.46767305684141425,
+      0.4931785415803336
     ],
-    "empirical_mean": 0.48528634341325805,
-    "empirical_std": 0.011497977858215618,
+    "nu_eff": 13.983869457593771,
+    "empirical_mean": 0.485286343413258,
+    "empirical_std": 0.011497977858215616,
     "inside_pi": true
   },
   "Y1_Test_RMSE": {
     "empirical_mean": 0.4887737967416993,
-    "empirical_std": 0.0032428211530865585
+    "empirical_std": 0.0032428211530865577
   },
   "Y2_Latency": {
     "predicted_mean": 138.10877303482908,
     "prediction_interval_95": [
-      122.82023645536277,
-      153.39730961429538
+      122.82316148574617,
+      153.394384583912
     ],
+    "nu_eff": 123.3367921043721,
     "empirical_mean": 142.33135000000001,
     "empirical_std": 7.793725852853977,
     "empirical_inplace_mean": 104.14945,
@@ -54,17 +56,18 @@
     "leverage_h": 0.12096813176709531,
     "predicted_val_rmse": 0.4482954119269636,
     "prediction_interval_95_val": [
-      0.4362886627758452,
-      0.460302161078082
+      0.435374138591811,
+      0.4612166852621162
     ],
+    "nu_eff": 15.072458884501728,
     "empirical_val_rmse": 0.4700001392267918,
-    "empirical_val_std": 0.009324594696865576,
+    "empirical_val_std": 0.009324594696865559,
     "empirical_test_rmse": 0.4691237634152463,
-    "empirical_test_std": 0.0034372243922495644,
+    "empirical_test_std": 0.0034372243922495627,
     "predicted_latency": 186.99966568461582,
     "prediction_interval_95_lat": [
-      171.10056997102205,
-      202.8987613982096
+      171.10434346362393,
+      202.8949879056077
     ],
     "empirical_latency": 171.1237,
     "empirical_latency_std": 10.947712384583161,
