@@ -2,8 +2,8 @@
 \toprule
 \makecell{\textbf{Optimization}\\\textbf{Method}} & \makecell{\textbf{Val RMSE}\\\scriptsize\textbf{(95\% CI)}} & \makecell{\textbf{Test RMSE}\\\scriptsize\textbf{(95\% CI)}} & \makecell{\textbf{Pred Lat}\\\bm{$(\mu\text{s})$}} & \makecell{\textbf{Inplace}\\\bm{$(\mu\text{s})$}} & \textbf{Depth} & \makecell{\textbf{Search}\\\textbf{Basis}} \\
 \midrule
-\makecell[l]{DOE Multi-Obj ($x^*$)} & \makecell{$0.4821$\\\scriptsize$[0.4786, 0.4855]$} & \makecell{$0.4884$\\\scriptsize$[0.4869, 0.4899]$} & $151.5$ & $105.4$ & 4 & \makecell{Second-Order\\RSM} \\
-\makecell[l]{DOE Single-Obj ($d{=}7$)} & \makecell{$0.4687$\\\scriptsize$[0.4654, 0.4720]$} & \makecell{$0.4690$\\\scriptsize$[0.4678, 0.4702]$} & $176.8$ & $137.3$ & 7 & \makecell{Second-Order\\RSM} \\
+\makecell[l]{DOE Multi-Obj ($\mathbf{x}^*_{\text{MO}}$)} & \makecell{$0.4821$\\\scriptsize$[0.4786, 0.4855]$} & \makecell{$0.4884$\\\scriptsize$[0.4869, 0.4899]$} & $151.5$ & $105.4$ & 4 & \makecell{Second-Order\\RSM} \\
+\makecell[l]{DOE Single-Obj ($\mathbf{x}^*_{\text{SO}}, d{=}7$)} & \makecell{$0.4687$\\\scriptsize$[0.4654, 0.4720]$} & \makecell{$0.4690$\\\scriptsize$[0.4678, 0.4702]$} & $176.8$ & $137.3$ & 7 & \makecell{Second-Order\\RSM} \\
 \makecell[l]{Random Search} & \makecell{$0.4668$\\\scriptsize$[0.4636, 0.4700]$} & \makecell{$0.4675$\\\scriptsize$[0.4661, 0.4690]$} & $203.9$ & $164.6$ & 8 & \makecell{Black-Box\\Oracle} \\
 \makecell[l]{Bayesian TPE (SO)} & \makecell{$0.4668$\\\scriptsize$[0.4631, 0.4705]$} & \makecell{$0.4668$\\\scriptsize$[0.4650, 0.4685]$} & $206.9$ & $167.7$ & 8 & \makecell{Black-Box\\Oracle} \\
 \makecell[l]{Constrained TPE} & \makecell{$0.4796$\\\scriptsize$[0.4760, 0.4832]$} & \makecell{$0.4835$\\\scriptsize$[0.4820, 0.4849]$} & $152.4$ & $112.2$ & 4 & \makecell{Black-Box\\Oracle} \\

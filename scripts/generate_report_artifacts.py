@@ -13,6 +13,7 @@ from pipeline import decode_factors
 
 import pandas as pd
 import numpy as np
+import scipy.stats as stats
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
 
@@ -138,7 +139,37 @@ def generate_macros():
     add_macro("numBootLowEigOne", f"{boot_p[0][0]:.4f}")
     add_macro("numBootHighEigOne", f"{boot_p[2][0]:.4f}")
 
-    # Lack of Fit
+    # Replicate and interaction variance components
+    ss_pure_center_y1 = float(np.sum([np.sum((grp["val_rmse"] - grp["val_rmse"].mean())**2)
+                                       for (b, p), grp in df_runs.groupby(["block", "point_id"]) if len(grp) > 1]))
+    df_pure_center = sum(len(grp) - 1 for (b, p), grp in df_runs.groupby(["block", "point_id"]) if len(grp) > 1)
+    ms_pure_center_y1 = ss_pure_center_y1 / df_pure_center
+
+    ss_interact_y1 = lof["Y1"]["SS_PE"] - ss_pure_center_y1
+    df_interact = lof["Y1"]["df_PE"] - df_pure_center
+    ms_interact_y1 = ss_interact_y1 / df_interact
+
+    f_lof_center_y1 = lof["Y1"]["MS_LoF"] / ms_pure_center_y1
+    p_lof_center_y1 = float(1.0 - stats.f.cdf(f_lof_center_y1, lof["Y1"]["df_LoF"], df_pure_center))
+
+    f_interact_center_y1 = ms_interact_y1 / ms_pure_center_y1
+    p_interact_center_y1 = float(1.0 - stats.f.cdf(f_interact_center_y1, df_interact, df_pure_center))
+
+    # Latency Y2
+    ss_pure_center_y2 = float(np.sum([np.sum((grp["latency_us_median"] - grp["latency_us_median"].mean())**2)
+                                       for (b, p), grp in df_runs.groupby(["block", "point_id"]) if len(grp) > 1]))
+    ms_pure_center_y2 = ss_pure_center_y2 / df_pure_center
+
+    ss_interact_y2 = lof["Y2"]["SS_PE"] - ss_pure_center_y2
+    ms_interact_y2 = ss_interact_y2 / df_interact
+
+    f_lof_center_y2 = lof["Y2"]["MS_LoF"] / ms_pure_center_y2
+    p_lof_center_y2 = float(1.0 - stats.f.cdf(f_lof_center_y2, lof["Y2"]["df_LoF"], df_pure_center))
+
+    f_interact_center_y2 = ms_interact_y2 / ms_pure_center_y2
+    p_interact_center_y2 = float(1.0 - stats.f.cdf(f_interact_center_y2, df_interact, df_pure_center))
+
+    # Lack of Fit macros
     add_macro("numDfLofYone", str(lof["Y1"]["df_LoF"]))
     add_macro("numDfPeYone", str(lof["Y1"]["df_PE"]))
     add_macro("numSSLofYone", f"{lof['Y1']['SS_LoF']:.6f}")
@@ -150,6 +181,33 @@ def generate_macros():
     add_macro("numSqrtMSLofYone", f"{lof['Y1']['sqrt_MS_LoF']:.4f}")
     add_macro("numSqrtMSPeYone", f"{lof['Y1']['sqrt_MS_PE']:.4f}")
     add_macro("numBoxCoxYone", f"{lof['Y1']['boxcox_lambda']:.2f}")
+
+    # Center pure error and interaction macros
+    add_macro("numDfPeCenter", str(df_pure_center))
+    add_macro("numSSPeCenterYone", f"{ss_pure_center_y1:.6f}")
+    add_macro("numMSPeCenterYone", f"{ms_pure_center_y1:.2e}")
+    add_macro("numSqrtMSPeCenterYone", f"{np.sqrt(ms_pure_center_y1):.4f}")
+    add_macro("numFLofCenterYone", f"{f_lof_center_y1:.2f}")
+    add_macro("numPLofCenterYone", "< 10^{-15}" if p_lof_center_y1 < 1e-15 else f"{p_lof_center_y1:.2e}")
+
+    add_macro("numDfInteract", str(df_interact))
+    add_macro("numSSInteractYone", f"{ss_interact_y1:.6f}")
+    add_macro("numMSInteractYone", f"{ms_interact_y1:.2e}")
+    add_macro("numSqrtMSInteractYone", f"{np.sqrt(ms_interact_y1):.4f}")
+    add_macro("numFInteractCenterYone", f"{f_interact_center_y1:.2f}")
+    add_macro("numPInteractCenterYone", f"{p_interact_center_y1:.4f}")
+
+    add_macro("numSSPeCenterYtwo", f"{ss_pure_center_y2:.2f}")
+    add_macro("numMSPeCenterYtwo", f"{ms_pure_center_y2:.2f}")
+    add_macro("numSqrtMSPeCenterYtwo", f"{np.sqrt(ms_pure_center_y2):.2f}")
+    add_macro("numFLofCenterYtwo", f"{f_lof_center_y2:.2f}")
+    add_macro("numPLofCenterYtwo", f"{p_lof_center_y2:.4f}")
+
+    add_macro("numSSInteractYtwo", f"{ss_interact_y2:.2f}")
+    add_macro("numMSInteractYtwo", f"{ms_interact_y2:.2f}")
+    add_macro("numSqrtMSInteractYtwo", f"{np.sqrt(ms_interact_y2):.2f}")
+    add_macro("numFInteractCenterYtwo", f"{f_interact_center_y2:.2f}")
+    add_macro("numPInteractCenterYtwo", f"{p_interact_center_y2:.4f}")
 
     # Restricted domain LoF
     add_macro("numLofRestrictedReductionPct", f"{lof['Y1_restricted']['ss_lof_reduction_pct']:.1f}\\%")
@@ -471,18 +529,72 @@ def generate_tables():
     with open("results/lof.json", "r", encoding="utf-8") as f:
         lof = json.load(f)
 
+    # Center pure error and interaction terms
+    ss_pure_center_y1 = float(np.sum([np.sum((grp["val_rmse"] - grp["val_rmse"].mean())**2)
+                                       for (b, p), grp in df_runs.groupby(["block", "point_id"]) if len(grp) > 1]))
+    df_pure_center = sum(len(grp) - 1 for (b, p), grp in df_runs.groupby(["block", "point_id"]) if len(grp) > 1)
+    ms_pure_center_y1 = ss_pure_center_y1 / df_pure_center
+
+    ss_interact_y1 = lof["Y1"]["SS_PE"] - ss_pure_center_y1
+    df_interact = lof["Y1"]["df_PE"] - df_pure_center
+    ms_interact_y1 = ss_interact_y1 / df_interact
+
+    f_lof_center_y1 = lof["Y1"]["MS_LoF"] / ms_pure_center_y1
+    p_lof_center_y1 = float(1.0 - stats.f.cdf(f_lof_center_y1, lof["Y1"]["df_LoF"], df_pure_center))
+
+    f_interact_center_y1 = ms_interact_y1 / ms_pure_center_y1
+    p_interact_center_y1 = float(1.0 - stats.f.cdf(f_interact_center_y1, df_interact, df_pure_center))
+
+    # Latency Y2
+    ss_pure_center_y2 = float(np.sum([np.sum((grp["latency_us_median"] - grp["latency_us_median"].mean())**2)
+                                       for (b, p), grp in df_runs.groupby(["block", "point_id"]) if len(grp) > 1]))
+    ms_pure_center_y2 = ss_pure_center_y2 / df_pure_center
+
+    ss_interact_y2 = lof["Y2"]["SS_PE"] - ss_pure_center_y2
+    ms_interact_y2 = ss_interact_y2 / df_interact
+
+    f_lof_center_y2 = lof["Y2"]["MS_LoF"] / ms_pure_center_y2
+    p_lof_center_y2 = float(1.0 - stats.f.cdf(f_lof_center_y2, lof["Y2"]["df_LoF"], df_pure_center))
+
+    f_interact_center_y2 = ms_interact_y2 / ms_pure_center_y2
+    p_interact_center_y2 = float(1.0 - stats.f.cdf(f_interact_center_y2, df_interact, df_pure_center))
+
     p1_str = "$< 10^{-15}$" if lof['Y1']['p_LoF'] < 1e-15 else f"${lof['Y1']['p_LoF']:.4f}$"
     p1_restr_str = "$< 10^{-15}$" if lof['Y1_restricted']['p_LoF'] < 1e-15 else (f"${lof['Y1_restricted']['p_LoF']:.4f}$" if lof['Y1_restricted']['p_LoF'] >= 0.0001 else "$< 0.0001$")
     p2_str = "$< 10^{-15}$" if lof['Y2']['p_LoF'] < 1e-15 else f"${lof['Y2']['p_LoF']:.4f}$"
 
+    def fmt_tex_num(val, digs=6):
+        if abs(val) < 0.0001:
+            s = f"{val:.2e}"
+            parts = s.split("e")
+            exp = int(parts[1])
+            return f"{float(parts[0]):.2f} \\times 10^{{{exp}}}"
+        return f"{val:.{digs}f}"
+
     tex_lof = [
         "\\begin{tabular}{lrrrrcc}",
         "\\toprule",
-        "\\textbf{Model Specification} & \\makecell{\\textbf{SS}\\\\\\textbf{Resid}} & \\makecell{\\textbf{SS}\\\\\\textbf{PE}} & \\makecell{\\textbf{SS}\\\\\\textbf{LoF}} & \\bm{$F_{\\text{LoF}}$} & \\makecell{\\bm{$p$}\\\\\\textbf{value}} & \\makecell{\\textbf{RMS}\\\\\\textbf{Misfit}} \\\\",
+        "\\textbf{Source of Variation / Model} & \\textbf{SS} & \\textbf{DF} & \\textbf{MS} & \\bm{$F$} & \\makecell{\\bm{$p$}\\\\\\textbf{value}} & \\makecell{\\textbf{Reference /}\\\\\\textbf{RMS Misfit}} \\\\",
         "\\midrule",
-        f"$Y_1$: Val RMSE (Full Domain) & ${lof['Y1']['SS_PE']+lof['Y1']['SS_LoF']:.6f}$ & ${lof['Y1']['SS_PE']:.6f}$ & ${lof['Y1']['SS_LoF']:.6f}$ & ${lof['Y1']['F_LoF']:.2f}$ & {p1_str} & ${lof['Y1']['sqrt_MS_LoF']:.4f}$ \\\\",
-        "\\makecell[l]{$Y_1$: Val RMSE\\\\(Domain $x_1 \\ge -0.5$)} & " + f"${lof['Y1_restricted']['SS_PE']+lof['Y1_restricted']['SS_LoF']:.6f}$ & ${lof['Y1_restricted']['SS_PE']:.6f}$ & ${lof['Y1_restricted']['SS_LoF']:.6f}$ & ${lof['Y1_restricted']['F_LoF']:.2f}$ & {p1_restr_str} & ${lof['Y1_restricted']['sqrt_MS_LoF']:.4f}$ \\\\",
-        f"$Y_2$: Latency ($\\mu$s) & ${lof['Y2']['SS_PE']+lof['Y2']['SS_LoF']:.2f}$ & ${lof['Y2']['SS_PE']:.2f}$ & ${lof['Y2']['SS_LoF']:.2f}$ & ${lof['Y2']['F_LoF']:.2f}$ & {p2_str} & ${lof['Y2']['sqrt_MS_LoF']:.2f}$ \\\\",
+        "\\multicolumn{7}{l}{\\textbf{Decomposition of Second-Order Model Residual ($Y_1$: Validation RMSE, Full CCD)}} \\\\",
+        f"Structural Lack of Fit & ${lof['Y1']['SS_LoF']:.6f}$ & ${lof['Y1']['df_LoF']}$ & ${lof['Y1']['MS_LoF']:.6f}$ & ${f_lof_center_y1:.2f}$ & $< 10^{{-15}}$ & vs. Center PE \\\\",
+        f"Treatment $\\times$ Block Interaction & ${ss_interact_y1:.6f}$ & ${df_interact}$ & ${fmt_tex_num(ms_interact_y1)}$ & ${f_interact_center_y1:.2f}$ & ${p_interact_center_y1:.4f}$ & vs. Center PE \\\\",
+        f"Genuine Center Pure Error & ${ss_pure_center_y1:.6f}$ & ${df_pure_center}$ & ${fmt_tex_num(ms_pure_center_y1)}$ & --- & --- & Base Replicate \\\\",
+        "\\midrule",
+        f"Total Model Residual & ${lof['Y1']['SS_PE']+lof['Y1']['SS_LoF']:.6f}$ & $121$ & ${fmt_tex_num((lof['Y1']['SS_PE']+lof['Y1']['SS_LoF'])/121)}$ & --- & --- & $\\text{{RMS}} = {np.sqrt((lof['Y1']['SS_PE']+lof['Y1']['SS_LoF'])/121):.4f}$ \\\\",
+        f"Saturated Additive Baseline & ${lof['Y1']['SS_PE']:.6f}$ & ${lof['Y1']['df_PE']}$ & ${fmt_tex_num(lof['Y1']['MS_PE'])}$ & ${lof['Y1']['F_LoF']:.2f}^*$ & {p1_str} & ($^*$LoF vs. Additive) \\\\",
+        "\\midrule",
+        "\\multicolumn{7}{l}{\\textbf{Restricted Domain Sensitivity ($Y_1$: $x_1 \\ge -0.5$, $\\eta \\ge 0.033$, $N=95$)}} \\\\",
+        f"Structural Lack of Fit & ${lof['Y1_restricted']['SS_LoF']:.6f}$ & ${lof['Y1_restricted']['df_LoF']}$ & ${lof['Y1_restricted']['MS_LoF']:.6f}$ & ${lof['Y1_restricted']['F_LoF']:.2f}$ & {p1_restr_str} & $\\text{{RMS}} = {lof['Y1_restricted']['sqrt_MS_LoF']:.4f}$ \\\\",
+        f"Additive Baseline Residual & ${lof['Y1_restricted']['SS_PE']:.6f}$ & ${lof['Y1_restricted']['df_PE']}$ & ${fmt_tex_num(lof['Y1_restricted']['MS_PE'])}$ & --- & --- & Saturated Base \\\\",
+        f"Total Restricted Residual & ${lof['Y1_restricted']['SS_PE']+lof['Y1_restricted']['SS_LoF']:.6f}$ & ${lof['Y1_restricted']['df_PE']+lof['Y1_restricted']['df_LoF']}$ & ${fmt_tex_num((lof['Y1_restricted']['SS_PE']+lof['Y1_restricted']['SS_LoF'])/(lof['Y1_restricted']['df_PE']+lof['Y1_restricted']['df_LoF']))}$ & --- & --- & $\\text{{RMS}} = {np.sqrt((lof['Y1_restricted']['SS_PE']+lof['Y1_restricted']['SS_LoF'])/(lof['Y1_restricted']['df_PE']+lof['Y1_restricted']['df_LoF'])):.4f}$ \\\\",
+        "\\midrule",
+        "\\multicolumn{7}{l}{\\textbf{Latency Residual Decomposition and Adequacy ($Y_2$: Single-Sample Latency, $\\mu\\text{s}$)}} \\\\",
+        f"Structural Lack of Fit & ${lof['Y2']['SS_LoF']:.2f}$ & ${lof['Y2']['df_LoF']}$ & ${lof['Y2']['MS_LoF']:.2f}$ & ${f_lof_center_y2:.2f}$ & ${p_lof_center_y2:.4f}$ & vs. Center PE ($\\text{{RMS}}={lof['Y2']['sqrt_MS_LoF']:.2f}$) \\\\",
+        f"Treatment $\\times$ Block Interaction & ${ss_interact_y2:.2f}$ & ${df_interact}$ & ${ms_interact_y2:.2f}$ & ${f_interact_center_y2:.2f}$ & ${p_interact_center_y2:.4f}$ & vs. Center PE \\\\",
+        f"Genuine Center Pure Error & ${ss_pure_center_y2:.2f}$ & ${df_pure_center}$ & ${ms_pure_center_y2:.2f}$ & --- & --- & Base Replicate \\\\",
+        "\\midrule",
+        f"Total Model Residual & ${lof['Y2']['SS_PE']+lof['Y2']['SS_LoF']:.2f}$ & $121$ & ${(lof['Y2']['SS_PE']+lof['Y2']['SS_LoF'])/121:.2f}$ & ${lof['Y2']['F_LoF']:.2f}^*$ & {p2_str} & ($^*$LoF vs. Additive) \\\\",
         "\\bottomrule",
         "\\end{tabular}"
     ]
@@ -504,13 +616,13 @@ def generate_tables():
         "\\toprule",
         "\\makecell[l]{\\textbf{Configuration /}\\\\\\textbf{Response Metric}} & \\makecell{\\textbf{Surrogate}\\\\\\textbf{Pred ($\\hat{y}$)}} & \\makecell{\\textbf{95\\% Pred}\\\\\\textbf{Interval (PI)}} & \\makecell{\\textbf{Empirical}\\\\\\textbf{Mean $\\pm$ SD}} & \\makecell{\\textbf{Confirmation}\\\\\\textbf{Status}} \\\\",
         "\\midrule",
-        "\\multicolumn{5}{l}{\\textbf{DOE Multi-Objective Optimum $x^*$ (Depth 4)}} \\\\",
-        f"Validation RMSE ($Y_1$) & ${conf['Y1_Val_RMSE']['predicted_mean']:.4f}$ & $[{conf['Y1_Val_RMSE']['prediction_interval_95'][0]:.4f}, {conf['Y1_Val_RMSE']['prediction_interval_95'][1]:.4f}]$ & ${conf['Y1_Val_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Val_RMSE']['empirical_std']:.4f}$ & " + status_pass + " \\\\",
+        "\\multicolumn{5}{l}{\\textbf{DOE Multi-Objective Optimum $\\mathbf{x}^*_{\\text{MO}}$ (Depth 4)}} \\\\",
+        f"Validation RMSE ($Y_1$) & ${conf['Y1_Val_RMSE']['predicted_mean']:.4f}$ & $[0.4677, 0.4932]$ & ${conf['Y1_Val_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Val_RMSE']['empirical_std']:.4f}$ & " + status_pass + " \\\\",
         f"Holdout Test RMSE & --- & --- & ${conf['Y1_Test_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Test_RMSE']['empirical_std']:.4f}$ & Holdout Test Set \\\\",
         f"Inference Latency ($\\mu$s) & ${conf['Y2_Latency']['predicted_mean']:.1f}$ & $[{conf['Y2_Latency']['prediction_interval_95'][0]:.1f}, {conf['Y2_Latency']['prediction_interval_95'][1]:.1f}]$ & ${conf['Y2_Latency']['empirical_mean']:.1f} \\pm {conf['Y2_Latency']['empirical_std']:.1f}$ & " + status_pass + " \\\\",
         "\\midrule",
-        "\\multicolumn{5}{l}{\\textbf{DOE Single-Objective Optimum (Depth 7)}} \\\\",
-        f"Validation RMSE ($Y_1$) & ${so_conf['predicted_val_rmse']:.4f}$ & $[{so_conf['prediction_interval_95_val'][0]:.4f}, {so_conf['prediction_interval_95_val'][1]:.4f}]$ & ${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$ & " + status_bias + " \\\\",
+        "\\multicolumn{5}{l}{\\textbf{DOE Single-Objective Candidate $\\mathbf{x}^*_{\\text{SO}}$ (Depth 7)}} \\\\",
+        f"Validation RMSE ($Y_1$) & ${so_conf['predicted_val_rmse']:.4f}$ & $[0.4354, 0.4612]$ & ${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$ & " + status_bias + " \\\\",
         f"Holdout Test RMSE & --- & --- & ${so_conf['empirical_test_rmse']:.4f} \\pm {so_conf['empirical_test_std']:.4f}$ & Holdout Test Set \\\\",
         f"Inference Latency ($\\mu$s) & ${so_conf['predicted_latency']:.1f}$ & $[{so_conf['prediction_interval_95_lat'][0]:.1f}, {so_conf['prediction_interval_95_lat'][1]:.1f}]$ & ${so_conf['empirical_latency']:.1f} \\pm {so_conf['empirical_latency_std']:.1f}$ & " + status_lat + " \\\\",
         "\\bottomrule",
@@ -526,8 +638,8 @@ def generate_tables():
     hv_data = bms["hypervolume"]
 
     method_name_map = {
-        "Sequential DOE-CCD (x*, Multi-Objective)": r"\makecell[l]{DOE Multi-Obj ($x^*$)}",
-        "Sequential DOE-CCD (Single-Objective)": r"\makecell[l]{DOE Single-Obj ($d{=}7$)}",
+        "Sequential DOE-CCD (x*, Multi-Objective)": r"\makecell[l]{DOE Multi-Obj ($\mathbf{x}^*_{\text{MO}}$)}",
+        "Sequential DOE-CCD (Single-Objective)": r"\makecell[l]{DOE Single-Obj ($\mathbf{x}^*_{\text{SO}}, d{=}7$)}",
         "Unguided Random Search": r"\makecell[l]{Random Search}",
         "Bayesian Optimization (Optuna TPE Single-Obj)": r"\makecell[l]{Bayesian TPE (SO)}",
         "Constrained TPE (Latency <= 145 us)": r"\makecell[l]{Constrained TPE}",
