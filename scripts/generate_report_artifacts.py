@@ -343,16 +343,22 @@ def generate_macros():
     add_macro("numLatSlowPct", f"{lat_slow_pct:.1f}\\%")
     add_macro("numDoeLatLowerPct", f"{doe_lat_lower_pct:.1f}\\%")
 
-    # Hypervolume: dynamically derived from benchmark artifacts (Codex Comment 4224890241)
+    # Hypervolume: dynamically derived from benchmark artifacts (Codex Comments 4224890241, 4224993140)
     hv = bm_sum.get("hypervolume", {})
     ref_pt = hv.get("reference_point", [0.60, 250.0])
+
+    def _single_point_hv(rmse: float, lat: float, ref: list) -> float:
+        if rmse <= ref[0] and lat <= ref[1]:
+            return float((ref[0] - rmse) * (ref[1] - lat))
+        return 0.0
+
     hv_doe_single = hv.get("hv_doe_single")
     if hv_doe_single is None:
-        hv_doe_single = float((ref_pt[0] - doe_test_rmse) * (ref_pt[1] - doe_row["predict_latency_us_median"]))
+        hv_doe_single = _single_point_hv(doe_test_rmse, doe_row["predict_latency_us_median"], ref_pt)
     
     hv_motpe = hv.get("hv_motpe")
     if hv_motpe is None:
-        hv_motpe = float((ref_pt[0] - motpe_row["test_rmse_mean"]) * (ref_pt[1] - motpe_row["predict_latency_us_median"]))
+        hv_motpe = _single_point_hv(motpe_row["test_rmse_mean"], motpe_row["predict_latency_us_median"], ref_pt)
     
     hv_doe_single_diff_pct = hv.get("doe_single_over_motpe_pct")
     if hv_doe_single_diff_pct is None:
