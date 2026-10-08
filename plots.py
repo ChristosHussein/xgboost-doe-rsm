@@ -172,12 +172,12 @@ def plot_response_surface_rmse_2d_3d(df_runs: pd.DataFrame, save_path: str = "fi
 
     # Directional arrow toward unconstrained stationary point
     ax1.annotate(
-        f"Stationary Point ({x0[0]:.2f}, {x0[1]:.2f}) outside (x3={x0[2]:.1f}) ↗",
+        f"Stationary Point ({x0[0]:.2f}, {x0[1]:.2f})\noutside domain ($x_3={x0[2]:.1f}$) ↗",
         xy=(min(1.0, max(-1.0, x0[0])), min(1.0, max(-1.0, x0[1]))),
-        xytext=(0.02, 0.88),
+        xytext=(-0.65, 0.78),
         arrowprops=dict(facecolor="red", edgecolor="black", shrink=0.08, width=1.5, headwidth=7),
         bbox=dict(boxstyle="round,pad=0.4", facecolor="#fff5f5", edgecolor="red", alpha=0.95),
-        fontsize=9.0,
+        fontsize=8.5,
         fontweight="bold"
     )
 
