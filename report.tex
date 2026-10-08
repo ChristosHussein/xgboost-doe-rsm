@@ -320,7 +320,7 @@ The constrained single-objective optimum within the hypercube occurs at depth $\
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/response_surface_latency_2d_3d.png}
-\caption{Inference Latency Modelling: (a) Empirical mean latency with 95\% CI error bars vs. linear ($R^2 = \numLatLinRsq$) and quadratic ($R^2 = \numLatQuadRsq$) fits. Note the substantial fixed overhead ($\approx 105\ \mu\text{s}$) arising from Python execution and tree traversal; (b) Distribution boxplots across discrete depths.}
+\caption{Inference Latency Modelling: (a) Empirical mean latency with 95\% CI error bars vs. linear ($R^2 = \numLatLinRsq$) and quadratic ($R^2 = \numLatQuadRsq$) fits. Note the linear base intercept ($\approx 80.8\ \mu\text{s}$) arising from Python execution overhead; (b) Distribution boxplots across discrete depths.}
 \label{fig:latency_depth}
 \end{figure}
 
