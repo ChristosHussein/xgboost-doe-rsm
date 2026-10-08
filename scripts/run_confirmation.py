@@ -25,7 +25,7 @@ from pipeline import CaliforniaHousingDataManager, evaluate_model, decode_factor
 
 CONFIRMATION_SEEDS = CONFIG["seeds"]["confirmation_seeds"]
 
-def execute_confirmation():
+def execute_confirmation(reuse_cached: bool = False):
     pin_cpu_affinity()
     os.makedirs("results", exist_ok=True)
     df_runs = pd.read_csv("results/runs.csv")
@@ -50,8 +50,24 @@ def execute_confirmation():
     XtXi = np.linalg.inv(X.T @ X)
 
     m = len(CONFIRMATION_SEEDS)
-    df_res = fit_y1.df_resid
-    t_crit = float(stats.t.ppf(0.975, df_res))
+    # Satterthwaite prediction interval helper with boundary guard for non-positive variance component
+    c2 = (1.0 / m + 0.2) / 28.0
+
+    def calc_satterthwaite_pi(fit, s2b, x_row, h):
+        ms_e = fit.mse_resid
+        c1 = (1.0 / m + h) - c2
+        if s2b > 0:
+            ms_blk = ms_e + 28.0 * s2b
+            var_pi = c1 * ms_e + c2 * ms_blk
+            denom_nu = ((c1 * ms_e)**2) / 121.0 + ((c2 * ms_blk)**2) / 4.0
+            nu_eff = (var_pi**2) / denom_nu if denom_nu > 0 else 121.0
+        else:
+            var_pi = ms_e * (1.0 / m + h)
+            nu_eff = 121.0
+        t_crit = float(stats.t.ppf(0.975, nu_eff))
+        yh = float(x_row @ fit.params.values)
+        half = t_crit * float(np.sqrt(var_pi))
+        return (yh - half, yh + half), nu_eff, var_pi, yh
 
     data_mgr = CaliforniaHousingDataManager()
 
@@ -65,15 +81,8 @@ def execute_confirmation():
                          0.2, 0.2, 0.2, 0.2])
     h_mo = float(x_row_mo @ XtXi @ x_row_mo)
 
-    yh_y1_mo = float(x_row_mo @ fit_y1.params.values)
-    var_pi_y1_mo = fit_y1.mse_resid * (1.0 / m + h_mo) + s2b_y1 * (1.0 / m + 0.2)
-    half_y1_mo = t_crit * float(np.sqrt(var_pi_y1_mo))
-    pi_y1_mo = (yh_y1_mo - half_y1_mo, yh_y1_mo + half_y1_mo)
-
-    yh_y2_mo = float(x_row_mo @ fit_y2.params.values)
-    var_pi_y2_mo = fit_y2.mse_resid * (1.0 / m + h_mo) + s2b_y2 * (1.0 / m + 0.2)
-    half_y2_mo = t_crit * float(np.sqrt(var_pi_y2_mo))
-    pi_y2_mo = (yh_y2_mo - half_y2_mo, yh_y2_mo + half_y2_mo)
+    pi_y1_mo, nu_eff_y1_mo, var_pi_y1_mo, yh_y1_mo = calc_satterthwaite_pi(fit_y1, s2b_y1, x_row_mo, h_mo)
+    pi_y2_mo, nu_eff_y2_mo, var_pi_y2_mo, yh_y2_mo = calc_satterthwaite_pi(fit_y2, s2b_y2, x_row_mo, h_mo)
 
     # 2. Single-Objective Optimum (Depth 7)
     with open("results/phase3.json", "r", encoding="utf-8") as f:
@@ -87,63 +96,64 @@ def execute_confirmation():
                          0.2, 0.2, 0.2, 0.2])
     h_so = float(x_row_so @ XtXi @ x_row_so)
 
-    yh_y1_so = float(x_row_so @ fit_y1.params.values)
-    var_pi_y1_so = fit_y1.mse_resid * (1.0 / m + h_so) + s2b_y1 * (1.0 / m + 0.2)
-    half_y1_so = t_crit * float(np.sqrt(var_pi_y1_so))
-    pi_y1_so = (yh_y1_so - half_y1_so, yh_y1_so + half_y1_so)
+    pi_y1_so, nu_eff_y1_so, var_pi_y1_so, yh_y1_so = calc_satterthwaite_pi(fit_y1, s2b_y1, x_row_so, h_so)
+    pi_y2_so, nu_eff_y2_so, var_pi_y2_so, yh_y2_so = calc_satterthwaite_pi(fit_y2, s2b_y2, x_row_so, h_so)
 
-    yh_y2_so = float(x_row_so @ fit_y2.params.values)
-    var_pi_y2_so = fit_y2.mse_resid * (1.0 / m + h_so) + s2b_y2 * (1.0 / m + 0.2)
-    half_y2_so = t_crit * float(np.sqrt(var_pi_y2_so))
-    pi_y2_so = (yh_y2_so - half_y2_so, yh_y2_so + half_y2_so)
+    csv_mo = "results/confirmation_runs.csv"
+    csv_so = "results/confirmation_runs_single_obj.csv"
 
-    print(f"Running confirmation at x* across {m} fresh seeds...")
-    records_mo = []
-    records_so = []
+    if reuse_cached and os.path.exists(csv_mo) and os.path.exists(csv_so):
+        print(f"Loading existing confirmation runs from {csv_mo} and {csv_so}...")
+        df_conf_mo = pd.read_csv(csv_mo)
+        df_conf_so = pd.read_csv(csv_so)
+    else:
+        print(f"Running confirmation at x* across {m} fresh seeds...")
+        records_mo = []
+        records_so = []
 
-    for seed in CONFIRMATION_SEEDS:
-        eval_mo = evaluate_model(
-            eta=eta_star,
-            depth=depth_star,
-            subsample=sub_star,
-            reg_lambda=lam_star,
-            seed=seed,
-            data_mgr=data_mgr,
-            measure_latency_details=True
-        )
-        records_mo.append({
-            "seed": seed,
-            "val_rmse": eval_mo["val_rmse"],
-            "test_rmse": eval_mo["test_rmse"],
-            "latency_us_median": eval_mo["latency_us_median"],
-            "latency_us_iqr": eval_mo["latency_us_iqr"],
-            "inplace_latency_us_median": eval_mo["inplace_latency_us_median"],
-            "fit_time_s": eval_mo["fit_time_s"],
-        })
+        for seed in CONFIRMATION_SEEDS:
+            eval_mo = evaluate_model(
+                eta=eta_star,
+                depth=depth_star,
+                subsample=sub_star,
+                reg_lambda=lam_star,
+                seed=seed,
+                data_mgr=data_mgr,
+                measure_latency_details=True
+            )
+            records_mo.append({
+                "seed": seed,
+                "val_rmse": eval_mo["val_rmse"],
+                "test_rmse": eval_mo["test_rmse"],
+                "latency_us_median": eval_mo["latency_us_median"],
+                "latency_us_iqr": eval_mo["latency_us_iqr"],
+                "inplace_latency_us_median": eval_mo["inplace_latency_us_median"],
+                "fit_time_s": eval_mo["fit_time_s"],
+            })
 
-        eval_so = evaluate_model(
-            eta=eta_so,
-            depth=depth_so,
-            subsample=sub_so,
-            reg_lambda=lam_so,
-            seed=seed,
-            data_mgr=data_mgr,
-            measure_latency_details=True
-        )
-        records_so.append({
-            "seed": seed,
-            "val_rmse": eval_so["val_rmse"],
-            "test_rmse": eval_so["test_rmse"],
-            "latency_us_median": eval_so["latency_us_median"],
-            "latency_us_iqr": eval_so["latency_us_iqr"],
-            "inplace_latency_us_median": eval_so["inplace_latency_us_median"],
-            "fit_time_s": eval_so["fit_time_s"],
-        })
+            eval_so = evaluate_model(
+                eta=eta_so,
+                depth=depth_so,
+                subsample=sub_so,
+                reg_lambda=lam_so,
+                seed=seed,
+                data_mgr=data_mgr,
+                measure_latency_details=True
+            )
+            records_so.append({
+                "seed": seed,
+                "val_rmse": eval_so["val_rmse"],
+                "test_rmse": eval_so["test_rmse"],
+                "latency_us_median": eval_so["latency_us_median"],
+                "latency_us_iqr": eval_so["latency_us_iqr"],
+                "inplace_latency_us_median": eval_so["inplace_latency_us_median"],
+                "fit_time_s": eval_so["fit_time_s"],
+            })
 
-    df_conf_mo = pd.DataFrame(records_mo)
-    df_conf_so = pd.DataFrame(records_so)
-    df_conf_mo.to_csv("results/confirmation_runs.csv", index=False)
-    df_conf_so.to_csv("results/confirmation_runs_single_obj.csv", index=False)
+        df_conf_mo = pd.DataFrame(records_mo)
+        df_conf_so = pd.DataFrame(records_so)
+        df_conf_mo.to_csv(csv_mo, index=False)
+        df_conf_so.to_csv(csv_so, index=False)
 
     emp_val_m_mo = float(df_conf_mo["val_rmse"].mean())
     emp_val_s_mo = float(df_conf_mo["val_rmse"].std())
@@ -176,6 +186,7 @@ def execute_confirmation():
         "Y1_Val_RMSE": {
             "predicted_mean": yh_y1_mo,
             "prediction_interval_95": [float(pi_y1_mo[0]), float(pi_y1_mo[1])],
+            "nu_eff": float(nu_eff_y1_mo),
             "empirical_mean": emp_val_m_mo,
             "empirical_std": emp_val_s_mo,
             "inside_pi": inside_val_mo,
@@ -187,6 +198,7 @@ def execute_confirmation():
         "Y2_Latency": {
             "predicted_mean": yh_y2_mo,
             "prediction_interval_95": [float(pi_y2_mo[0]), float(pi_y2_mo[1])],
+            "nu_eff": float(nu_eff_y2_mo),
             "empirical_mean": emp_lat_m_mo,
             "empirical_std": emp_lat_s_mo,
             "empirical_inplace_mean": emp_inplat_m_mo,
@@ -201,6 +213,7 @@ def execute_confirmation():
             "leverage_h": h_so,
             "predicted_val_rmse": yh_y1_so,
             "prediction_interval_95_val": [float(pi_y1_so[0]), float(pi_y1_so[1])],
+            "nu_eff": float(nu_eff_y1_so),
             "empirical_val_rmse": emp_val_m_so,
             "empirical_val_std": emp_val_s_so,
             "empirical_test_rmse": emp_test_m_so,
@@ -230,4 +243,8 @@ def execute_confirmation():
     return summary
 
 if __name__ == "__main__":
-    execute_confirmation()
+    import argparse
+    parser = argparse.ArgumentParser(description="Run confirmation experiment at recommended optima.")
+    parser.add_argument("--reuse-cache", action="store_true", help="Reuse cached confirmation CSVs if available.")
+    args = parser.parse_args()
+    execute_confirmation(reuse_cached=args.reuse_cache)

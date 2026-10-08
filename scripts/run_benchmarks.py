@@ -37,6 +37,7 @@ import yaml
 # Ensure root directory is on sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pipeline import CaliforniaHousingDataManager, decode_factors, encode_factors, pin_cpu_affinity, CONFIG
+from analysis import derringer_suich_desirability
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
@@ -240,6 +241,20 @@ def run_tpe_single_objective(n_trials: int, sampler_seed: int, eval_seed: int, d
     return best_x, best_val, trajectory
 
 
+def measure_trial_latency(model, sample: np.ndarray, warmup: int = 10, reps: int = 30) -> float:
+    """CR-001: Measures genuine single-sample prediction latency (in microseconds) during search."""
+    model.set_params(n_jobs=1)
+    booster = model.get_booster()
+    booster.set_param({"nthread": 1})
+    for _ in range(warmup):
+        _ = model.predict(sample)
+    t0 = time.perf_counter_ns()
+    for _ in range(reps):
+        _ = model.predict(sample)
+    t1 = time.perf_counter_ns()
+    return float((t1 - t0) / (reps * 1000.0))
+
+
 def run_tpe_constrained(n_trials: int, sampler_seed: int, eval_seed: int, max_latency_us: float, data_mgr: CaliforniaHousingDataManager):
     """Constrained TPE: Minimize Val RMSE s.t. Latency <= max_latency_us (strictly enforced)."""
     X_tr, X_val, _, y_tr, y_val, _ = data_mgr.get_split(eval_seed)
@@ -250,9 +265,6 @@ def run_tpe_constrained(n_trials: int, sampler_seed: int, eval_seed: int, max_la
         x = np.array([trial.suggest_float(f"x{i}", -1.0, 1.0) for i in range(1, 5)])
         eta, depth, subsample, reg_lambda = decode_factors(x)
 
-        # Approximate latency via quadratic model to guide search
-        lat_est = 115.0 + 3.0 * depth + 0.8 * (depth**2)
-
         m = xgb.XGBRegressor(
             n_estimators=CONFIG["model"]["n_estimators"],
             learning_rate=eta,
@@ -266,10 +278,13 @@ def run_tpe_constrained(n_trials: int, sampler_seed: int, eval_seed: int, max_la
         m.fit(X_tr, y_tr)
         val_rmse = float(np.sqrt(np.mean((y_val - m.predict(X_val))**2)))
 
-        # Penalty if estimated latency violates constraint
-        penalty = max(0.0, (lat_est - max_latency_us)) * 0.05
+        # CR-001: Measure genuine single-sample prediction latency on fitted model
+        lat_measured = measure_trial_latency(m, X_val[:1])
+
+        # Penalty if measured latency violates constraint
+        penalty = max(0.0, (lat_measured - max_latency_us)) * 0.05
         score = val_rmse + penalty
-        trials_data.append((x, val_rmse, lat_est, score))
+        trials_data.append((x, val_rmse, lat_measured, score))
         return score
 
     sampler = optuna.samplers.TPESampler(seed=sampler_seed)
@@ -279,19 +294,18 @@ def run_tpe_constrained(n_trials: int, sampler_seed: int, eval_seed: int, max_la
     # Strictly filter to trials satisfying constraint
     valid_trials = [t for t in trials_data if t[2] <= max_latency_us]
     if not valid_trials:
-        valid_trials = sorted(trials_data, key=lambda t: t[2])[:5]
+        raise RuntimeError(f"Constrained TPE found no feasible trials satisfying latency <= {max_latency_us} us across {n_trials} evaluations.")
     best_t = min(valid_trials, key=lambda t: t[1])
     return best_t[0], best_t[1]
 
 
 def run_tpe_multi_objective(n_trials: int, sampler_seed: int, eval_seed: int, data_mgr: CaliforniaHousingDataManager):
-    """Multi-Objective TPE optimizing Val RMSE and Latency."""
+    """Multi-Objective TPE optimizing Val RMSE and genuine measured Latency."""
     X_tr, X_val, _, y_tr, y_val, _ = data_mgr.get_split(eval_seed)
 
     def obj(trial):
         x = np.array([trial.suggest_float(f"x{i}", -1.0, 1.0) for i in range(1, 5)])
         eta, depth, subsample, reg_lambda = decode_factors(x)
-        lat_est = 115.0 + 3.0 * depth + 0.8 * (depth**2)
 
         m = xgb.XGBRegressor(
             n_estimators=CONFIG["model"]["n_estimators"],
@@ -305,7 +319,11 @@ def run_tpe_multi_objective(n_trials: int, sampler_seed: int, eval_seed: int, da
         )
         m.fit(X_tr, y_tr)
         val_rmse = float(np.sqrt(np.mean((y_val - m.predict(X_val))**2)))
-        return val_rmse, lat_est
+
+        # CR-001: Measure genuine single-sample prediction latency on fitted model
+        lat_measured = measure_trial_latency(m, X_val[:1])
+
+        return val_rmse, lat_measured
 
     sampler = optuna.samplers.TPESampler(seed=sampler_seed)
     study = optuna.create_study(directions=["minimize", "minimize"], sampler=sampler)
@@ -313,18 +331,23 @@ def run_tpe_multi_objective(n_trials: int, sampler_seed: int, eval_seed: int, da
 
     best_D = -1.0
     best_x = None
+    all_pareto = []
     L1, U1 = CONFIG["desirability"]["Y1_RMSE"]["L"], CONFIG["desirability"]["Y1_RMSE"]["U"]
     L2, U2 = CONFIG["desirability"]["Y2_Latency"]["L"], CONFIG["desirability"]["Y2_Latency"]["U"]
 
     for t in study.trials:
         if t.values is not None:
             v_rmse, v_lat = t.values[0], t.values[1]
-            d1 = max(0.0, min(1.0, (U1 - v_rmse) / (U1 - L1)))
-            d2 = max(0.0, min(1.0, (U2 - v_lat) / (U2 - L2)))
-            D = (d1 * d2)**0.5
-            if D > best_D:
+            d1, d2, D = derringer_suich_desirability(v_rmse, v_lat, L1, U1, L2, U2)
+            all_pareto.append((t, v_rmse, v_lat, D))
+            if D > best_D and D > 0.0:
                 best_D = D
                 best_x = np.array([t.params[f"x{i}"] for i in range(1, 5)])
+
+    if best_x is None and all_pareto:
+        best_t = min(all_pareto, key=lambda item: ((max(0.0, item[1] - L1) / (U1 - L1))**2 + (max(0.0, item[2] - L2) / (U2 - L2))**2))
+        best_x = np.array([best_t[0].params[f"x{i}"] for i in range(1, 5)])
+        best_D = best_t[3]
 
     return best_x, best_D
 
@@ -343,6 +366,33 @@ def compute_hypervolume(points: List[Tuple[float, float]], ref_point: Tuple[floa
     return float(hv)
 
 
+def run_single_optimizer_replicate(s: int, eval_seed: int = 42) -> Dict[str, Any]:
+    """Runs a single optimizer replicate across all 4 baselines on the fixed development seed."""
+    dm = CaliforniaHousingDataManager()
+    x_rs, val_rs, traj_rs = run_random_search(140, sampler_seed=s, eval_seed=eval_seed, data_mgr=dm)
+    x_tpe, val_tpe, traj_tpe = run_tpe_single_objective(140, sampler_seed=s, eval_seed=eval_seed, data_mgr=dm)
+    x_co, val_co = run_tpe_constrained(140, sampler_seed=s, eval_seed=eval_seed, max_latency_us=145.0, data_mgr=dm)
+    x_mo, des_mo = run_tpe_multi_objective(140, sampler_seed=s, eval_seed=eval_seed, data_mgr=dm)
+    return {
+        "seed": s,
+        "x_rs": x_rs, "val_rs": val_rs, "traj_rs": traj_rs,
+        "x_tpe": x_tpe, "val_tpe": val_tpe, "traj_tpe": traj_tpe,
+        "x_co": x_co, "val_co": val_co,
+        "x_mo": x_mo, "des_mo": des_mo,
+    }
+
+
+def select_median_actual_incumbent(incumbents: List[np.ndarray], scores: List[float], higher_is_better: bool = False) -> Tuple[np.ndarray, int]:
+    """
+    Selects the actual optimizer winner corresponding to the median search performance replicate.
+    CR-002: Guarantees the evaluated configuration is an actual incumbent produced by a genuine
+    optimizer run, rather than a synthetic coordinate-wise median vector.
+    """
+    indexed = sorted(range(len(scores)), key=lambda i: scores[i], reverse=higher_is_better)
+    med_idx = indexed[len(indexed) // 2]
+    return incumbents[med_idx], med_idx
+
+
 def main():
     print("="*70)
     print("RUNNING FAIR EMPIRICAL BENCHMARKS (20 Replicates x 140 Budget)")
@@ -356,33 +406,30 @@ def main():
         p3 = json.load(f)
     x_doe_so = np.array(p3["constrained_optimum_cube"]["x"])
 
-    # 1. Run Optimizers across 20 sampler seeds
-    rs_incumbents = []
-    rs_trajectories = []
-    tpe_so_incumbents = []
-    tpe_so_trajectories = []
-    tpe_co_incumbents = []
-    tpe_mo_incumbents = []
+    # 1. Run Optimizers across 20 sampler seeds serially on dedicated pinned core
+    # Eliminates scheduler contention during online latency timing (Codex Comment 4224787409)
+    print("Running 20 optimizer replicates serially on dedicated pinned core (no scheduler contention)...")
+    rep_results = []
+    for rep_idx, s in enumerate(OPTIMIZER_SEEDS):
+        t0_rep = time.time()
+        print(f"[{rep_idx+1}/{len(OPTIMIZER_SEEDS)}] Running replicate seed {s}...")
+        r = run_single_optimizer_replicate(s, 42)
+        rep_results.append(r)
+        print(f"  Completed replicate seed {s} in {time.time()-t0_rep:.1f}s (RS val: {r['val_rs']:.4f}, TPE val: {r['val_tpe']:.4f})")
 
-    print("Running 20 optimizer replicates...")
-    for s_idx, s in enumerate(OPTIMIZER_SEEDS, 1):
-        # Evaluate on fixed development seed 42
-        x_rs, _, traj_rs = run_random_search(140, sampler_seed=s, eval_seed=42, data_mgr=data_mgr)
-        rs_incumbents.append(x_rs)
-        rs_trajectories.append(traj_rs)
+    rs_incumbents = [r["x_rs"] for r in rep_results]
+    rs_vals = [r["val_rs"] for r in rep_results]
+    rs_trajectories = [r["traj_rs"] for r in rep_results]
 
-        x_tpe, _, traj_tpe = run_tpe_single_objective(140, sampler_seed=s, eval_seed=42, data_mgr=data_mgr)
-        tpe_so_incumbents.append(x_tpe)
-        tpe_so_trajectories.append(traj_tpe)
+    tpe_so_incumbents = [r["x_tpe"] for r in rep_results]
+    tpe_so_vals = [r["val_tpe"] for r in rep_results]
+    tpe_so_trajectories = [r["traj_tpe"] for r in rep_results]
 
-        x_co, _ = run_tpe_constrained(140, sampler_seed=s, eval_seed=42, max_latency_us=145.0, data_mgr=data_mgr)
-        tpe_co_incumbents.append(x_co)
+    tpe_co_incumbents = [r["x_co"] for r in rep_results]
+    tpe_co_vals = [r["val_co"] for r in rep_results]
 
-        x_mo, _ = run_tpe_multi_objective(140, sampler_seed=s, eval_seed=42, data_mgr=data_mgr)
-        tpe_mo_incumbents.append(x_mo)
-
-        if s_idx % 5 == 0:
-            print(f"[{s_idx}/20] optimizer replicates finished.")
+    tpe_mo_incumbents = [r["x_mo"] for r in rep_results]
+    tpe_mo_desirabilities = [r["des_mo"] for r in rep_results]
 
     # Save trajectories
     df_traj = pd.DataFrame({
@@ -396,20 +443,42 @@ def main():
     })
     df_traj.to_csv("results/benchmark_evals_trajectories.csv", index=False)
 
-    # Median incumbent coordinates
-    x_rs_med = np.median(rs_incumbents, axis=0)
-    x_tpe_so_med = np.median(tpe_so_incumbents, axis=0)
-    x_tpe_co_med = np.median(tpe_co_incumbents, axis=0)
-    x_tpe_mo_med = np.median(tpe_mo_incumbents, axis=0)
+    # CR-002: Select actual optimizer winners from the median-performing search replicate
+    x_rs_winner, idx_rs = select_median_actual_incumbent(rs_incumbents, rs_vals, higher_is_better=False)
+    x_tpe_so_winner, idx_tpe = select_median_actual_incumbent(tpe_so_incumbents, tpe_so_vals, higher_is_better=False)
+    x_tpe_co_winner, idx_co = select_median_actual_incumbent(tpe_co_incumbents, tpe_co_vals, higher_is_better=False)
+    x_tpe_mo_winner, idx_mo = select_median_actual_incumbent(tpe_mo_incumbents, tpe_mo_desirabilities, higher_is_better=True)
+
+    print("\nSelected actual optimizer winners (median search replicate):")
+    print(f"  Random Search: rep #{idx_rs} (seed {OPTIMIZER_SEEDS[idx_rs]}), Val RMSE = {rs_vals[idx_rs]:.4f}")
+    print(f"  TPE Single-Obj: rep #{idx_tpe} (seed {OPTIMIZER_SEEDS[idx_tpe]}), Val RMSE = {tpe_so_vals[idx_tpe]:.4f}")
+    print(f"  Constrained TPE: rep #{idx_co} (seed {OPTIMIZER_SEEDS[idx_co]}), Val RMSE = {tpe_co_vals[idx_co]:.4f}")
+    print(f"  Multi-Obj TPE: rep #{idx_mo} (seed {OPTIMIZER_SEEDS[idx_mo]}), Desirability = {tpe_mo_desirabilities[idx_mo]:.4f}")
+
+    # Save all 20 actual incumbents for full transparency and audit trail
+    incumbent_records = []
+    for s_idx, s in enumerate(OPTIMIZER_SEEDS):
+        eta_rs, d_rs, sub_rs, lam_rs = decode_factors(rs_incumbents[s_idx])
+        eta_tpe, d_tpe, sub_tpe, lam_tpe = decode_factors(tpe_so_incumbents[s_idx])
+        eta_co, d_co, sub_co, lam_co = decode_factors(tpe_co_incumbents[s_idx])
+        eta_mo, d_mo, sub_mo, lam_mo = decode_factors(tpe_mo_incumbents[s_idx])
+        incumbent_records.append({
+            "optimizer_seed": s,
+            "rs_val_rmse": rs_vals[s_idx], "rs_depth": d_rs, "rs_eta": eta_rs, "rs_subsample": sub_rs, "rs_lambda": lam_rs,
+            "tpe_so_val_rmse": tpe_so_vals[s_idx], "tpe_so_depth": d_tpe, "tpe_so_eta": eta_tpe, "tpe_so_subsample": sub_tpe, "tpe_so_lambda": lam_tpe,
+            "tpe_co_val_rmse": tpe_co_vals[s_idx], "tpe_co_depth": d_co, "tpe_co_eta": eta_co, "tpe_co_subsample": sub_co, "tpe_co_lambda": lam_co,
+            "tpe_mo_desirability": tpe_mo_desirabilities[s_idx], "tpe_mo_depth": d_mo, "tpe_mo_eta": eta_mo, "tpe_mo_subsample": sub_mo, "tpe_mo_lambda": lam_mo,
+        })
+    pd.DataFrame(incumbent_records).to_csv("results/benchmark_optimizer_incumbents.csv", index=False)
 
     # 2. Evaluate all methods across 20 fresh evaluation seeds
     configs_to_eval = {
         "Sequential DOE-CCD (x*, Multi-Objective)": x_doe_mo,
         "Sequential DOE-CCD (Single-Objective)": x_doe_so,
-        "Unguided Random Search": x_rs_med,
-        "Bayesian Optimization (Optuna TPE Single-Obj)": x_tpe_so_med,
-        "Constrained TPE (Latency <= 145 us)": x_tpe_co_med,
-        "Multi-Objective TPE (Desirability)": x_tpe_mo_med,
+        "Unguided Random Search": x_rs_winner,
+        "Bayesian Optimization (Optuna TPE Single-Obj)": x_tpe_so_winner,
+        "Constrained TPE (Latency <= 145 us)": x_tpe_co_winner,
+        "Multi-Objective TPE (Desirability)": x_tpe_mo_winner,
     }
 
     eval_results = {}
@@ -480,17 +549,26 @@ def main():
         }
 
     # 5. Hypervolume calculation (Reference point: [0.60, 250.0])
+    # Addresses Codex Comment 4224787423: Compute both single-point (x*_MO alone) and two-point (x*_MO + x*_SO) hypervolume
     ref_point = (0.60, 250.0)
-    # DOE front: Depth 4 (x*) and Depth 7 (Single-Obj)
-    pts_doe = [
+
+    # Single-point DOE: Depth 4 (x*, Multi-Objective) alone
+    pts_doe_single = [
+        (eval_results["Sequential DOE-CCD (x*, Multi-Objective)"]["test_rmse_mean"],
+         lat_results["Sequential DOE-CCD (x*, Multi-Objective)"]["predict_latency_us_median"])
+    ]
+    hv_doe_single = compute_hypervolume(pts_doe_single, ref_point)
+
+    # Two-point complementary DOE front: Depth 4 (x*) and Depth 7 (Single-Obj)
+    pts_doe_two = [
         (eval_results["Sequential DOE-CCD (Single-Objective)"]["test_rmse_mean"],
          lat_results["Sequential DOE-CCD (Single-Objective)"]["predict_latency_us_median"]),
         (eval_results["Sequential DOE-CCD (x*, Multi-Objective)"]["test_rmse_mean"],
          lat_results["Sequential DOE-CCD (x*, Multi-Objective)"]["predict_latency_us_median"]),
     ]
-    hv_doe = compute_hypervolume(pts_doe, ref_point)
+    hv_doe_two = compute_hypervolume(pts_doe_two, ref_point)
 
-    # MO-TPE front
+    # MO-TPE selected operating point
     pts_motpe = [
         (eval_results["Multi-Objective TPE (Desirability)"]["test_rmse_mean"],
          lat_results["Multi-Objective TPE (Desirability)"]["predict_latency_us_median"])
@@ -505,11 +583,14 @@ def main():
     hv_rs = compute_hypervolume(pts_rs, ref_point)
 
     hv_summary = {
-        "reference_point": ref_point,
-        "hv_doe": hv_doe,
-        "hv_motpe": hv_motpe,
-        "hv_rs": hv_rs,
-        "doe_over_motpe_pct": ((hv_doe - hv_motpe) / hv_motpe) * 100.0,
+        "reference_point": list(ref_point),
+        "hv_doe_single": float(hv_doe_single),
+        "hv_doe_two": float(hv_doe_two),
+        "hv_doe": float(hv_doe_two),  # backward compatibility alias for two-point
+        "hv_motpe": float(hv_motpe),
+        "hv_rs": float(hv_rs),
+        "doe_single_over_motpe_pct": float((((hv_doe_single - hv_motpe) / hv_motpe) * 100.0) if hv_motpe > 0 else 0.0),
+        "doe_over_motpe_pct": float((((hv_doe_two - hv_motpe) / hv_motpe) * 100.0) if hv_motpe > 0 else 0.0),
     }
 
     # 6. Desirability sensitivity table
@@ -560,9 +641,7 @@ def main():
             y1_p = sum(fit_y1.params[k] * row_dict.get(k, 0.0) for k in fit_y1.params.index)
             y2_p = sum(fit_y2.params[k] * row_dict.get(k, 0.0) for k in fit_y2.params.index)
 
-            d1 = max(0.0, min(1.0, (U1 - y1_p) / (U1 - L1)))
-            d2 = max(0.0, min(1.0, (U2 - y2_p) / (U2 - L2)))
-            D = (d1**w1 * d2**w2)**(1.0 / (w1 + w2))
+            d1, d2, D = derringer_suich_desirability(y1_p, y2_p, L1, U1, L2, U2, w1=w1, w2=w2)
             if D > best_D:
                 best_D = D
                 best_pt = (x1_v, d_val, x3_v, x4_v)

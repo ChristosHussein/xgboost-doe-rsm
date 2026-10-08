@@ -269,6 +269,7 @@ def generate_macros():
     add_macro("numConfPredValRMSE", f"{conf['Y1_Val_RMSE']['predicted_mean']:.4f}")
     add_macro("numConfPiLowValRMSE", f"{conf['Y1_Val_RMSE']['prediction_interval_95'][0]:.4f}")
     add_macro("numConfPiHighValRMSE", f"{conf['Y1_Val_RMSE']['prediction_interval_95'][1]:.4f}")
+    add_macro("numConfNuEffMo", f"{conf['Y1_Val_RMSE']['nu_eff']:.1f}")
     add_macro("numConfEmpValRMSE", f"{conf['Y1_Val_RMSE']['empirical_mean']:.4f}")
     add_macro("numConfEmpValRMSEStd", f"{conf['Y1_Val_RMSE']['empirical_std']:.4f}")
     add_macro("numConfEmpTestRMSE", f"{conf['Y1_Test_RMSE']['empirical_mean']:.4f}")
@@ -286,6 +287,7 @@ def generate_macros():
     add_macro("numConfSoPredValRMSE", f"{so_conf['predicted_val_rmse']:.4f}")
     add_macro("numConfSoPiLowValRMSE", f"{so_conf['prediction_interval_95_val'][0]:.4f}")
     add_macro("numConfSoPiHighValRMSE", f"{so_conf['prediction_interval_95_val'][1]:.4f}")
+    add_macro("numConfSoNuEffSo", f"{so_conf['nu_eff']:.1f}")
     add_macro("numConfSoEmpValRMSE", f"{so_conf['empirical_val_rmse']:.4f}")
     add_macro("numConfSoEmpValRMSEStd", f"{so_conf['empirical_val_std']:.4f}")
     add_macro("numConfSoEmpTestRMSE", f"{so_conf['empirical_test_rmse']:.4f}")
@@ -341,12 +343,36 @@ def generate_macros():
     add_macro("numLatSlowPct", f"{lat_slow_pct:.1f}\\%")
     add_macro("numDoeLatLowerPct", f"{doe_lat_lower_pct:.1f}\\%")
 
-    # Hypervolume
-    hv = bm_sum["hypervolume"]
+    # Hypervolume: dynamically derived from benchmark artifacts (Codex Comments 4224890241, 4224993140)
+    hv = bm_sum.get("hypervolume", {})
+    ref_pt = hv.get("reference_point", [0.60, 250.0])
+
+    def _single_point_hv(rmse: float, lat: float, ref: list) -> float:
+        if rmse <= ref[0] and lat <= ref[1]:
+            return float((ref[0] - rmse) * (ref[1] - lat))
+        return 0.0
+
+    hv_doe_single = hv.get("hv_doe_single")
+    if hv_doe_single is None:
+        hv_doe_single = _single_point_hv(doe_test_rmse, doe_row["predict_latency_us_median"], ref_pt)
+    
+    hv_motpe = hv.get("hv_motpe")
+    if hv_motpe is None:
+        hv_motpe = _single_point_hv(motpe_row["test_rmse_mean"], motpe_row["predict_latency_us_median"], ref_pt)
+    
+    hv_doe_single_diff_pct = hv.get("doe_single_over_motpe_pct")
+    if hv_doe_single_diff_pct is None:
+        hv_doe_single_diff_pct = ((hv_doe_single - hv_motpe) / hv_motpe) * 100.0 if hv_motpe > 0 else 0.0
+
+    if "hv_doe" not in hv or "hv_rs" not in hv:
+        raise KeyError("Missing required hypervolume keys ('hv_doe', 'hv_rs') in benchmark_summary.json")
+
     add_macro("numHvDoe", f"{hv['hv_doe']:.2f}")
-    add_macro("numHvMoTpe", f"{hv['hv_motpe']:.2f}")
+    add_macro("numHvDoeSingle", f"{hv_doe_single:.2f}")
+    add_macro("numHvMoTpe", f"{hv_motpe:.2f}")
     add_macro("numHvRs", f"{hv['hv_rs']:.2f}")
     add_macro("numHvDoeGainPct", f"{hv['doe_over_motpe_pct']:.1f}\\%")
+    add_macro("numHvDoeSingleDiffPct", f"{hv_doe_single_diff_pct:.1f}\\%")
 
     # Latency model fit macros
     m_lin = df_lat[df_lat["Model"].str.contains("Linear")].iloc[0]
@@ -608,8 +634,23 @@ def generate_tables():
 
     status_pass = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
     bias_val = so_conf['empirical_val_rmse'] - so_conf['predicted_val_rmse']
-    status_bias = "\\makecell[c]{\\textbf{Empirical Opt}\\\\(Bias: " + f"{bias_val:+.4f}" + ")}"
-    status_lat = "\\makecell[c]{Borderline\\\\(At Lower PI)}"
+    if so_conf.get("inside_pi_val", False):
+        status_bias = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
+    else:
+        bias_type = "Optimism" if bias_val > 0 else "Pessimism"
+        status_bias = "\\makecell[c]{\\textbf{Not Confirmed}\\\\(" + f"{bias_type}: {bias_val:+.4f}" + ")}"
+
+    if so_conf.get("inside_pi_lat", False):
+        lat_lo, _ = so_conf["prediction_interval_95_lat"]
+        if abs(so_conf["empirical_latency"] - lat_lo) < 0.5:
+            status_lat = "\\makecell[c]{Borderline\\\\(At Lower PI)}"
+        else:
+            status_lat = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
+    else:
+        status_lat = "\\makecell[c]{\\textbf{Not Confirmed}\\\\(Outside PI)}"
+
+    pi_y1_mo_str = f"[{conf['Y1_Val_RMSE']['prediction_interval_95'][0]:.4f}, {conf['Y1_Val_RMSE']['prediction_interval_95'][1]:.4f}]"
+    pi_y1_so_str = f"[{so_conf['prediction_interval_95_val'][0]:.4f}, {so_conf['prediction_interval_95_val'][1]:.4f}]"
 
     tex_conf = [
         "\\begin{tabular}{lcccc}",
@@ -617,12 +658,12 @@ def generate_tables():
         "\\makecell[l]{\\textbf{Configuration /}\\\\\\textbf{Response Metric}} & \\makecell{\\textbf{Surrogate}\\\\\\textbf{Pred ($\\hat{y}$)}} & \\makecell{\\textbf{95\\% Pred}\\\\\\textbf{Interval (PI)}} & \\makecell{\\textbf{Empirical}\\\\\\textbf{Mean $\\pm$ SD}} & \\makecell{\\textbf{Confirmation}\\\\\\textbf{Status}} \\\\",
         "\\midrule",
         "\\multicolumn{5}{l}{\\textbf{DOE Multi-Objective Optimum $\\mathbf{x}^*_{\\text{MO}}$ (Depth 4)}} \\\\",
-        f"Validation RMSE ($Y_1$) & ${conf['Y1_Val_RMSE']['predicted_mean']:.4f}$ & $[0.4677, 0.4932]$ & ${conf['Y1_Val_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Val_RMSE']['empirical_std']:.4f}$ & " + status_pass + " \\\\",
+        f"Validation RMSE ($Y_1$) & ${conf['Y1_Val_RMSE']['predicted_mean']:.4f}$ & ${pi_y1_mo_str}$ & ${conf['Y1_Val_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Val_RMSE']['empirical_std']:.4f}$ & " + status_pass + " \\\\",
         f"Holdout Test RMSE & --- & --- & ${conf['Y1_Test_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Test_RMSE']['empirical_std']:.4f}$ & Holdout Test Set \\\\",
         f"Inference Latency ($\\mu$s) & ${conf['Y2_Latency']['predicted_mean']:.1f}$ & $[{conf['Y2_Latency']['prediction_interval_95'][0]:.1f}, {conf['Y2_Latency']['prediction_interval_95'][1]:.1f}]$ & ${conf['Y2_Latency']['empirical_mean']:.1f} \\pm {conf['Y2_Latency']['empirical_std']:.1f}$ & " + status_pass + " \\\\",
         "\\midrule",
         "\\multicolumn{5}{l}{\\textbf{DOE Single-Objective Candidate $\\mathbf{x}^*_{\\text{SO}}$ (Depth 7)}} \\\\",
-        f"Validation RMSE ($Y_1$) & ${so_conf['predicted_val_rmse']:.4f}$ & $[0.4354, 0.4612]$ & ${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$ & " + status_bias + " \\\\",
+        f"Validation RMSE ($Y_1$) & ${so_conf['predicted_val_rmse']:.4f}$ & ${pi_y1_so_str}$ & ${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$ & " + status_bias + " \\\\",
         f"Holdout Test RMSE & --- & --- & ${so_conf['empirical_test_rmse']:.4f} \\pm {so_conf['empirical_test_std']:.4f}$ & Holdout Test Set \\\\",
         f"Inference Latency ($\\mu$s) & ${so_conf['predicted_latency']:.1f}$ & $[{so_conf['prediction_interval_95_lat'][0]:.1f}, {so_conf['prediction_interval_95_lat'][1]:.1f}]$ & ${so_conf['empirical_latency']:.1f} \\pm {so_conf['empirical_latency_std']:.1f}$ & " + status_lat + " \\\\",
         "\\bottomrule",

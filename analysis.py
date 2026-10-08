@@ -540,6 +540,30 @@ def run_task5_icc(df: pd.DataFrame) -> Dict[str, Any]:
     }
 
 
+def derringer_suich_desirability(y1: float, y2: float,
+                                 L1: float, U1: float,
+                                 L2: float, U2: float,
+                                 s: float = 1.0, t: float = 1.0,
+                                 w1: float = 1.0, w2: float = 1.0) -> Tuple[float, float, float]:
+    """Computes individual and overall Derringer-Suich desirability for two responses."""
+    if y1 <= L1:
+        d1 = 1.0
+    elif y1 >= U1:
+        d1 = 0.0
+    else:
+        d1 = float(((U1 - y1) / (U1 - L1)) ** s)
+
+    if y2 <= L2:
+        d2 = 1.0
+    elif y2 >= U2:
+        d2 = 0.0
+    else:
+        d2 = float(((U2 - y2) / (U2 - L2)) ** t)
+
+    D = float((d1 ** w1 * d2 ** w2) ** (1.0 / (w1 + w2)))
+    return d1, d2, D
+
+
 def compute_prediction_interval_mean(fit: sm.regression.linear_model.RegressionResultsWrapper,
                                      X: pd.DataFrame, x_row: np.ndarray, m: int, level: float = 0.95) -> Tuple[float, float, float, float]:
     """
