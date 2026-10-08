@@ -381,13 +381,17 @@ Figure \ref{fig:pareto_front} illustrates the empirical Pareto frontier and the 
 
 \subsection{Confirmation Experiments at Multi-Objective and Single-Objective Optima}
 
-To test surrogate fidelity, $m = 10$ confirmation trials were executed at $\mathbf{x}^*_{\text{MO}}$ across fresh seeds disjoint from the design ($\mathcal{S}_{\text{conf}} = \{505, \dots, 1414\}$). Because fresh seeds introduce block variance ($\sigma^2_{\text{block}}$ estimated with only $4$~df) alongside model parameter covariance ($\text{MS}_E$ with $121$~df), treating block variance uncertainty as negligible would understate interval width. The total variance for the confirmation mean $\bar{y}_m$ at coordinate $\mathbf{x}_0$ with leverage $h_0 = \mathbf{x}_0^T (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{x}_0$ is:
+To test surrogate fidelity, $m = 10$ confirmation trials were executed at $\mathbf{x}^*_{\text{MO}}$ across fresh seeds disjoint from the design ($\mathcal{S}_{\text{conf}} = \{505, \dots, 1414\}$). Because fresh seeds introduce block variance ($\sigma^2_{\text{block}}$ estimated with only $4$~df) alongside model parameter covariance ($\text{MS}_E$ with $121$~df), treating block variance uncertainty as negligible would understate interval width. The total theoretical variance for the confirmation mean $\bar{y}_m$ at coordinate $\mathbf{x}_0$ with leverage $h_0 = \mathbf{x}_0^T (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{x}_0$ is:
 \begin{equation}
-    V_{\text{conf}} = \text{MS}_E \left(\frac{1}{m} + h_0\right) + \sigma^2_{\text{block}}\left(\frac{1}{m} + \frac{1}{5}\right) = c_1 \text{MS}_E + c_2 \text{MS}_{\text{block}}
+    V_{\text{conf}} = \sigma^2_E \left(\frac{1}{m} + h_0\right) + \sigma^2_{\text{block}}\left(\frac{1}{m} + \frac{1}{5}\right)
+\end{equation}
+Under the randomized block design with $a = 28$ runs per block, the expected mean squares satisfy $\mathbb{E}[\text{MS}_E] = \sigma^2_E$ and $\mathbb{E}[\text{MS}_{\text{block}}] = \sigma^2_E + 28\,\sigma^2_{\text{block}}$, giving the unbiased ANOVA estimator $\hat{\sigma}^2_{\text{block}} = (\text{MS}_{\text{block}} - \text{MS}_E)/28$. Substituting $\hat{\sigma}^2_{\text{block}}$ and $\hat{\sigma}^2_E = \text{MS}_E$ into $V_{\text{conf}}$ yields the linear combination of independent mean squares required by Satterthwaite's synthesis:
+\begin{equation}
+    \hat{V}_{\text{conf}} = \text{MS}_E \left(\frac{1}{m} + h_0\right) + \frac{\text{MS}_{\text{block}} - \text{MS}_E}{28}\left(\frac{1}{m} + \frac{1}{5}\right) = c_1 \text{MS}_E + c_2 \text{MS}_{\text{block}}
 \end{equation}
 where $c_2 = \frac{1/m + 1/5}{28}$ and $c_1 = (1/m + h_0) - c_2$. Propagating variance-component degrees of freedom via Satterthwaite's approximation yields effective degrees of freedom:
 \begin{equation}
-    \nu_{\text{eff}} = \frac{V_{\text{conf}}^2}{\frac{(c_1 \text{MS}_E)^2}{121} + \frac{(c_2 \text{MS}_{\text{block}})^2}{4}}
+    \nu_{\text{eff}} = \frac{\hat{V}_{\text{conf}}^2}{\frac{(c_1 \text{MS}_E)^2}{121} + \frac{(c_2 \text{MS}_{\text{block}})^2}{4}}
 \end{equation}
 For $\mathbf{x}^*_{\text{MO}}$ ($h_0 = 0.1043$), Satterthwaite effective degrees of freedom evaluate to $\nu_{\text{eff}} = 14.0$ ($t_{0.025, 14.0} = 2.145$), widening the 95\% prediction interval to $[0.4677, 0.4932]$ (compared to $[0.4687, 0.4922]$ under the unadjusted $t_{0.025, 121}$ approximation). For the depth-7 single-objective coordinate $\mathbf{x}^*_{\text{SO}}$ ($h_0 = 0.1210$), $\nu_{\text{eff}} = 15.1$ ($t_{0.025, 15.1} = 2.131$), producing $[0.4354, 0.4612]$. Table \ref{tab:confirmation} compares predictions against empirical results.
 
