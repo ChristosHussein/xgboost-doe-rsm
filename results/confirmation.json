@@ -30,10 +30,10 @@
   "Y2_Latency": {
     "predicted_mean": 138.10877303482908,
     "prediction_interval_95": [
-      122.82316148574617,
-      153.394384583912
+      122.82023645536277,
+      153.39730961429538
     ],
-    "nu_eff": 123.3367921043721,
+    "nu_eff": 121.0,
     "empirical_mean": 142.33135000000001,
     "empirical_std": 7.793725852853977,
     "empirical_inplace_mean": 104.14945,
@@ -66,8 +66,8 @@
     "empirical_test_std": 0.0034372243922495627,
     "predicted_latency": 186.99966568461582,
     "prediction_interval_95_lat": [
-      171.10434346362393,
-      202.8949879056077
+      171.10056997102205,
+      202.8987613982096
     ],
     "empirical_latency": 171.1237,
     "empirical_latency_std": 10.947712384583161,
