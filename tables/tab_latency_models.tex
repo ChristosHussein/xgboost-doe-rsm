@@ -1,0 +1,11 @@
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Candidate Latency Model} & \bm{$R^2$} & \makecell{\textbf{Adj}\\\bm{$R^2$}} & \textbf{AIC} & \textbf{BIC} & \makecell{\textbf{RMSE}\\\textbf{($\mu$s)}} \\
+\midrule
+Linear (depth) & $0.792$ & $0.790$ & $1255.2$ & $1261.1$ & $21.26$ \\
+Quadratic (depth + depth$^2$) & $0.859$ & $0.857$ & $1202.6$ & $1211.4$ & $17.56$ \\
+Log-Linear (ln(latency) ~ depth) & $0.817$ & $0.815$ & $-232.7$ & $-226.8$ & $19.57$ \\
+Multi-Factor (depth, depth$^2$, eta, sub, lam) & $0.868$ & $0.863$ & $1199.5$ & $1217.1$ & $17.18$ \\
+Full CCD Second-Order (All factors + Block) & $0.882$ & $0.864$ & $1209.6$ & $1265.5$ & $17.08$ \\
+\bottomrule
+\end{tabular}

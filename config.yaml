@@ -1,0 +1,85 @@
+# config.yaml - Rigorous Design of Experiments Configuration
+project:
+  name: "Sequential RSM and CCD for Multi-Objective XGBoost HPO"
+  dataset: "california_housing"
+  train_ratio: 0.60
+  val_ratio: 0.20
+  test_ratio: 0.20
+
+seeds:
+  # Base block seeds: 5 blocks
+  block_seeds: [42, 101, 202, 303, 404]
+  # Distinct seeds for the 4 center replicates per block
+  # Seed controls: (a) 60/20/20 data split and (b) XGBoost random_state
+  center_replicate_seeds:
+    1: [42, 1042, 2042, 3042]
+    2: [101, 1101, 2101, 3101]
+    3: [202, 1202, 2202, 3202]
+    4: [303, 1303, 2303, 3303]
+    5: [404, 1404, 2404, 3404]
+  # Random seed for execution run order randomization
+  run_order_seed: 20261005
+  # Confirmation seeds (disjoint from design seeds, m >= 10)
+  confirmation_seeds: [505, 606, 707, 808, 909, 1010, 1111, 1212, 1313, 1414]
+  # 20 fresh seeds for final incumbent evaluation
+  fresh_eval_seeds: [2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+                     2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020]
+  # 20 independent optimizer sampler seeds
+  optimizer_sampler_seeds: [10001, 10002, 10003, 10004, 10005, 10006, 10007, 10008, 10009, 10010,
+                            10011, 10012, 10013, 10014, 10015, 10016, 10017, 10018, 10019, 10020]
+
+factors:
+  x1:
+    name: "learning_rate"
+    natural_symbol: "eta"
+    transform: "log"
+    min: 0.01
+    max: 0.30
+  x2:
+    name: "max_depth"
+    natural_symbol: "depth"
+    transform: "linear"
+    min: 3
+    max: 9
+    is_integer: true
+  x3:
+    name: "subsample"
+    natural_symbol: "subsample"
+    transform: "linear"
+    min: 0.50
+    max: 1.00
+  x4:
+    name: "reg_lambda"
+    natural_symbol: "lambda"
+    transform: "log"
+    min: 0.10
+    max: 10.00
+
+model:
+  n_estimators: 100
+  objective: "reg:squarederror"
+  n_jobs_train: 4
+  n_jobs_latency: 1
+  latency_warmup: 50
+  latency_iters: 1000
+  latency_reps: 5
+
+desirability:
+  # Engineering specifications
+  Y1_RMSE:
+    target: "smaller"
+    L: 0.450
+    U: 0.700
+    weight: 1.0
+  Y2_Latency:
+    target: "smaller"
+    L: 100.0
+    U: 180.0
+    weight: 1.0
+
+budget:
+  phase1_runs: 100
+  phase2_star_runs: 40
+  total_ccd_runs: 140
+  benchmark_evals_A: 140
+  benchmark_unique_configs_B: 25
