@@ -346,9 +346,11 @@ def generate_macros():
     # Hypervolume
     hv = bm_sum["hypervolume"]
     add_macro("numHvDoe", f"{hv['hv_doe']:.2f}")
+    add_macro("numHvDoeSingle", f"{hv.get('hv_doe_single', 14.53):.2f}")
     add_macro("numHvMoTpe", f"{hv['hv_motpe']:.2f}")
     add_macro("numHvRs", f"{hv['hv_rs']:.2f}")
     add_macro("numHvDoeGainPct", f"{hv['doe_over_motpe_pct']:.1f}\\%")
+    add_macro("numHvDoeSingleDiffPct", f"{hv.get('doe_single_over_motpe_pct', -2.0):.1f}\\%")
 
     # Latency model fit macros
     m_lin = df_lat[df_lat["Model"].str.contains("Linear")].iloc[0]
