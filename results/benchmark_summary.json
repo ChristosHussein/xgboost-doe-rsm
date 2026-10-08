@@ -4,10 +4,10 @@
       0.6,
       250.0
     ],
-    "hv_doe": 12.41336721278023,
-    "hv_motpe": 9.879209915281882,
-    "hv_rs": 6.1061649221005485,
-    "doe_over_motpe_pct": 25.65141665406187
+    "hv_doe": 16.504551162514833,
+    "hv_motpe": 14.816360714196984,
+    "hv_rs": 6.706741096033715,
+    "doe_over_motpe_pct": 11.394096572582976
   },
   "paired_statistics": {
     "Sequential DOE-CCD (Single-Objective)": {
@@ -18,32 +18,32 @@
       "wilcoxon_pvalue": 1.9073486328125e-06
     },
     "Unguided Random Search": {
-      "diff_test_rmse_mean": 0.020866520989576295,
-      "paired_t_stat": 26.125532560484334,
-      "paired_t_pvalue": 2.3598281648075377e-16,
+      "diff_test_rmse_mean": 0.017752800189632996,
+      "paired_t_stat": 22.180280529953116,
+      "paired_t_pvalue": 4.816472012204802e-15,
       "wilcoxon_stat": 0.0,
       "wilcoxon_pvalue": 1.9073486328125e-06
     },
     "Bayesian Optimization (Optuna TPE Single-Obj)": {
-      "diff_test_rmse_mean": 0.021652393825264304,
-      "paired_t_stat": 21.88940347097066,
-      "paired_t_pvalue": 6.1340941864441545e-15,
+      "diff_test_rmse_mean": 0.015802376555568404,
+      "paired_t_stat": 15.58352254972582,
+      "paired_t_pvalue": 2.8075288064259275e-12,
       "wilcoxon_stat": 0.0,
       "wilcoxon_pvalue": 1.9073486328125e-06
     },
     "Constrained TPE (Latency <= 145 us)": {
-      "diff_test_rmse_mean": 0.0049382585016071925,
-      "paired_t_stat": 5.549642646127236,
-      "paired_t_pvalue": 2.3647819945971928e-05,
-      "wilcoxon_stat": 7.0,
-      "wilcoxon_pvalue": 3.62396240234375e-05
+      "diff_test_rmse_mean": 0.006116864448032916,
+      "paired_t_stat": 7.57473503123995,
+      "paired_t_pvalue": 3.73576042942833e-07,
+      "wilcoxon_stat": 3.0,
+      "wilcoxon_pvalue": 9.5367431640625e-06
     },
     "Multi-Objective TPE (Desirability)": {
-      "diff_test_rmse_mean": -0.01480776231713914,
-      "paired_t_stat": -17.991416706258267,
-      "paired_t_pvalue": 2.1607961063736142e-13,
-      "wilcoxon_stat": 0.0,
-      "wilcoxon_pvalue": 1.9073486328125e-06
+      "diff_test_rmse_mean": 0.0013608395646745486,
+      "paired_t_stat": 1.4069558704138616,
+      "paired_t_pvalue": 0.17558816279654957,
+      "wilcoxon_stat": 65.0,
+      "wilcoxon_pvalue": 0.14290618896484375
     }
   }
 }

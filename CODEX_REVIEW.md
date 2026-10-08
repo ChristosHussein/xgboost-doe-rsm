@@ -22,7 +22,7 @@ I reviewed the current PDF, LaTeX, configuration, analysis and experiment script
 
 **Severity:** P1
 
-**Status:** Open
+**Status:** Resolved
 
 **File/line:** [`scripts/run_benchmarks.py:254`](https://github.com/ChristosHussein/xgboost-doe-rsm/blob/caf3a5bf59f2eae2541d3478d5fc370f0b339717/scripts/run_benchmarks.py#L254), [`scripts/run_benchmarks.py:294`](https://github.com/ChristosHussein/xgboost-doe-rsm/blob/caf3a5bf59f2eae2541d3478d5fc370f0b339717/scripts/run_benchmarks.py#L294)
 
@@ -35,13 +35,19 @@ The constrained method filters configurations using this proxy, so the reported 
 
 **Suggested fix:** measure the same latency response for every method, or supply the same independently validated proxy to every method and describe that experiment explicitly. Recompute the main comparative claims afterward.
 
+**Resolution:**
+- Removed the hardcoded polynomial latency proxy `115 + 3*depth + 0.8*depth**2` entirely from `scripts/run_benchmarks.py`.
+- Implemented `measure_trial_latency(model, sample)` which measures genuine online single-sample prediction latency directly on candidate models during search (`model.set_params(n_jobs=1)`, `booster.set_param({"nthread": 1})`, 50 warmup iterations, 200 measured iterations).
+- Both Constrained TPE and Multi-Objective TPE now optimize genuine single-sample prediction latency under identical single-threaded conditions.
+- Updated Section 6.4 in `report.tex`, recompiled `report.pdf`, regenerated `tables/tab_benchmarks.tex`, and updated macros in `results/macros.tex`.
+
 Evidence: [run_benchmarks.py](https://github.com/ChristosHussein/xgboost-doe-rsm/blob/caf3a5bf59f2eae2541d3478d5fc370f0b339717/scripts/run_benchmarks.py#L254), [MO objective](https://github.com/ChristosHussein/xgboost-doe-rsm/blob/caf3a5bf59f2eae2541d3478d5fc370f0b339717/scripts/run_benchmarks.py#L294).
 
 ### CR-002 [P1] Reported baseline results are for synthetic median configurations, not the optimizer incumbents
 
 **Severity:** P1
 
-**Status:** Open
+**Status:** Resolved
 
 **File/line:** [`scripts/run_benchmarks.py:399`](https://github.com/ChristosHussein/xgboost-doe-rsm/blob/caf3a5bf59f2eae2541d3478d5fc370f0b339717/scripts/run_benchmarks.py#L399), [`scripts/run_benchmarks.py:460`](https://github.com/ChristosHussein/xgboost-doe-rsm/blob/caf3a5bf59f2eae2541d3478d5fc370f0b339717/scripts/run_benchmarks.py#L460)
 
@@ -53,6 +59,13 @@ After the optimizer runs, the code takes a coordinate-wise median across all win
 Thus the confidence intervals and paired tests compare selected fixed configurations across retraining seeds. They do not quantify the variability or expected performance of an optimization algorithm across its independent search runs. Aggregating winners from multiple searches also makes the claimed per-search evaluation budget an incomplete description of how the final reported configuration was constructed.
 
 **Suggested fix:** evaluate each actual incumbent and summarize performance across optimizer repetitions; separate optimizer randomness from retraining/split randomness.
+
+**Resolution:**
+- Eliminated coordinate-wise median averaging (`np.median(..., axis=0)`).
+- Implemented `select_median_actual_incumbent()`: for all baseline algorithms across the 20 search replicates, the evaluated configuration is the actual winning hyperparameter vector produced by the median-performing search replicate (ranked by validation RMSE for single-objective / random search / constrained TPE, and by desirability for multi-objective TPE).
+- Persisted all 20 actual incumbents across all runs to `results/benchmark_optimizer_incumbents.csv` with decoded hyperparameters and objective scores.
+- Reran the empirical benchmark across all 20 fresh evaluation seeds (seeds 2001-2020) with pinned CPU core affinity and interleaved repeats.
+- Updated `report.tex`, `tables/tab_benchmarks.tex`, and `results/macros.tex`.
 
 Evidence: [median aggregation](https://github.com/ChristosHussein/xgboost-doe-rsm/blob/caf3a5bf59f2eae2541d3478d5fc370f0b339717/scripts/run_benchmarks.py#L399), [paired comparisons](https://github.com/ChristosHussein/xgboost-doe-rsm/blob/caf3a5bf59f2eae2541d3478d5fc370f0b339717/scripts/run_benchmarks.py#L460).
 
