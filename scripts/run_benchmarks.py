@@ -406,12 +406,16 @@ def main():
         p3 = json.load(f)
     x_doe_so = np.array(p3["constrained_optimum_cube"]["x"])
 
-    # 1. Run Optimizers across 20 sampler seeds (parallelized via joblib across 4 workers)
-    print("Running 20 optimizer replicates in parallel (4 workers)...")
-    from joblib import Parallel, delayed
-    rep_results = Parallel(n_jobs=4, verbose=5)(
-        delayed(run_single_optimizer_replicate)(s, 42) for s in OPTIMIZER_SEEDS
-    )
+    # 1. Run Optimizers across 20 sampler seeds serially on dedicated pinned core
+    # Eliminates scheduler contention during online latency timing (Codex Comment 4224787409)
+    print("Running 20 optimizer replicates serially on dedicated pinned core (no scheduler contention)...")
+    rep_results = []
+    for rep_idx, s in enumerate(OPTIMIZER_SEEDS):
+        t0_rep = time.time()
+        print(f"[{rep_idx+1}/{len(OPTIMIZER_SEEDS)}] Running replicate seed {s}...")
+        r = run_single_optimizer_replicate(s, 42)
+        rep_results.append(r)
+        print(f"  Completed replicate seed {s} in {time.time()-t0_rep:.1f}s (RS val: {r['val_rs']:.4f}, TPE val: {r['val_tpe']:.4f})")
 
     rs_incumbents = [r["x_rs"] for r in rep_results]
     rs_vals = [r["val_rs"] for r in rep_results]
@@ -545,17 +549,26 @@ def main():
         }
 
     # 5. Hypervolume calculation (Reference point: [0.60, 250.0])
+    # Addresses Codex Comment 4224787423: Compute both single-point (x*_MO alone) and two-point (x*_MO + x*_SO) hypervolume
     ref_point = (0.60, 250.0)
-    # DOE front: Depth 4 (x*) and Depth 7 (Single-Obj)
-    pts_doe = [
+
+    # Single-point DOE: Depth 4 (x*, Multi-Objective) alone
+    pts_doe_single = [
+        (eval_results["Sequential DOE-CCD (x*, Multi-Objective)"]["test_rmse_mean"],
+         lat_results["Sequential DOE-CCD (x*, Multi-Objective)"]["predict_latency_us_median"])
+    ]
+    hv_doe_single = compute_hypervolume(pts_doe_single, ref_point)
+
+    # Two-point complementary DOE front: Depth 4 (x*) and Depth 7 (Single-Obj)
+    pts_doe_two = [
         (eval_results["Sequential DOE-CCD (Single-Objective)"]["test_rmse_mean"],
          lat_results["Sequential DOE-CCD (Single-Objective)"]["predict_latency_us_median"]),
         (eval_results["Sequential DOE-CCD (x*, Multi-Objective)"]["test_rmse_mean"],
          lat_results["Sequential DOE-CCD (x*, Multi-Objective)"]["predict_latency_us_median"]),
     ]
-    hv_doe = compute_hypervolume(pts_doe, ref_point)
+    hv_doe_two = compute_hypervolume(pts_doe_two, ref_point)
 
-    # MO-TPE front
+    # MO-TPE selected operating point
     pts_motpe = [
         (eval_results["Multi-Objective TPE (Desirability)"]["test_rmse_mean"],
          lat_results["Multi-Objective TPE (Desirability)"]["predict_latency_us_median"])
@@ -570,11 +583,14 @@ def main():
     hv_rs = compute_hypervolume(pts_rs, ref_point)
 
     hv_summary = {
-        "reference_point": ref_point,
-        "hv_doe": hv_doe,
-        "hv_motpe": hv_motpe,
-        "hv_rs": hv_rs,
-        "doe_over_motpe_pct": (((hv_doe - hv_motpe) / hv_motpe) * 100.0) if hv_motpe > 0 else 0.0,
+        "reference_point": list(ref_point),
+        "hv_doe_single": float(hv_doe_single),
+        "hv_doe_two": float(hv_doe_two),
+        "hv_doe": float(hv_doe_two),  # backward compatibility alias for two-point
+        "hv_motpe": float(hv_motpe),
+        "hv_rs": float(hv_rs),
+        "doe_single_over_motpe_pct": float((((hv_doe_single - hv_motpe) / hv_motpe) * 100.0) if hv_motpe > 0 else 0.0),
+        "doe_over_motpe_pct": float((((hv_doe_two - hv_motpe) / hv_motpe) * 100.0) if hv_motpe > 0 else 0.0),
     }
 
     # 6. Desirability sensitivity table
