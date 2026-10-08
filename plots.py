@@ -167,8 +167,8 @@ def plot_response_surface_rmse_2d_3d(df_runs: pd.DataFrame, save_path: str = "fi
         lbl.set_bbox(dict(boxstyle="round,pad=0.15", facecolor="white", edgecolor="none", alpha=0.85))
 
     # Mark constrained optimum
-    ax1.scatter([0.5972], [0.3333], color="cyan", marker="o", s=130, edgecolor="black", zorder=6,
-                label=r"Constrained Optimum: $x^* = (0.60, 0.33)$ [Depth 7]")
+    ax1.scatter([0.5983], [0.3333], color="cyan", marker="o", s=130, edgecolor="black", zorder=6,
+                label=r"Single-Obj Optimum: $\mathbf{x}^*_{\text{SO}} = (0.60, 0.33)$ [Depth 7]")
 
     # Directional arrow toward unconstrained stationary point
     ax1.annotate(
@@ -275,7 +275,7 @@ def plot_latency_vs_depth(df_runs: pd.DataFrame, save_path: str = "figures/respo
 def plot_pareto_front_and_desirability(df_runs: pd.DataFrame, save_path: str = "figures/desirability_pareto_front.png"):
     """
     Renders Multi-objective Pareto trade-off between Val RMSE and Latency,
-    marking the DOE recommended optimum x*, confirmation mean, and baseline incumbents.
+    marking the DOE recommended optimum x*_MO, confirmation mean, and baseline incumbents.
     """
     df_bm = pd.read_csv("results/benchmark.csv")
     with open("results/confirmation.json", "r", encoding="utf-8") as f:
@@ -307,17 +307,17 @@ def plot_pareto_front_and_desirability(df_runs: pd.DataFrame, save_path: str = "
     ax.step(pareto_y1, pareto_y2, where="post", color="red", linestyle="--", linewidth=1.8, label="Empirical Pareto Frontier")
     ax.scatter(pareto_y1, pareto_y2, color="red", marker="o", s=70, edgecolor="black", zorder=5)
 
-    # 1. Mark DOE recommended x* (Depth 4)
+    # 1. Mark DOE recommended x*_MO (Depth 4)
     doe_row = df_bm[df_bm["method"].str.contains("Multi-Objective") & df_bm["method"].str.contains("DOE")].iloc[0]
     ax.scatter([doe_row["val_rmse_mean"]], [doe_row["predict_latency_us_median"]],
                color="gold", marker="*", s=260, edgecolor="black", linewidth=1.5, zorder=8,
-               label=f"DOE Multi-Obj $x^*$ (Depth 4, {doe_row['predict_latency_us_median']:.1f} $\\mu$s)")
+               label=f"DOE Multi-Obj $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ (Depth 4, {doe_row['predict_latency_us_median']:.1f} $\\mu$s)")
 
     # 2. Mark DOE Single-Objective (Depth 7)
     doe_so = df_bm[df_bm["method"].str.contains("Single-Objective") & df_bm["method"].str.contains("DOE")].iloc[0]
     ax.scatter([doe_so["val_rmse_mean"]], [doe_so["predict_latency_us_median"]],
                color="cyan", marker="^", s=160, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"DOE Single-Obj (Depth 7, {doe_so['predict_latency_us_median']:.1f} $\\mu$s)")
+               label=f"DOE Single-Obj $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ (Depth 7, {doe_so['predict_latency_us_median']:.1f} $\\mu$s)")
 
     # 3. Mark Confirmation Point
     conf_y1 = conf["Y1_Val_RMSE"]["empirical_mean"]
@@ -358,7 +358,7 @@ def plot_efficiency_comparison(save_path: str = "figures/efficiency_comparison_c
     """
     Renders Optimization Efficiency Convergence:
     Median and IQR shaded bands across 20 replicate runs for Random Search and TPE,
-    with DOE cumulative best in actual randomized run_order.
+    with single illustrative DOE trajectory in actual randomized run_order.
     """
     df_traj = pd.read_csv("results/benchmark_evals_trajectories.csv")
     evals = df_traj["eval_idx"].values
@@ -376,7 +376,7 @@ def plot_efficiency_comparison(save_path: str = "figures/efficiency_comparison_c
     ax.fill_between(evals, df_traj["tpe_q25"], df_traj["tpe_q75"], color="#2ca02c", alpha=0.18, label="TPE IQR Band")
 
     # 3. DOE Cumulative Best in actual run_order
-    ax.plot(evals, doe_cum_best, color="#1f77b4", linewidth=2.5, linestyle="-", label="DOE Design (Randomized Execution Order)")
+    ax.plot(evals, doe_cum_best, color="#1f77b4", linewidth=2.5, linestyle="-", label="DOE Design (Single Illustrative Trajectory, Run Order)")
 
     # Phase dividers for DOE
     ax.axvline(100, color="gray", linestyle=":", linewidth=1.2)
