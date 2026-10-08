@@ -543,7 +543,8 @@ def run_task5_icc(df: pd.DataFrame) -> Dict[str, Any]:
 def derringer_suich_desirability(y1: float, y2: float,
                                  L1: float, U1: float,
                                  L2: float, U2: float,
-                                 s: float = 1.0, t: float = 1.0) -> Tuple[float, float, float]:
+                                 s: float = 1.0, t: float = 1.0,
+                                 w1: float = 1.0, w2: float = 1.0) -> Tuple[float, float, float]:
     """Computes individual and overall Derringer-Suich desirability for two responses."""
     if y1 <= L1:
         d1 = 1.0
@@ -559,7 +560,7 @@ def derringer_suich_desirability(y1: float, y2: float,
     else:
         d2 = float(((U2 - y2) / (U2 - L2)) ** t)
 
-    D = float((d1 * d2) ** (1.0 / (s + t)))
+    D = float((d1 ** w1 * d2 ** w2) ** (1.0 / (w1 + w2)))
     return d1, d2, D
 
 

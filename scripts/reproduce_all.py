@@ -65,7 +65,7 @@ def main():
     run_step("python scripts/generate_report_artifacts.py", "Export LaTeX tables and macros")
 
     # 9. Run tests
-    run_step("python -m pytest tests/", "Run full test suite")
+    run_step("python -m pytest", "Run full test suite")
 
     # 10. Compile PDF
     tectonic_path = r"C:\Users\chris\bin\tectonic.exe"

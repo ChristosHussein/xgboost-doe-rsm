@@ -25,7 +25,7 @@ from pipeline import CaliforniaHousingDataManager, evaluate_model, decode_factor
 
 CONFIRMATION_SEEDS = CONFIG["seeds"]["confirmation_seeds"]
 
-def execute_confirmation():
+def execute_confirmation(reuse_cached: bool = False):
     pin_cpu_affinity()
     os.makedirs("results", exist_ok=True)
     df_runs = pd.read_csv("results/runs.csv")
@@ -78,10 +78,14 @@ def execute_confirmation():
 
     # Latency Y2
     ms_e_y2 = fit_y2.mse_resid
-    ms_blk_y2 = ms_e_y2 + 28.0 * s2b_y2
-    var_pi_y2_mo = c1_mo * ms_e_y2 + c2 * ms_blk_y2
-    denom_nu_y2_mo = ((c1_mo * ms_e_y2)**2) / 121.0 + ((c2 * ms_blk_y2)**2) / 4.0
-    nu_eff_y2_mo = (var_pi_y2_mo**2) / denom_nu_y2_mo if denom_nu_y2_mo > 0 else 121.0
+    if s2b_y2 > 0:
+        ms_blk_y2 = ms_e_y2 + 28.0 * s2b_y2
+        var_pi_y2_mo = c1_mo * ms_e_y2 + c2 * ms_blk_y2
+        denom_nu_y2_mo = ((c1_mo * ms_e_y2)**2) / 121.0 + ((c2 * ms_blk_y2)**2) / 4.0
+        nu_eff_y2_mo = (var_pi_y2_mo**2) / denom_nu_y2_mo if denom_nu_y2_mo > 0 else 121.0
+    else:
+        var_pi_y2_mo = ms_e_y2 * (1.0 / m + h_mo)
+        nu_eff_y2_mo = 121.0
     t_crit_y2_mo = float(stats.t.ppf(0.975, nu_eff_y2_mo))
 
     yh_y2_mo = float(x_row_mo @ fit_y2.params.values)
@@ -109,9 +113,13 @@ def execute_confirmation():
     half_y1_so = t_crit_y1_so * float(np.sqrt(var_pi_y1_so))
     pi_y1_so = (yh_y1_so - half_y1_so, yh_y1_so + half_y1_so)
 
-    var_pi_y2_so = c1_so * ms_e_y2 + c2 * ms_blk_y2
-    denom_nu_y2_so = ((c1_so * ms_e_y2)**2) / 121.0 + ((c2 * ms_blk_y2)**2) / 4.0
-    nu_eff_y2_so = (var_pi_y2_so**2) / denom_nu_y2_so if denom_nu_y2_so > 0 else 121.0
+    if s2b_y2 > 0:
+        var_pi_y2_so = c1_so * ms_e_y2 + c2 * ms_blk_y2
+        denom_nu_y2_so = ((c1_so * ms_e_y2)**2) / 121.0 + ((c2 * ms_blk_y2)**2) / 4.0
+        nu_eff_y2_so = (var_pi_y2_so**2) / denom_nu_y2_so if denom_nu_y2_so > 0 else 121.0
+    else:
+        var_pi_y2_so = ms_e_y2 * (1.0 / m + h_so)
+        nu_eff_y2_so = 121.0
     t_crit_y2_so = float(stats.t.ppf(0.975, nu_eff_y2_so))
 
     yh_y2_so = float(x_row_so @ fit_y2.params.values)
@@ -121,7 +129,7 @@ def execute_confirmation():
     csv_mo = "results/confirmation_runs.csv"
     csv_so = "results/confirmation_runs_single_obj.csv"
 
-    if os.path.exists(csv_mo) and os.path.exists(csv_so):
+    if reuse_cached and os.path.exists(csv_mo) and os.path.exists(csv_so):
         print(f"Loading existing confirmation runs from {csv_mo} and {csv_so}...")
         df_conf_mo = pd.read_csv(csv_mo)
         df_conf_so = pd.read_csv(csv_so)
@@ -262,4 +270,8 @@ def execute_confirmation():
     return summary
 
 if __name__ == "__main__":
-    execute_confirmation()
+    import argparse
+    parser = argparse.ArgumentParser(description="Run confirmation experiment at recommended optima.")
+    parser.add_argument("--reuse-cache", action="store_true", help="Reuse cached confirmation CSVs if available.")
+    args = parser.parse_args()
+    execute_confirmation(reuse_cached=args.reuse_cache)
