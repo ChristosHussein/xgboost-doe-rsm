@@ -497,6 +497,7 @@ def generate_tables():
     status_pass = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
     bias_val = so_conf['empirical_val_rmse'] - so_conf['predicted_val_rmse']
     status_bias = "\\makecell[c]{\\textbf{Empirical Opt}\\\\(Bias: " + f"{bias_val:+.4f}" + ")}"
+    status_lat = "\\makecell[c]{Borderline\\\\(At Lower PI)}"
 
     tex_conf = [
         "\\begin{tabular}{lcccc}",
@@ -511,7 +512,7 @@ def generate_tables():
         "\\multicolumn{5}{l}{\\textbf{DOE Single-Objective Optimum (Depth 7)}} \\\\",
         f"Validation RMSE ($Y_1$) & ${so_conf['predicted_val_rmse']:.4f}$ & $[{so_conf['prediction_interval_95_val'][0]:.4f}, {so_conf['prediction_interval_95_val'][1]:.4f}]$ & ${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$ & " + status_bias + " \\\\",
         f"Holdout Test RMSE & --- & --- & ${so_conf['empirical_test_rmse']:.4f} \\pm {so_conf['empirical_test_std']:.4f}$ & Holdout Test Set \\\\",
-        f"Inference Latency ($\\mu$s) & ${so_conf['predicted_latency']:.1f}$ & $[{so_conf['prediction_interval_95_lat'][0]:.1f}, {so_conf['prediction_interval_95_lat'][1]:.1f}]$ & ${so_conf['empirical_latency']:.1f} \\pm {so_conf['empirical_latency_std']:.1f}$ & Verified Scale \\\\",
+        f"Inference Latency ($\\mu$s) & ${so_conf['predicted_latency']:.1f}$ & $[{so_conf['prediction_interval_95_lat'][0]:.1f}, {so_conf['prediction_interval_95_lat'][1]:.1f}]$ & ${so_conf['empirical_latency']:.1f} \\pm {so_conf['empirical_latency_std']:.1f}$ & " + status_lat + " \\\\",
         "\\bottomrule",
         "\\end{tabular}"
     ]
@@ -589,15 +590,20 @@ def generate_tables():
 
     # 9. Latency Candidate Models Table
     df_lat = pd.read_csv("results/latency_models_comparison.csv")
+    df_runs = pd.read_csv("results/runs.csv")
+    jac_adj = float(2.0 * np.sum(np.log(df_runs["latency_us_median"])))
+
     tex_lat = [
         "\\begin{tabular}{lccccc}",
         "\\toprule",
-        "\\textbf{Candidate Latency Model} & \\bm{$R^2$} & \\makecell{\\textbf{Adj}\\\\\\bm{$R^2$}} & \\textbf{AIC} & \\textbf{BIC} & \\makecell{\\textbf{RMSE}\\\\\\textbf{($\\mu$s)}} \\\\",
+        "\\textbf{Candidate Latency Model} & \\bm{$R^2$} & \\makecell{\\textbf{Adj}\\\\\\bm{$R^2$}} & \\makecell{\\textbf{AIC}\\\\\\scriptsize(Adjusted)} & \\makecell{\\textbf{BIC}\\\\\\scriptsize(Adjusted)} & \\makecell{\\textbf{RMSE}\\\\\\textbf{($\\mu$s)}} \\\\",
         "\\midrule"
     ]
     for _, row in df_lat.iterrows():
         m_name = str(row['Model']).replace('depth^2', r'depth$^2$')
-        tex_lat.append(f"{m_name} & ${row['R2']:.3f}$ & ${row['Adj_R2']:.3f}$ & ${row['AIC']:.1f}$ & ${row['BIC']:.1f}$ & ${row['RMSE']:.2f}$ \\\\")
+        aic_val = row['AIC'] + jac_adj if "Log-Linear" in m_name else row['AIC']
+        bic_val = row['BIC'] + jac_adj if "Log-Linear" in m_name else row['BIC']
+        tex_lat.append(f"{m_name} & ${row['R2']:.3f}$ & ${row['Adj_R2']:.3f}$ & ${aic_val:.1f}$ & ${bic_val:.1f}$ & ${row['RMSE']:.2f}$ \\\\")
     tex_lat.extend(["\\bottomrule", "\\end{tabular}"])
     with open("tables/tab_latency_models.tex", "w", encoding="utf-8") as f:
         f.write("\n".join(tex_lat) + "\n")

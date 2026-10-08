@@ -15,3 +15,7 @@ report.synctex.gz
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Private instructions
+fix.md
+

@@ -170,9 +170,9 @@ def plot_response_surface_rmse_2d_3d(df_runs: pd.DataFrame, save_path: str = "fi
     ax1.scatter([0.5972], [0.3333], color="cyan", marker="o", s=130, edgecolor="black", zorder=6,
                 label=r"Constrained Optimum: $x^* = (0.60, 0.33)$ [Depth 7]")
 
-    # Directional arrow toward unconstrained stationary point x0 = (0.53, 0.93) in x1, x2 plane, but x3=12.5 outside!
+    # Directional arrow toward unconstrained stationary point
     ax1.annotate(
-        f"Stationary Point ({x0[0]:.2f}, {x0[1]:.2f}) outside (x3=12.5) ↗",
+        f"Stationary Point ({x0[0]:.2f}, {x0[1]:.2f}) outside (x3={x0[2]:.1f}) ↗",
         xy=(min(1.0, max(-1.0, x0[0])), min(1.0, max(-1.0, x0[1]))),
         xytext=(0.02, 0.88),
         arrowprops=dict(facecolor="red", edgecolor="black", shrink=0.08, width=1.5, headwidth=7),
@@ -242,10 +242,10 @@ def plot_latency_vs_depth(df_runs: pd.DataFrame, save_path: str = "figures/respo
     ax1.plot(depth_grid, pred_quad, color="red", linestyle="-", linewidth=2.2,
              label=f"Quadratic Fit ($R^2 = {m_quad.rsquared:.3f}$)")
 
-    # Display mechanistic intercept overhead note
+    # Display linear decomposition note
     fixed_overhead = m_lin.params["Intercept"]
     slope = m_lin.params["depth"]
-    ax1.text(0.05, 0.85, f"Mechanistic Linear Decomposition:\nLatency = {fixed_overhead:.1f} $\\mu$s + {slope:.1f} $\\mu$s/depth\n(Fixed Python/DMatrix overhead dominates)",
+    ax1.text(0.05, 0.85, f"Linear Decomposition:\nLatency = {fixed_overhead:.1f} $\\mu$s + {slope:.1f} $\\mu$s/depth\nQuadratic fit captures super-linear leaf scaling",
              transform=ax1.transAxes, fontsize=9.5, bbox=dict(boxstyle="round,pad=0.35", facecolor="#f8f9fa", edgecolor="gray", alpha=0.9))
 
     ax1.set_title("Inference Latency vs. Tree Depth ($n_{\\text{trees}}=100$)", fontweight="bold")
