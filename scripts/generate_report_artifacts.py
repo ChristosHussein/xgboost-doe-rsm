@@ -343,14 +343,30 @@ def generate_macros():
     add_macro("numLatSlowPct", f"{lat_slow_pct:.1f}\\%")
     add_macro("numDoeLatLowerPct", f"{doe_lat_lower_pct:.1f}\\%")
 
-    # Hypervolume
-    hv = bm_sum["hypervolume"]
+    # Hypervolume: dynamically derived from benchmark artifacts (Codex Comment 4224890241)
+    hv = bm_sum.get("hypervolume", {})
+    ref_pt = hv.get("reference_point", [0.60, 250.0])
+    hv_doe_single = hv.get("hv_doe_single")
+    if hv_doe_single is None:
+        hv_doe_single = float((ref_pt[0] - doe_test_rmse) * (ref_pt[1] - doe_row["predict_latency_us_median"]))
+    
+    hv_motpe = hv.get("hv_motpe")
+    if hv_motpe is None:
+        hv_motpe = float((ref_pt[0] - motpe_row["test_rmse_mean"]) * (ref_pt[1] - motpe_row["predict_latency_us_median"]))
+    
+    hv_doe_single_diff_pct = hv.get("doe_single_over_motpe_pct")
+    if hv_doe_single_diff_pct is None:
+        hv_doe_single_diff_pct = ((hv_doe_single - hv_motpe) / hv_motpe) * 100.0 if hv_motpe > 0 else 0.0
+
+    if "hv_doe" not in hv or "hv_rs" not in hv:
+        raise KeyError("Missing required hypervolume keys ('hv_doe', 'hv_rs') in benchmark_summary.json")
+
     add_macro("numHvDoe", f"{hv['hv_doe']:.2f}")
-    add_macro("numHvDoeSingle", f"{hv.get('hv_doe_single', 14.53):.2f}")
-    add_macro("numHvMoTpe", f"{hv['hv_motpe']:.2f}")
+    add_macro("numHvDoeSingle", f"{hv_doe_single:.2f}")
+    add_macro("numHvMoTpe", f"{hv_motpe:.2f}")
     add_macro("numHvRs", f"{hv['hv_rs']:.2f}")
     add_macro("numHvDoeGainPct", f"{hv['doe_over_motpe_pct']:.1f}\\%")
-    add_macro("numHvDoeSingleDiffPct", f"{hv.get('doe_single_over_motpe_pct', -2.0):.1f}\\%")
+    add_macro("numHvDoeSingleDiffPct", f"{hv_doe_single_diff_pct:.1f}\\%")
 
     # Latency model fit macros
     m_lin = df_lat[df_lat["Model"].str.contains("Linear")].iloc[0]

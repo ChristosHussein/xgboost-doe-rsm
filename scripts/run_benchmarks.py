@@ -294,7 +294,7 @@ def run_tpe_constrained(n_trials: int, sampler_seed: int, eval_seed: int, max_la
     # Strictly filter to trials satisfying constraint
     valid_trials = [t for t in trials_data if t[2] <= max_latency_us]
     if not valid_trials:
-        valid_trials = sorted(trials_data, key=lambda t: t[2])[:5]
+        raise RuntimeError(f"Constrained TPE found no feasible trials satisfying latency <= {max_latency_us} us across {n_trials} evaluations.")
     best_t = min(valid_trials, key=lambda t: t[1])
     return best_t[0], best_t[1]
 
