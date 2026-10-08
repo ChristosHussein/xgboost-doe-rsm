@@ -419,7 +419,7 @@ We evaluated four baseline configurations against the DOE recommended optima und
     \item \textbf{Unguided Random Search:} 20 independent runs of 140 evaluations.
     \item \textbf{Single-Objective TPE:} 20 independent runs of 140 evaluations optimizing validation RMSE.
     \item \textbf{Constrained TPE:} Single-objective TPE with a latency constraint ($\le 145\,\mu\text{s}$) evaluated via an analytical quadratic latency proxy model ($\tau_{\text{proxy}} = 115 + 3d + 0.8d^2\,\mu\text{s}$) during trial sampling.
-    \item \textbf{Multi-Objective TPE:} Optimizes validation RMSE and latency simultaneously via Derringer-Suich desirability.
+    \item \textbf{Multi-Objective TPE:} Evaluates validation RMSE and the analytical quadratic latency proxy model simultaneously to construct a Pareto front, followed by post-hoc operating coordinate selection via Derringer-Suich desirability.
 \end{enumerate}
 
 For each method, the representative median incumbent hyperparameter vector across the 20 search runs was retrained and evaluated across 20 fresh seeds (seeds $2001$--$2020$, $\mathcal{S}_{\text{eval}}$) on the fixed holdout test set with pinned CPU core affinity and interleaved repeats. Table \ref{tab:benchmarks} summarizes the benchmark comparison.

@@ -610,8 +610,20 @@ def generate_tables():
 
     status_pass = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
     bias_val = so_conf['empirical_val_rmse'] - so_conf['predicted_val_rmse']
-    status_bias = "\\makecell[c]{\\textbf{Not Confirmed}\\\\(Optimism: " + f"{bias_val:+.4f}" + ")}"
-    status_lat = "\\makecell[c]{Borderline\\\\(At Lower PI)}"
+    if so_conf.get("inside_pi_val", False):
+        status_bias = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
+    else:
+        bias_type = "Optimism" if bias_val > 0 else "Pessimism"
+        status_bias = "\\makecell[c]{\\textbf{Not Confirmed}\\\\(" + f"{bias_type}: {bias_val:+.4f}" + ")}"
+
+    if so_conf.get("inside_pi_lat", False):
+        lat_lo, _ = so_conf["prediction_interval_95_lat"]
+        if abs(so_conf["empirical_latency"] - lat_lo) < 0.5:
+            status_lat = "\\makecell[c]{Borderline\\\\(At Lower PI)}"
+        else:
+            status_lat = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
+    else:
+        status_lat = "\\makecell[c]{\\textbf{Not Confirmed}\\\\(Outside PI)}"
 
     pi_y1_mo_str = f"[{conf['Y1_Val_RMSE']['prediction_interval_95'][0]:.4f}, {conf['Y1_Val_RMSE']['prediction_interval_95'][1]:.4f}]"
     pi_y1_so_str = f"[{so_conf['prediction_interval_95_val'][0]:.4f}, {so_conf['prediction_interval_95_val'][1]:.4f}]"
