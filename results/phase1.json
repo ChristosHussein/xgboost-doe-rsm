@@ -1,0 +1,13 @@
+{
+  "n_factorial": 80,
+  "n_center": 20,
+  "yF_bar": 0.6332819659204028,
+  "yC_bar": 0.49893489841649624,
+  "diff_F_minus_C": 0.13434706750390651,
+  "ss_curvature": 0.28878615275038744,
+  "ms_pe_center": 2.7390668614560088e-06,
+  "df_pe_center": 15,
+  "f_curvature": 105432.31230101374,
+  "p_curvature": 0.0,
+  "curvature_significant": true
+}

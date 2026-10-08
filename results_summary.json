@@ -1,0 +1,133 @@
+{
+  "dataset": "California Housing",
+  "model": "XGBoost Regressor (n_estimators=100)",
+  "seed_blocks": [
+    42,
+    101,
+    202,
+    303,
+    404
+  ],
+  "phase1": {
+    "n_runs": 100,
+    "curvature": {
+      "n_Factorial": 80,
+      "n_Center": 20,
+      "mean_Factorial": 0.6252583676024019,
+      "mean_Center": 0.49975132488595797,
+      "diff_F_minus_C": 0.12550704271644397,
+      "SS_Curvature": 0.2520322843428367,
+      "DF_Curvature": 1,
+      "MS_Curvature": 0.2520322843428367,
+      "MS_Pure_Error_Center": 4.385545175406699e-06,
+      "F_Curvature": 57468.86060054418,
+      "p_value": 0.0,
+      "curvature_significant": true
+    },
+    "icc_block": 0.19027062315441987
+  },
+  "phase2_ccd": {
+    "n_runs": 140,
+    "lack_of_fit_rmse": {
+      "N_total": 140,
+      "m_unique_points": 25,
+      "SS_Residual": 0.00837513808026398,
+      "DF_Residual": 121,
+      "SS_Pure_Error": 0.001132080686458433,
+      "DF_Pure_Error": 115,
+      "MS_Pure_Error": 9.844179882247243e-06,
+      "SS_Lack_of_Fit": 0.007243057393805547,
+      "DF_Lack_of_Fit": 6,
+      "MS_Lack_of_Fit": 0.0012071762323009245,
+      "F_Lack_of_Fit": 122.62842072582572,
+      "p_value_LoF": 0.0,
+      "lack_of_fit_significant": true
+    },
+    "lack_of_fit_latency": {
+      "N_total": 140,
+      "m_unique_points": 25,
+      "SS_Residual": 11288.115670821215,
+      "DF_Residual": 121,
+      "SS_Pure_Error": 11029.2541765615,
+      "DF_Pure_Error": 115,
+      "MS_Pure_Error": 95.90655805705653,
+      "SS_Lack_of_Fit": 258.86149425971416,
+      "DF_Lack_of_Fit": 6,
+      "MS_Lack_of_Fit": 43.14358237661903,
+      "F_Lack_of_Fit": 0.44985017970254065,
+      "p_value_LoF": 0.8437958774666974,
+      "lack_of_fit_significant": false
+    },
+    "icc_block": 0.21596883453073948
+  },
+  "residual_diagnostics": {
+    "shapiro_stat": 0.9778738928285342,
+    "shapiro_pval": 0.022599067268209767,
+    "breusch_pagan_stat": 69.90300809687506,
+    "breusch_pagan_pval": 4.693324925706995e-08,
+    "levene_stat": 0.0003320442024093102,
+    "levene_pval": 0.9999997763285084
+  },
+  "canonical_analysis": {
+    "stationary_point_coded": [
+      0.9688733165730952,
+      1.64188204458125,
+      28.43767801670825,
+      -1.7818748215715732
+    ],
+    "stationary_point_natural": {
+      "eta": 0.2845327831178335,
+      "depth": 9,
+      "subsample": 1.0,
+      "reg_lambda": 0.1
+    },
+    "predicted_y0": 0.34283113759251993,
+    "eigenvalues": [
+      0.10230225414361199,
+      0.021290374111583563,
+      0.001676994541057302,
+      0.00012610853796589413
+    ],
+    "surface_type": "Unique Local Minimum",
+    "inside_operational_domain": false
+  },
+  "multi_objective_optimum": {
+    "x_star_coded": [
+      0.8575243818136347,
+      -0.5474777166774011,
+      1.0,
+      -1.0
+    ],
+    "x_star_natural": {
+      "eta": 0.23544765686118654,
+      "depth": 4,
+      "subsample": 1.0,
+      "reg_lambda": 0.1
+    },
+    "pred_Y1_RMSE": 0.48079624881937816,
+    "Y1_CI_95": [
+      0.4745486058090049,
+      0.48704389182975144
+    ],
+    "pred_Y2_Latency_us": 117.98686792878122,
+    "desirability_d1": 0.9538954650495848,
+    "desirability_d2": 0.8213455262278933,
+    "overall_desirability_D": 0.8851427979188172
+  },
+  "confirmation_trials": {
+    "n_trials": 5,
+    "mean_rmse": 0.4880169781414715,
+    "std_rmse": 0.0036252493957732545,
+    "mean_latency_us": 130.97452,
+    "std_latency_us": 4.626150031829921,
+    "inside_predicted_ci": false
+  },
+  "benchmarks": {
+    "best_rmse_ccd": 0.46446059697658104,
+    "best_rmse_random": 0.45849916759441983,
+    "best_rmse_optuna": 0.4548445284233735,
+    "median_rmse_ccd": 0.5022654276831016,
+    "median_rmse_random": 0.5094621367366826,
+    "median_rmse_optuna": 0.46454922910472457
+  }
+}

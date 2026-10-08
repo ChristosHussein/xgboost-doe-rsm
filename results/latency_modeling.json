@@ -1,0 +1,60 @@
+{
+  "comparison_table": [
+    {
+      "Model": "Linear (depth)",
+      "R2": 0.7915197189857676,
+      "Adj_R2": 0.7900089923117514,
+      "AIC": 1255.217800382587,
+      "BIC": 1261.1010852278057,
+      "RMSE": 21.26134928690145,
+      "Formula": "latency ~ depth"
+    },
+    {
+      "Model": "Quadratic (depth + depth^2)",
+      "R2": 0.858894492118406,
+      "Adj_R2": 0.8568345576967769,
+      "AIC": 1202.5706808776117,
+      "BIC": 1211.3956081454396,
+      "RMSE": 17.555353262565905,
+      "Formula": "latency ~ depth + depth^2"
+    },
+    {
+      "Model": "Log-Linear (ln(latency) ~ depth)",
+      "R2": 0.8165419241114786,
+      "Adj_R2": 0.8152125177644604,
+      "AIC": -232.69758570335318,
+      "BIC": -226.81430085813457,
+      "RMSE": 19.56761436594503,
+      "Formula": "ln(latency) ~ depth"
+    },
+    {
+      "Model": "Multi-Factor (depth, depth^2, eta, sub, lam)",
+      "R2": 0.867760051766739,
+      "Adj_R2": 0.8628257253401248,
+      "AIC": 1199.4861044885904,
+      "BIC": 1217.1359590242462,
+      "RMSE": 17.184100725050723,
+      "Formula": "latency ~ depth + depth^2 + eta + subsample + lambda"
+    },
+    {
+      "Model": "Full CCD Second-Order (All factors + Block)",
+      "R2": 0.881973892142139,
+      "Adj_R2": 0.8644162893203085,
+      "AIC": 1209.5663952248622,
+      "BIC": 1265.457601254439,
+      "RMSE": 17.08418364636827,
+      "Formula": "latency ~ C(block) + second-order surface"
+    }
+  ],
+  "m_lin_params": {
+    "Intercept": 80.81367976190508,
+    "depth": 17.09961111111107
+  },
+  "m_quad_params": {
+    "Intercept": 164.89008111111087,
+    "depth": -16.292434814814747,
+    "I(depth ** 2)": 2.7826704938271503
+  },
+  "ccd_r2": 0.881973892142139,
+  "ccd_adj_r2": 0.8644162893203085
+}

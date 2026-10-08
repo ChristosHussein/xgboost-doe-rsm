@@ -1,0 +1,17 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest / Testing
+.pytest_cache/
+
+# Tectonic / TeX build intermediates
+report.aux
+report.log
+report.out
+report.synctex.gz
+
+# OS generated files
+.DS_Store
+Thumbs.db
