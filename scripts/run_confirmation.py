@@ -50,10 +50,24 @@ def execute_confirmation(reuse_cached: bool = False):
     XtXi = np.linalg.inv(X.T @ X)
 
     m = len(CONFIRMATION_SEEDS)
-    # Variance components from ANOVA for Satterthwaite prediction interval
-    ms_e_y1 = fit_y1.mse_resid
-    ms_blk_y1 = ms_e_y1 + 28.0 * s2b_y1
+    # Satterthwaite prediction interval helper with boundary guard for non-positive variance component
     c2 = (1.0 / m + 0.2) / 28.0
+
+    def calc_satterthwaite_pi(fit, s2b, x_row, h):
+        ms_e = fit.mse_resid
+        c1 = (1.0 / m + h) - c2
+        if s2b > 0:
+            ms_blk = ms_e + 28.0 * s2b
+            var_pi = c1 * ms_e + c2 * ms_blk
+            denom_nu = ((c1 * ms_e)**2) / 121.0 + ((c2 * ms_blk)**2) / 4.0
+            nu_eff = (var_pi**2) / denom_nu if denom_nu > 0 else 121.0
+        else:
+            var_pi = ms_e * (1.0 / m + h)
+            nu_eff = 121.0
+        t_crit = float(stats.t.ppf(0.975, nu_eff))
+        yh = float(x_row @ fit.params.values)
+        half = t_crit * float(np.sqrt(var_pi))
+        return (yh - half, yh + half), nu_eff, var_pi, yh
 
     data_mgr = CaliforniaHousingDataManager()
 
@@ -67,30 +81,8 @@ def execute_confirmation(reuse_cached: bool = False):
                          0.2, 0.2, 0.2, 0.2])
     h_mo = float(x_row_mo @ XtXi @ x_row_mo)
 
-    c1_mo = (1.0 / m + h_mo) - c2
-    var_pi_y1_mo = c1_mo * ms_e_y1 + c2 * ms_blk_y1
-    nu_eff_y1_mo = (var_pi_y1_mo**2) / (((c1_mo * ms_e_y1)**2) / 121.0 + ((c2 * ms_blk_y1)**2) / 4.0)
-    t_crit_y1_mo = float(stats.t.ppf(0.975, nu_eff_y1_mo))
-
-    yh_y1_mo = float(x_row_mo @ fit_y1.params.values)
-    half_y1_mo = t_crit_y1_mo * float(np.sqrt(var_pi_y1_mo))
-    pi_y1_mo = (yh_y1_mo - half_y1_mo, yh_y1_mo + half_y1_mo)
-
-    # Latency Y2
-    ms_e_y2 = fit_y2.mse_resid
-    if s2b_y2 > 0:
-        ms_blk_y2 = ms_e_y2 + 28.0 * s2b_y2
-        var_pi_y2_mo = c1_mo * ms_e_y2 + c2 * ms_blk_y2
-        denom_nu_y2_mo = ((c1_mo * ms_e_y2)**2) / 121.0 + ((c2 * ms_blk_y2)**2) / 4.0
-        nu_eff_y2_mo = (var_pi_y2_mo**2) / denom_nu_y2_mo if denom_nu_y2_mo > 0 else 121.0
-    else:
-        var_pi_y2_mo = ms_e_y2 * (1.0 / m + h_mo)
-        nu_eff_y2_mo = 121.0
-    t_crit_y2_mo = float(stats.t.ppf(0.975, nu_eff_y2_mo))
-
-    yh_y2_mo = float(x_row_mo @ fit_y2.params.values)
-    half_y2_mo = t_crit_y2_mo * float(np.sqrt(var_pi_y2_mo))
-    pi_y2_mo = (yh_y2_mo - half_y2_mo, yh_y2_mo + half_y2_mo)
+    pi_y1_mo, nu_eff_y1_mo, var_pi_y1_mo, yh_y1_mo = calc_satterthwaite_pi(fit_y1, s2b_y1, x_row_mo, h_mo)
+    pi_y2_mo, nu_eff_y2_mo, var_pi_y2_mo, yh_y2_mo = calc_satterthwaite_pi(fit_y2, s2b_y2, x_row_mo, h_mo)
 
     # 2. Single-Objective Optimum (Depth 7)
     with open("results/phase3.json", "r", encoding="utf-8") as f:
@@ -104,27 +96,8 @@ def execute_confirmation(reuse_cached: bool = False):
                          0.2, 0.2, 0.2, 0.2])
     h_so = float(x_row_so @ XtXi @ x_row_so)
 
-    c1_so = (1.0 / m + h_so) - c2
-    var_pi_y1_so = c1_so * ms_e_y1 + c2 * ms_blk_y1
-    nu_eff_y1_so = (var_pi_y1_so**2) / (((c1_so * ms_e_y1)**2) / 121.0 + ((c2 * ms_blk_y1)**2) / 4.0)
-    t_crit_y1_so = float(stats.t.ppf(0.975, nu_eff_y1_so))
-
-    yh_y1_so = float(x_row_so @ fit_y1.params.values)
-    half_y1_so = t_crit_y1_so * float(np.sqrt(var_pi_y1_so))
-    pi_y1_so = (yh_y1_so - half_y1_so, yh_y1_so + half_y1_so)
-
-    if s2b_y2 > 0:
-        var_pi_y2_so = c1_so * ms_e_y2 + c2 * ms_blk_y2
-        denom_nu_y2_so = ((c1_so * ms_e_y2)**2) / 121.0 + ((c2 * ms_blk_y2)**2) / 4.0
-        nu_eff_y2_so = (var_pi_y2_so**2) / denom_nu_y2_so if denom_nu_y2_so > 0 else 121.0
-    else:
-        var_pi_y2_so = ms_e_y2 * (1.0 / m + h_so)
-        nu_eff_y2_so = 121.0
-    t_crit_y2_so = float(stats.t.ppf(0.975, nu_eff_y2_so))
-
-    yh_y2_so = float(x_row_so @ fit_y2.params.values)
-    half_y2_so = t_crit_y2_so * float(np.sqrt(var_pi_y2_so))
-    pi_y2_so = (yh_y2_so - half_y2_so, yh_y2_so + half_y2_so)
+    pi_y1_so, nu_eff_y1_so, var_pi_y1_so, yh_y1_so = calc_satterthwaite_pi(fit_y1, s2b_y1, x_row_so, h_so)
+    pi_y2_so, nu_eff_y2_so, var_pi_y2_so, yh_y2_so = calc_satterthwaite_pi(fit_y2, s2b_y2, x_row_so, h_so)
 
     csv_mo = "results/confirmation_runs.csv"
     csv_so = "results/confirmation_runs_single_obj.csv"

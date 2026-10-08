@@ -37,6 +37,7 @@ import yaml
 # Ensure root directory is on sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pipeline import CaliforniaHousingDataManager, decode_factors, encode_factors, pin_cpu_affinity, CONFIG
+from analysis import derringer_suich_desirability
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
@@ -319,9 +320,7 @@ def run_tpe_multi_objective(n_trials: int, sampler_seed: int, eval_seed: int, da
     for t in study.trials:
         if t.values is not None:
             v_rmse, v_lat = t.values[0], t.values[1]
-            d1 = max(0.0, min(1.0, (U1 - v_rmse) / (U1 - L1)))
-            d2 = max(0.0, min(1.0, (U2 - v_lat) / (U2 - L2)))
-            D = (d1 * d2)**0.5
+            d1, d2, D = derringer_suich_desirability(v_rmse, v_lat, L1, U1, L2, U2)
             if D > best_D:
                 best_D = D
                 best_x = np.array([t.params[f"x{i}"] for i in range(1, 5)])
@@ -560,9 +559,7 @@ def main():
             y1_p = sum(fit_y1.params[k] * row_dict.get(k, 0.0) for k in fit_y1.params.index)
             y2_p = sum(fit_y2.params[k] * row_dict.get(k, 0.0) for k in fit_y2.params.index)
 
-            d1 = max(0.0, min(1.0, (U1 - y1_p) / (U1 - L1)))
-            d2 = max(0.0, min(1.0, (U2 - y2_p) / (U2 - L2)))
-            D = (d1**w1 * d2**w2)**(1.0 / (w1 + w2))
+            d1, d2, D = derringer_suich_desirability(y1_p, y2_p, L1, U1, L2, U2, w1=w1, w2=w2)
             if D > best_D:
                 best_D = D
                 best_pt = (x1_v, d_val, x3_v, x4_v)
