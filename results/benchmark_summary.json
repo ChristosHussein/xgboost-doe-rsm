@@ -4,9 +4,12 @@
       0.6,
       250.0
     ],
+    "hv_doe_single": 14.52880790897753,
+    "hv_doe_two": 16.504551162514833,
     "hv_doe": 16.504551162514833,
     "hv_motpe": 14.816360714196984,
     "hv_rs": 6.706741096033715,
+    "doe_single_over_motpe_pct": -1.9407788488210355,
     "doe_over_motpe_pct": 11.394096572582976
   },
   "paired_statistics": {

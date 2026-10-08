@@ -37,8 +37,8 @@ The constrained method filters configurations using this proxy, so the reported 
 
 **Resolution:**
 - Removed the hardcoded polynomial latency proxy `115 + 3*depth + 0.8*depth**2` entirely from `scripts/run_benchmarks.py`.
-- Implemented `measure_trial_latency(model, sample)` which measures genuine online single-sample prediction latency directly on candidate models during search (`model.set_params(n_jobs=1)`, `booster.set_param({"nthread": 1})`, 50 warmup iterations, 200 measured iterations).
-- Both Constrained TPE and Multi-Objective TPE now optimize genuine single-sample prediction latency under identical single-threaded conditions.
+- Implemented `measure_trial_latency(model, sample)` which measures genuine online single-sample prediction latency directly on candidate models during search (`model.set_params(n_jobs=1)`, `booster.set_param({"nthread": 1})`, 10 warmup iterations, 30 measured iterations per candidate trial; and 50 warmup, 1000 iterations $\times$ 5 repeats during final dedicated incumbent evaluation).
+- Both Constrained TPE and Multi-Objective TPE now optimize genuine single-sample prediction latency under identical single-threaded conditions, with infeasible trial fallback removed to guarantee strict threshold compliance.
 - Updated Section 6.4 in `report.tex`, recompiled `report.pdf`, regenerated `tables/tab_benchmarks.tex`, and updated macros in `results/macros.tex`.
 
 Evidence: [run_benchmarks.py](https://github.com/ChristosHussein/xgboost-doe-rsm/blob/caf3a5bf59f2eae2541d3478d5fc370f0b339717/scripts/run_benchmarks.py#L254), [MO objective](https://github.com/ChristosHussein/xgboost-doe-rsm/blob/caf3a5bf59f2eae2541d3478d5fc370f0b339717/scripts/run_benchmarks.py#L294).
