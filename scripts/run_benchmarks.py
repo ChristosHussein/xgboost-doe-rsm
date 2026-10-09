@@ -46,6 +46,7 @@ from pipeline import (
     CONFIG,
 )
 from analysis import derringer_suich_desirability
+from latency import ONLINE_SEARCH_V1, PRIMARY_V1, measure_latencies
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
@@ -157,6 +158,7 @@ def _trial_record(
     max_latency_us: Optional[float],
     training_time_s: float,
     evaluation_time_s: float,
+    latency_session_id: Optional[str] = None,
     trial_status: str = "completed",
     error: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -185,6 +187,8 @@ def _trial_record(
         "model_config": json.dumps(model_config, sort_keys=True),
         "validation_rmse": validation_rmse,
         "predict_latency_us": latency,
+        "latency_protocol_id": ONLINE_SEARCH_V1.protocol_id if latency is not None else None,
+        "latency_session_id": latency_session_id,
         "objective_value": objective_value,
         "feasibility": feasible,
         "constraint_violation_us": violation,
@@ -289,80 +293,56 @@ def evaluate_config_on_seeds(
 
 def measure_interleaved_latencies(
     configs: Dict[str, Tuple[float, int, float, float]],
-    data_mgr: CaliforniaHousingDataManager,
+    data_mgr,
     reps: int = 5,
     batch_size: int = 200,
     warmup: int = 50,
+    session_id: str = "revision-v2-benchmark",
 ) -> Dict[str, Dict[str, float]]:
-    """
-    Measures latency for all configurations in interleaved blocks on CPU 0.
-    Eliminates session noise, thermal throttling bias, and scale discrepancies.
-    """
-    pin_cpu_affinity()
-    X_tr, X_val, X_te, y_tr, y_val, y_te = data_mgr.get_split(42)
-    single_sample = X_val[:1]
+    """Measure all configurations in one randomized, metadata-rich session."""
+    split = _development_split(data_mgr, 42)
+    single_sample = split.X_val[:1]
 
     models = {}
-    boosters = {}
     for name, (eta, depth, subsample, reg_lambda) in configs.items():
-        m = xgb.XGBRegressor(
-            n_estimators=CONFIG["model"]["n_estimators"],
-            learning_rate=eta,
-            max_depth=depth,
-            subsample=subsample,
-            reg_lambda=reg_lambda,
-            random_state=42,
-            n_jobs=1,
-            objective=CONFIG["model"]["objective"],
+        model_config = _model_config(eta, depth, subsample, reg_lambda, 42)
+        model_config["n_jobs"] = 1
+        model = xgb.XGBRegressor(**model_config)
+        model.fit(split.X_train, split.y_train)
+        models[name] = model
+
+    protocol = PRIMARY_V1
+    if (reps, batch_size, warmup) != (
+        PRIMARY_V1.repetitions,
+        PRIMARY_V1.calls_per_repetition,
+        PRIMARY_V1.warmup_calls_per_interface,
+    ):
+        from latency import LatencyProtocol
+
+        protocol = LatencyProtocol(
+            protocol_id="single_sample_latency_primary_custom_v1",
+            interfaces=PRIMARY_V1.interfaces,
+            warmup_calls_per_interface=warmup,
+            repetitions=reps,
+            calls_per_repetition=batch_size,
+            inference_threads=PRIMARY_V1.inference_threads,
+            cpu_core=PRIMARY_V1.cpu_core,
+            order_seed=PRIMARY_V1.order_seed,
+            randomize_order=True,
+            primary_metric=PRIMARY_V1.primary_metric,
         )
-        m.fit(X_tr, y_tr)
-        b = m.get_booster()
-        b.set_param({"nthread": 1})
-        models[name] = m
-        boosters[name] = b
-
-        # Warmup
-        for _ in range(warmup):
-            _ = m.predict(single_sample)
-            _ = b.inplace_predict(single_sample)
-
-    batch_times_pred = {name: [] for name in configs}
-    batch_times_inp = {name: [] for name in configs}
-
-    # Interleaved execution across reps
-    method_names = list(configs.keys())
-    for r in range(reps):
-        # Permute methods to avoid order bias
-        perm = np.random.permutation(method_names)
-        for name in perm:
-            m = models[name]
-            b = boosters[name]
-
-            # 1. Predict
-            t0 = time.perf_counter_ns()
-            for _ in range(batch_size):
-                _ = m.predict(single_sample)
-            t1 = time.perf_counter_ns()
-            batch_times_pred[name].append((t1 - t0) / (batch_size * 1000.0))
-
-            # 2. Inplace Predict
-            t0 = time.perf_counter_ns()
-            for _ in range(batch_size):
-                _ = b.inplace_predict(single_sample)
-            t1 = time.perf_counter_ns()
-            batch_times_inp[name].append((t1 - t0) / (batch_size * 1000.0))
-
+    measurement = measure_latencies(
+        models, single_sample, session_id=session_id, protocol=protocol
+    )
     results = {}
-    for name in configs:
-        med_p = float(np.median(batch_times_pred[name]))
-        iqr_p = float(np.subtract(*np.percentile(batch_times_pred[name], [75, 25])))
-        med_i = float(np.median(batch_times_inp[name]))
-        iqr_i = float(np.subtract(*np.percentile(batch_times_inp[name], [75, 25])))
+    for name, summary in measurement["summaries"].items():
         results[name] = {
-            "predict_latency_us_median": med_p,
-            "predict_latency_us_iqr": iqr_p,
-            "inplace_latency_us_median": med_i,
-            "inplace_latency_us_iqr": iqr_i,
+            "predict_latency_us_median": summary["predict_latency_us"],
+            "predict_latency_us_iqr": summary["predict_latency_us_iqr"],
+            "inplace_latency_us_median": summary["inplace_predict_latency_us"],
+            "inplace_latency_us_iqr": summary["inplace_predict_latency_us_iqr"],
+            "latency_protocol_id": measurement["metadata"]["protocol"]["protocol_id"],
+            "latency_session_id": session_id,
         }
     return results
 
@@ -422,7 +402,12 @@ def run_random_search(
             eval_start = time.perf_counter()
             prediction = model.predict(split.X_val)
             val_rmse = float(np.sqrt(np.mean((split.y_val - prediction) ** 2)))
-            latency = measure_trial_latency(model, split.X_val[:1])
+            latency_session_id = f"random-search-rep-{replicate_id}-trial-{trial_number}"
+            latency = measure_trial_latency(
+                model,
+                split.X_val[:1],
+                session_id=latency_session_id,
+            )
             evaluation_time = time.perf_counter() - eval_start
             record = _trial_record(
                 optimizer="random_search",
@@ -439,6 +424,7 @@ def run_random_search(
                 max_latency_us=None,
                 training_time_s=training_time,
                 evaluation_time_s=evaluation_time,
+                latency_session_id=latency_session_id,
             )
             if val_rmse < best_value:
                 best_value = val_rmse
@@ -507,7 +493,12 @@ def run_tpe_single_objective(
             eval_start = time.perf_counter()
             prediction = model.predict(split.X_val)
             val_rmse = float(np.sqrt(np.mean((split.y_val - prediction) ** 2)))
-            latency = measure_trial_latency(model, split.X_val[:1])
+            latency_session_id = f"single-tpe-rep-{replicate_id}-trial-{trial.number}"
+            latency = measure_trial_latency(
+                model,
+                split.X_val[:1],
+                session_id=latency_session_id,
+            )
             evaluation_time = time.perf_counter() - eval_start
             record = _trial_record(
                 optimizer="single_objective_tpe",
@@ -524,6 +515,7 @@ def run_tpe_single_objective(
                 max_latency_us=None,
                 training_time_s=training_time,
                 evaluation_time_s=evaluation_time,
+                latency_session_id=latency_session_id,
             )
             records.append(record)
             if val_rmse < best_value:
@@ -574,18 +566,38 @@ def run_tpe_single_objective(
     )
 
 
-def measure_trial_latency(model, sample: np.ndarray, warmup: int = 10, reps: int = 30) -> float:
-    """CR-001: Measures genuine single-sample prediction latency (in microseconds) during search."""
-    model.set_params(n_jobs=1)
-    booster = model.get_booster()
-    booster.set_param({"nthread": 1})
-    for _ in range(warmup):
-        _ = model.predict(sample)
-    t0 = time.perf_counter_ns()
-    for _ in range(reps):
-        _ = model.predict(sample)
-    t1 = time.perf_counter_ns()
-    return float((t1 - t0) / (reps * 1000.0))
+def measure_trial_latency(
+    model,
+    sample: np.ndarray,
+    warmup: int = 10,
+    reps: int = 30,
+    *,
+    session_id: str = "revision-v2-online-search",
+) -> float:
+    """Measure online search latency through the centralized protocol."""
+    protocol = ONLINE_SEARCH_V1
+    if (warmup, reps) != (
+        ONLINE_SEARCH_V1.warmup_calls_per_interface,
+        ONLINE_SEARCH_V1.timed_calls_per_interface,
+    ):
+        from latency import LatencyProtocol
+
+        protocol = LatencyProtocol(
+            protocol_id="single_sample_latency_online_search_custom_v1",
+            interfaces=("predict",),
+            warmup_calls_per_interface=warmup,
+            repetitions=1,
+            calls_per_repetition=reps,
+            inference_threads=ONLINE_SEARCH_V1.inference_threads,
+            cpu_core=ONLINE_SEARCH_V1.cpu_core,
+            order_seed=ONLINE_SEARCH_V1.order_seed,
+            randomize_order=False,
+            primary_metric=ONLINE_SEARCH_V1.primary_metric,
+        )
+    result = measure_latencies(
+        {"trial": model}, sample, session_id=session_id, protocol=protocol
+    )
+    return float(result["summaries"]["trial"]["predict_latency_us"])
 
 
 def run_tpe_constrained(
@@ -614,7 +626,12 @@ def run_tpe_constrained(
             eval_start = time.perf_counter()
             prediction = model.predict(split.X_val)
             val_rmse = float(np.sqrt(np.mean((split.y_val - prediction) ** 2)))
-            latency = measure_trial_latency(model, split.X_val[:1])
+            latency_session_id = f"constrained-tpe-rep-{replicate_id}-trial-{trial.number}"
+            latency = measure_trial_latency(
+                model,
+                split.X_val[:1],
+                session_id=latency_session_id,
+            )
             evaluation_time = time.perf_counter() - eval_start
             violation = max(0.0, latency - max_latency_us)
             score = val_rmse + violation * 0.05
@@ -633,6 +650,7 @@ def run_tpe_constrained(
                 max_latency_us=max_latency_us,
                 training_time_s=training_time,
                 evaluation_time_s=evaluation_time,
+                latency_session_id=latency_session_id,
             )
             records.append(record)
             if record["feasibility"]:
@@ -716,7 +734,12 @@ def run_tpe_multi_objective(
             eval_start = time.perf_counter()
             prediction = model.predict(split.X_val)
             val_rmse = float(np.sqrt(np.mean((split.y_val - prediction) ** 2)))
-            latency = measure_trial_latency(model, split.X_val[:1])
+            latency_session_id = f"multi-tpe-rep-{replicate_id}-trial-{trial.number}"
+            latency = measure_trial_latency(
+                model,
+                split.X_val[:1],
+                session_id=latency_session_id,
+            )
             evaluation_time = time.perf_counter() - eval_start
             _, _, desirability = derringer_suich_desirability(
                 val_rmse, latency, L1, U1, L2, U2
@@ -740,6 +763,7 @@ def run_tpe_multi_objective(
                 max_latency_us=None,
                 training_time_s=training_time,
                 evaluation_time_s=evaluation_time,
+                latency_session_id=latency_session_id,
             )
             records.append(record)
             best_desirability = max(best_desirability, float(desirability))

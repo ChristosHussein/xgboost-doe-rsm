@@ -58,6 +58,10 @@ factors:
 model:
   n_estimators: 100
   objective: "reg:squarederror"
+  colsample_bytree: 1.0
+  min_child_weight: 1.0
+  gamma: 0.0
+  tree_method: "auto"
   n_jobs_train: 4
   n_jobs_latency: 1
   latency_warmup: 50
@@ -83,3 +87,27 @@ budget:
   total_ccd_runs: 140
   benchmark_evals_A: 140
   benchmark_unique_configs_B: 25
+
+revision_v2:
+  artifact_root: "results/revision_v2"
+  development_split_seed: 42
+  primary_latency_metric: "predict_latency_us"
+  max_latency_us: 145.0
+  # Equivalence is deliberately disabled until a scientifically justified
+  # margin is predeclared before inspecting the corresponding final results.
+  rmse_equivalence_margin: null
+  hypervolume_reference_points:
+    - [0.60, 250.0]
+    - [0.65, 275.0]
+  modes:
+    smoke:
+      optimizer_replicates: 2
+      trials_per_optimizer: 5
+      evaluation_seeds: [2001, 2002]
+      doe_block_seed_sets: 2
+    full:
+      optimizer_replicates: 20
+      trials_per_optimizer: 140
+      evaluation_seeds: [2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+                         2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020]
+      doe_block_seed_sets: 20
