@@ -26,6 +26,6 @@ Fix Plan*.md
 graphify-out/
 output/
 
-# Generated revision experiment runs
-results/revision_v2/
+# Ephemeral smoke test runs
+results/revision_v2/smoke*/
 

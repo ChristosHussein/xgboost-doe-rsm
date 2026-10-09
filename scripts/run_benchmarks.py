@@ -2584,6 +2584,7 @@ def run_revision_benchmark(
                 output = None
         if output is None:
             started = time.perf_counter()
+            print(f"[Run] Starting optimizer replicate {replicate_id + 1}/{len(sampler_seeds)} (sampler seed {sampler_seed})...", flush=True)
             output = run_single_optimizer_replicate(
                 sampler_seed,
                 development_seed,
@@ -2597,6 +2598,7 @@ def run_revision_benchmark(
                 json.dumps(_replicate_output_to_dict(output), indent=2) + "\n",
                 encoding="utf-8",
             )
+            print(f"[Run] Completed optimizer replicate {replicate_id + 1}/{len(sampler_seeds)} in {wall_time:.1f}s", flush=True)
         replicate_outputs.append(output)
         trial_rows.extend(output["trial_records"])
         for result in output["search_results"].values():
@@ -2635,6 +2637,8 @@ def run_revision_benchmark(
                 print(f"[Warning] Failed to load DOE checkpoint: {e}. Recomputing...")
                 repeated_doe = None
         if repeated_doe is None:
+            print("[Run] Starting repeated DOE selection across block seed sets...", flush=True)
+            started_doe = time.perf_counter()
             repeated_doe = run_repeated_doe_selection(
                 manager,
                 replicate_count=int(settings["doe_block_seed_sets"]),
@@ -2645,6 +2649,7 @@ def run_revision_benchmark(
             doe_ckpt_path.write_text(
                 json.dumps(repeated_doe, indent=2) + "\n", encoding="utf-8"
             )
+            print(f"[Run] Completed repeated DOE selection in {time.perf_counter() - started_doe:.1f}s", flush=True)
         configurations.extend(repeated_doe["configurations"])
         _write_csv(
             repeated_doe["run_records"], destination / "doe_selection_runs.csv"
@@ -2701,6 +2706,8 @@ def run_revision_benchmark(
             print(f"[Warning] Failed to load latency sessions checkpoint: {e}. Recomputing...")
             primary_sessions = None
     if primary_sessions is None:
+        print(f"[Run] Starting primary latency sessions ({latency_session_count} sessions across {len(configurations)} configurations)...", flush=True)
+        started_lat = time.perf_counter()
         primary_sessions = [
             _measure_frozen_primary_latencies(
                 configurations,
@@ -2713,6 +2720,7 @@ def run_revision_benchmark(
         lat_ckpt_path.write_text(
             json.dumps(primary_sessions, indent=2) + "\n", encoding="utf-8"
         )
+        print(f"[Run] Completed primary latency sessions in {time.perf_counter() - started_lat:.1f}s", flush=True)
     primary_measurement = _aggregate_primary_latency_sessions(primary_sessions)
     (destination / "latency_measurement.json").write_text(
         json.dumps(primary_measurement, indent=2) + "\n", encoding="utf-8"
@@ -2732,8 +2740,12 @@ def run_revision_benchmark(
             print(f"[Warning] Failed to load final evaluations checkpoint: {e}. Recomputing...")
             final_rows = None
     if final_rows is None:
+        print(f"[Run] Starting gated final holdout evaluation ({len(configurations)} configurations x {len(evaluation_seeds)} seeds)...", flush=True)
+        started_final = time.perf_counter()
         final_rows = []
-        for configuration in configurations:
+        for idx, configuration in enumerate(configurations):
+            if (idx + 1) % 10 == 0 or idx + 1 == len(configurations):
+                print(f"  [Evaluating configuration {idx + 1}/{len(configurations)}: {configuration['selection_id']}]", flush=True)
             result = evaluator.evaluate(
                 manifest_path,
                 configuration["selection_id"],
@@ -2750,6 +2762,8 @@ def run_revision_benchmark(
         final_rows_ckpt_path.write_text(
             json.dumps(final_rows, indent=2) + "\n", encoding="utf-8"
         )
+        print(f"[Run] Completed gated final holdout evaluation in {time.perf_counter() - started_final:.1f}s", flush=True)
+
     _write_csv(final_rows, destination / "final_evaluations.csv")
     failed_final_rows = [row for row in final_rows if row.get("status") != "completed"]
     if failed_final_rows:
