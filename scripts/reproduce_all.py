@@ -32,6 +32,7 @@ def build_commands(
     output_dir: str | None,
     confirm_full_budget: bool,
     skip_tests: bool,
+    resume: bool = False,
 ) -> list[tuple[list[str], str]]:
     if mode == "full" and not confirm_full_budget:
         raise ValueError("full reproduction requires --confirm-full-budget")
@@ -53,6 +54,8 @@ def build_commands(
         benchmark.extend(["--output-dir", str(destination.resolve())])
     if mode == "full":
         benchmark.append("--confirm-full-budget")
+    if resume:
+        benchmark.append("--resume")
     commands.append((benchmark, f"revision-v2 {mode} experiment"))
     return commands
 
@@ -69,18 +72,26 @@ def main() -> None:
         action="store_true",
         help="Required for the expensive full protocol.",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an interrupted run from existing checkpoints in the output directory.",
+    )
     args = parser.parse_args()
     destination = Path(args.output_dir) if args.output_dir else None
     if destination is not None and not destination.is_absolute():
         destination = REPOSITORY_ROOT / destination
-    if destination is not None and destination.exists() and any(destination.iterdir()):
-        raise SystemExit(f"Refusing to overwrite non-empty directory: {destination}")
+    if destination is not None and destination.exists() and any(destination.iterdir()) and not args.resume:
+        raise SystemExit(
+            f"Refusing to overwrite non-empty directory: {destination}. Pass --resume to continue from checkpoints."
+        )
     try:
         commands = build_commands(
             mode=args.mode,
             output_dir=args.output_dir,
             confirm_full_budget=args.confirm_full_budget,
             skip_tests=args.skip_tests,
+            resume=args.resume,
         )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc

@@ -2467,6 +2467,62 @@ def _write_run_provenance(
     )
 
 
+def _search_result_to_dict(sr: SearchResult) -> Dict[str, Any]:
+    return {
+        "optimizer": sr.optimizer,
+        "replicate_id": sr.replicate_id,
+        "sampler_seed": sr.sampler_seed,
+        "development_split_seed": sr.development_split_seed,
+        "status": sr.status,
+        "selected_x": None if sr.selected_x is None else [float(v) for v in sr.selected_x],
+        "selected_score": None if sr.selected_score is None else float(sr.selected_score),
+        "selection_rule": sr.selection_rule,
+        "trajectory": [float(v) for v in sr.trajectory],
+        "trial_records": sr.trial_records,
+    }
+
+
+def _search_result_from_dict(d: Dict[str, Any]) -> SearchResult:
+    return SearchResult(
+        optimizer=d["optimizer"],
+        replicate_id=d["replicate_id"],
+        sampler_seed=d["sampler_seed"],
+        development_split_seed=d["development_split_seed"],
+        status=d["status"],
+        selected_x=None if d["selected_x"] is None else np.array(d["selected_x"], dtype=float),
+        selected_score=d["selected_score"],
+        selection_rule=d["selection_rule"],
+        trajectory=d["trajectory"],
+        trial_records=d["trial_records"],
+    )
+
+
+def _replicate_output_to_dict(output: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "seed": output["seed"],
+        "replicate_id": output["replicate_id"],
+        "search_results": {
+            name: _search_result_to_dict(sr)
+            for name, sr in output["search_results"].items()
+        },
+        "method_wall_times_s": output["method_wall_times_s"],
+        "trial_records": output["trial_records"],
+    }
+
+
+def _replicate_output_from_dict(d: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "seed": d["seed"],
+        "replicate_id": d["replicate_id"],
+        "search_results": {
+            name: _search_result_from_dict(sr_dict)
+            for name, sr_dict in d["search_results"].items()
+        },
+        "method_wall_times_s": d["method_wall_times_s"],
+        "trial_records": d["trial_records"],
+    }
+
+
 def run_revision_benchmark(
     mode: str = "smoke",
     *,
@@ -2476,8 +2532,9 @@ def run_revision_benchmark(
     settings_override: Optional[Dict[str, Any]] = None,
     include_historical_doe: bool = True,
     include_repeated_doe: bool = True,
+    resume: bool = False,
 ) -> Path:
-    """Run the versioned benchmark workflow without overwriting historical artifacts."""
+    """Run the versioned benchmark workflow with checkpointing and resumable execution."""
     modes = CONFIG["revision_v2"]["modes"]
     if mode not in modes:
         raise ValueError(f"Unknown benchmark mode {mode!r}; choose one of {sorted(modes)}")
@@ -2485,9 +2542,11 @@ def run_revision_benchmark(
     if settings_override:
         settings.update(settings_override)
     destination = Path(output_dir) if output_dir else _default_revision_output(mode)
-    if destination.exists() and any(destination.iterdir()):
-        raise FileExistsError(f"Refusing to overwrite non-empty experiment directory: {destination}")
+    checkpoint_dir = destination / "checkpoints"
+    if destination.exists() and any(destination.iterdir()) and not resume:
+        raise FileExistsError(f"Refusing to overwrite non-empty experiment directory: {destination}. Pass --resume to continue from checkpoints.")
     destination.mkdir(parents=True, exist_ok=True)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     budget = _computational_budget(
         mode,
@@ -2511,16 +2570,33 @@ def run_revision_benchmark(
     replicate_rows = []
     trial_rows = []
     for replicate_id, sampler_seed in enumerate(sampler_seeds):
-        started = time.perf_counter()
-        output = run_single_optimizer_replicate(
-            sampler_seed,
-            development_seed,
-            replicate_id=replicate_id,
-            n_trials=trials,
-            max_latency_us=max_latency,
-            data_mgr=manager,
-        )
-        wall_time = time.perf_counter() - started
+        ckpt_path = checkpoint_dir / f"optimizer_replicate_{replicate_id}.json"
+        output = None
+        wall_time = 0.0
+        if resume and ckpt_path.exists():
+            try:
+                ckpt_data = json.loads(ckpt_path.read_text(encoding="utf-8"))
+                output = _replicate_output_from_dict(ckpt_data)
+                wall_time = sum(output["method_wall_times_s"].values())
+                print(f"[Checkpoint] Loaded optimizer replicate {replicate_id} (seed {sampler_seed})")
+            except Exception as e:
+                print(f"[Warning] Failed to load checkpoint {ckpt_path.name}: {e}. Recomputing replicate...")
+                output = None
+        if output is None:
+            started = time.perf_counter()
+            output = run_single_optimizer_replicate(
+                sampler_seed,
+                development_seed,
+                replicate_id=replicate_id,
+                n_trials=trials,
+                max_latency_us=max_latency,
+                data_mgr=manager,
+            )
+            wall_time = time.perf_counter() - started
+            ckpt_path.write_text(
+                json.dumps(_replicate_output_to_dict(output), indent=2) + "\n",
+                encoding="utf-8",
+            )
         replicate_outputs.append(output)
         trial_rows.extend(output["trial_records"])
         for result in output["search_results"].values():
@@ -2550,13 +2626,25 @@ def run_revision_benchmark(
                 configurations.append(_manifest_configuration(selected, selection_id))
     repeated_doe = None
     if include_repeated_doe:
-        repeated_doe = run_repeated_doe_selection(
-            manager,
-            replicate_count=int(settings["doe_block_seed_sets"]),
-            seeds_per_set=int(settings["doe_seeds_per_set"]),
-            seed_base=int(settings["doe_seed_base"]),
-            max_latency_us=max_latency,
-        )
+        doe_ckpt_path = checkpoint_dir / "repeated_doe_selection.json"
+        if resume and doe_ckpt_path.exists():
+            try:
+                repeated_doe = json.loads(doe_ckpt_path.read_text(encoding="utf-8"))
+                print(f"[Checkpoint] Loaded repeated DOE selection from checkpoint")
+            except Exception as e:
+                print(f"[Warning] Failed to load DOE checkpoint: {e}. Recomputing...")
+                repeated_doe = None
+        if repeated_doe is None:
+            repeated_doe = run_repeated_doe_selection(
+                manager,
+                replicate_count=int(settings["doe_block_seed_sets"]),
+                seeds_per_set=int(settings["doe_seeds_per_set"]),
+                seed_base=int(settings["doe_seed_base"]),
+                max_latency_us=max_latency,
+            )
+            doe_ckpt_path.write_text(
+                json.dumps(repeated_doe, indent=2) + "\n", encoding="utf-8"
+            )
         configurations.extend(repeated_doe["configurations"])
         _write_csv(
             repeated_doe["run_records"], destination / "doe_selection_runs.csv"
@@ -2603,15 +2691,28 @@ def run_revision_benchmark(
     )
 
     latency_session_count = int(settings["latency_sessions"])
-    primary_sessions = [
-        _measure_frozen_primary_latencies(
-            configurations,
-            manager,
-            development_seed,
-            session_id=f"revision-v2-{mode}-frozen-primary-session-{session_index + 1}",
+    lat_ckpt_path = checkpoint_dir / "primary_latency_sessions.json"
+    primary_sessions = None
+    if resume and lat_ckpt_path.exists():
+        try:
+            primary_sessions = json.loads(lat_ckpt_path.read_text(encoding="utf-8"))
+            print(f"[Checkpoint] Loaded primary latency sessions from checkpoint")
+        except Exception as e:
+            print(f"[Warning] Failed to load latency sessions checkpoint: {e}. Recomputing...")
+            primary_sessions = None
+    if primary_sessions is None:
+        primary_sessions = [
+            _measure_frozen_primary_latencies(
+                configurations,
+                manager,
+                development_seed,
+                session_id=f"revision-v2-{mode}-frozen-primary-session-{session_index + 1}",
+            )
+            for session_index in range(latency_session_count)
+        ]
+        lat_ckpt_path.write_text(
+            json.dumps(primary_sessions, indent=2) + "\n", encoding="utf-8"
         )
-        for session_index in range(latency_session_count)
-    ]
     primary_measurement = _aggregate_primary_latency_sessions(primary_sessions)
     (destination / "latency_measurement.json").write_text(
         json.dumps(primary_measurement, indent=2) + "\n", encoding="utf-8"
@@ -2621,21 +2722,34 @@ def run_revision_benchmark(
         json.dumps(latency_overhead, indent=2) + "\n", encoding="utf-8"
     )
 
-    final_rows = []
-    for configuration in configurations:
-        result = evaluator.evaluate(
-            manifest_path,
-            configuration["selection_id"],
-            evaluation_seeds=evaluation_seeds,
+    final_rows_ckpt_path = checkpoint_dir / "final_evaluations_rows.json"
+    final_rows = None
+    if resume and final_rows_ckpt_path.exists():
+        try:
+            final_rows = json.loads(final_rows_ckpt_path.read_text(encoding="utf-8"))
+            print(f"[Checkpoint] Loaded final evaluation rows from checkpoint")
+        except Exception as e:
+            print(f"[Warning] Failed to load final evaluations checkpoint: {e}. Recomputing...")
+            final_rows = None
+    if final_rows is None:
+        final_rows = []
+        for configuration in configurations:
+            result = evaluator.evaluate(
+                manifest_path,
+                configuration["selection_id"],
+                evaluation_seeds=evaluation_seeds,
+            )
+            for row in result["per_seed"]:
+                final_rows.append({
+                    "selection_id": configuration["selection_id"],
+                    "optimizer": configuration["optimizer"],
+                    "optimizer_replicate_id": configuration.get("optimizer_replicate_id"),
+                    "config_sha256": result["config_sha256"],
+                    **row,
+                })
+        final_rows_ckpt_path.write_text(
+            json.dumps(final_rows, indent=2) + "\n", encoding="utf-8"
         )
-        for row in result["per_seed"]:
-            final_rows.append({
-                "selection_id": configuration["selection_id"],
-                "optimizer": configuration["optimizer"],
-                "optimizer_replicate_id": configuration.get("optimizer_replicate_id"),
-                "config_sha256": result["config_sha256"],
-                **row,
-            })
     _write_csv(final_rows, destination / "final_evaluations.csv")
     failed_final_rows = [row for row in final_rows if row.get("status") != "completed"]
     if failed_final_rows:
@@ -3093,6 +3207,11 @@ def main():
         action="store_true",
         help="Required with --mode full after reviewing the computational budget.",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an interrupted run from existing checkpoints in the output directory.",
+    )
     args = parser.parse_args()
     if args.mode == "full" and not args.confirm_full_budget:
         budget = _computational_budget("full", CONFIG["revision_v2"]["modes"]["full"])
@@ -3100,7 +3219,9 @@ def main():
             "Full mode requires --confirm-full-budget after reviewing this estimate:\n"
             + json.dumps(budget, indent=2)
         )
-    destination = run_revision_benchmark(args.mode, output_dir=args.output_dir)
+    destination = run_revision_benchmark(
+        args.mode, output_dir=args.output_dir, resume=args.resume
+    )
     print(f"Revision benchmark artifacts written to {destination}")
 
 

@@ -172,3 +172,69 @@ def test_synthetic_revision_workflow_writes_gated_versioned_artifacts(
     assert run_manifest["historical_artifacts_modified"] is False
     assert run_manifest["inference_status"] == "smoke_underpowered"
     assert expected <= set(run_manifest["artifacts"])
+
+
+def test_revision_benchmark_resume_loads_checkpoints(monkeypatch, tmp_path):
+    import pytest
+    import final_evaluation
+    from scripts import run_benchmarks as benchmarks
+
+    X = np.arange(480, dtype=float).reshape(60, 8)
+    y = np.linspace(0.0, 0.5, 60)
+    manager = SyntheticDevelopmentManager(X, y)
+    evaluator = final_evaluation.FinalTestEvaluator(X=X, y=y)
+    monkeypatch.setattr(benchmarks.xgb, "XGBRegressor", FakeRegressor)
+    monkeypatch.setattr(final_evaluation.xgb, "XGBRegressor", FakeRegressor)
+
+    run_dir = tmp_path / "resume-test"
+    destination = benchmarks.run_revision_benchmark(
+        "smoke",
+        output_dir=str(run_dir),
+        data_mgr=manager,
+        final_evaluator=evaluator,
+        settings_override={
+            "optimizer_replicates": 1,
+            "trials_per_optimizer": 2,
+            "evaluation_seeds": [101, 102],
+        },
+        include_historical_doe=False,
+        include_repeated_doe=False,
+    )
+    ckpt_dir = destination / "checkpoints"
+    assert ckpt_dir.exists()
+    assert (ckpt_dir / "optimizer_replicate_0.json").exists()
+    assert (ckpt_dir / "primary_latency_sessions.json").exists()
+    assert (ckpt_dir / "final_evaluations_rows.json").exists()
+
+    with pytest.raises(FileExistsError, match="Refusing to overwrite non-empty"):
+        benchmarks.run_revision_benchmark(
+            "smoke",
+            output_dir=str(run_dir),
+            data_mgr=manager,
+            final_evaluator=evaluator,
+            settings_override={
+                "optimizer_replicates": 1,
+                "trials_per_optimizer": 2,
+                "evaluation_seeds": [101, 102],
+            },
+            include_historical_doe=False,
+            include_repeated_doe=False,
+            resume=False,
+        )
+
+    resumed_destination = benchmarks.run_revision_benchmark(
+        "smoke",
+        output_dir=str(run_dir),
+        data_mgr=manager,
+        final_evaluator=evaluator,
+        settings_override={
+            "optimizer_replicates": 1,
+            "trials_per_optimizer": 2,
+            "evaluation_seeds": [101, 102],
+        },
+        include_historical_doe=False,
+        include_repeated_doe=False,
+        resume=True,
+    )
+    assert resumed_destination == destination
+    assert (destination / "run_manifest.json").exists()

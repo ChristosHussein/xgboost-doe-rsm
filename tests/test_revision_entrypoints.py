@@ -56,3 +56,16 @@ def test_reproduction_steps_always_run_from_repository_root(monkeypatch):
     reproduce_all.run_step([sys.executable, "-c", "pass"], "fixture")
     assert captured["check"] is True
     assert captured["cwd"] == Path(reproduce_all.__file__).resolve().parents[1]
+
+
+def test_reproduction_commands_support_resume():
+    from scripts.reproduce_all import build_commands
+
+    commands = build_commands(
+        mode="smoke",
+        output_dir="results/revision_v2/smoke/example",
+        confirm_full_budget=False,
+        skip_tests=True,
+        resume=True,
+    )
+    assert "--resume" in commands[0][0]

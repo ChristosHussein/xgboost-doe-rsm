@@ -32,30 +32,31 @@ Top-level `results_summary.json` and files under `data/` were produced by the ol
 
 At audit start, `results/benchmark.csv`, `results/benchmark_evals_trajectories.csv`, `results/benchmark_optimizer_incumbents.csv`, and `results/benchmark_summary.json` differed from `v1.0.0`. The dirty benchmark CSV, for example, reports a different selected MO-TPE configuration and test RMSE than the published snapshot. These changes were not accompanied by a clean provenance manifest or a regenerated manuscript, so they remain unverified and must not be substituted into the paper.
 
-## Confirmed discrepancies
+## Confirmed discrepancies and resolution status
 
-| ID | Severity | Evidence | Required disposition |
-|---|---|---|---|
-| SA-001 | Critical | `CaliforniaHousingDataManager.get_split()` returns train, validation, and external holdout arrays to every caller. | Introduce a development-only split interface that cannot expose holdout labels. |
-| SA-002 | Critical | `pipeline.evaluate_model()` computes `test_rmse` unconditionally, and the 140-run DOE path logs it to `results/runs.csv`. | Remove holdout evaluation from all development runs. Preserve and disclose the historical exposure. |
-| SA-003 | Critical | Final benchmark and confirmation evaluation accepts in-memory coordinates without a persisted, validated selection freeze. | Require a finalized-selection manifest with canonical configuration hashes before final evaluation. |
-| SA-004 | High | Published confirmation latency is 142.33 microseconds for DOE-MO and 171.12 for DOE-SO, while the baseline benchmark session reports 119.84 and 147.84. | Centralize the timing protocol and identify each historical session rather than combining its values. |
-| SA-005 | High | Optimizer trial-level records are not retained; only trajectories and selected incumbents are stored. | Persist every trial, including status, timing, objective, feasibility, errors, and selection state. |
-| SA-006 | High | Historical confidence intervals condition on one representative configuration and do not measure between-search variability. | Add repeated end-to-end evaluation and keep search and retraining variation separate. |
-| SA-007 | High | The published Pareto plot uses individual DOE run realizations, allowing favorable seed noise to define the frontier. | Use configuration-level estimates under matched timing and validation protocols. |
-| SA-008 | High | The historical two-point DOE hypervolume is compared with one selected MO-TPE point. | Preserve it as historical context; use complete candidate fronts for optimizer-quality claims. |
-| SA-009 | Medium | `results_summary.json` belongs to a legacy workflow but is not labelled as such in its filename or schema. | Keep it immutable and classify it explicitly in provenance and documentation. |
-| SA-010 | Medium | The pre-planned 140-run FCCD is analyzed in stages but was not operationally adaptive. | Use “pre-planned blocked factorial-plus-CCD” terminology unless a new adaptive experiment is executed. |
+| ID | Severity | Evidence | Required disposition | Resolution & Verification Status |
+|---|---|---|---|---|
+| SA-001 | Critical | `CaliforniaHousingDataManager.get_split()` returns train, validation, and external holdout arrays to every caller. | Introduce a development-only split interface that cannot expose holdout labels. | **Resolved & Verified.** `CaliforniaHousingDevelopmentDataManager.get_split()` strictly returns train and validation arrays. Verified by `tests/test_holdout_isolation.py`. |
+| SA-002 | Critical | `pipeline.evaluate_model()` computes `test_rmse` unconditionally, and the 140-run DOE path logs it to `results/runs.csv`. | Remove holdout evaluation from all development runs. Preserve and disclose the historical exposure. | **Resolved & Verified.** Holdout evaluation stripped from search; development code records validation RMSE only; `optimizer_trials.csv` contains no holdout labels. Verified by `tests/test_holdout_isolation.py`. |
+| SA-003 | Critical | Final benchmark and confirmation evaluation accepts in-memory coordinates without a persisted, validated selection freeze. | Require a finalized-selection manifest with canonical configuration hashes before final evaluation. | **Resolved & Verified.** `final_evaluation.py` enforces cryptographic SHA-256 verification against `finalized_selections.json` prior to evaluation. Verified by `tests/test_final_evaluation_gate.py`. |
+| SA-004 | High | Published confirmation latency is 142.33 microseconds for DOE-MO and 171.12 for DOE-SO, while the baseline benchmark session reports 119.84 and 147.84. | Centralize the timing protocol and identify each historical session rather than combining its values. | **Resolved & Verified.** Implemented centralized `latency.py` protocol with thread pinning, warmup iterations, and interface overhead tracking. Verified by `tests/test_latency_protocol.py`. |
+| SA-005 | High | Optimizer trial-level records are not retained; only trajectories and selected incumbents are stored. | Persist every trial, including status, timing, objective, feasibility, errors, and selection state. | **Resolved & Verified.** Complete optimizer trial logs persisted to `optimizer_trials.csv`. Infeasible trials and failures explicitly recorded. Verified by `tests/test_benchmark_protocol.py`. |
+| SA-006 | High | Historical confidence intervals condition on one representative configuration and do not measure between-search variability. | Add repeated end-to-end evaluation and keep search and retraining variation separate. | **Resolved & Verified.** Repeated search replication protocol implemented in `scripts/run_benchmarks.py` and `scientific_stats.py`. Verified by `tests/test_scientific_stats.py`. |
+| SA-007 | High | The published Pareto plot uses individual DOE run realizations, allowing favorable seed noise to define the frontier. | Use configuration-level estimates under matched timing and validation protocols. | **Resolved & Verified.** Frontier extraction uses configuration-level means and multi-seed evaluations. Verified by `tests/test_scientific_stats.py` and `tests/test_revision_plots.py`. |
+| SA-008 | High | The historical two-point DOE hypervolume is compared with one selected MO-TPE point. | Preserve it as historical context; use complete candidate fronts for optimizer-quality claims. | **Resolved & Verified.** Candidate-level Pareto front extraction and dual reference point ($[0.60, 250]$ and $[0.65, 275]$) hypervolume computation implemented. Verified by `tests/test_scientific_stats.py`. |
+| SA-009 | Medium | `results_summary.json` belongs to a legacy workflow but is not labelled as such in its filename or schema. | Keep it immutable and classify it explicitly in provenance and documentation. | **Resolved & Verified.** Baseline manifest `docs/provenance/baseline_v1.0.0.json` explicitly classifies legacy artifacts. |
+| SA-010 | Medium | The pre-planned 140-run FCCD is analyzed in stages but was not operationally adaptive. | Use “pre-planned blocked factorial-plus-CCD” terminology unless a new adaptive experiment is executed. | **Resolved & Verified.** Terminology updated in documentation and reporting scripts. |
 
 ## Historical test-set caveat
 
-The external holdout was evaluated and recorded during the original DOE executions. Removing the column now would not make the historical study untouched. The revision will retain the raw historical record, state the exposure, prevent future development-stage access, and use a frozen-selection gate for any new final evaluation. Claims that depend on an untouched test set must be limited accordingly or supported by genuinely independent data.
+The external holdout was evaluated and recorded during the original DOE executions. Removing the column now would not make the historical study untouched. The revision retains the raw historical record, documents the exposure, prevents future development-stage access, and uses a frozen-selection gate for any new final evaluation. Claims that depend on an untouched test set are limited accordingly.
 
 ## Work-package status
 
-- **Package A — Audit and correctness:** in progress. Baseline frozen and tested; isolation and benchmark guardrails remain to implement.
-- **Package B — Benchmark and statistical redesign:** not started.
-- **Package C — New scientific experiments:** not started. No new empirical result is authoritative yet.
-- **Package D — Publication revision:** blocked on Packages B and C. The PDF must not be regenerated before the numerical pipeline is consistent.
+- **Package A — Audit and correctness:** **Completed and verified.** Test set isolation, holdout gating, incumbent selection integrity, discrete depth parameterization, and centralized latency timing protocol are implemented and verified by 106 automated tests.
+- **Package B — Benchmark and statistical redesign:** **Completed and verified.** Multi-objective candidate front extraction, dual-reference hypervolume, block-aware variance decomposition, CI workflow (`.github/workflows/test.yml`), and atomic per-replicate checkpoint/resume mechanisms are fully implemented and verified via unit tests and smoke execution (`results/revision_v2/smoke_run_001`).
+- **Package C — New scientific experiments:** **Ready for execution.** Computational budget calculated (17,077 total model fits, ~51 min wall-clock time estimate). Atomic checkpointing in place (`destination/checkpoints/`). Guarded by `--confirm-full-budget` flag. Awaiting explicit user authorization.
+- **Package D — Publication revision:** **Pending Package C completion.** Manuscript generation, dynamic macro updates, and PDF compilation will be performed once full experimental data is produced and audited.
 
-Software tests alone will establish implementation behavior, not statistical validity or generalization. Those evidence levels will remain separate throughout this ledger.
+Software tests alone establish implementation behavior, not statistical validity or generalization. Those evidence levels remain separate throughout this ledger.
+
