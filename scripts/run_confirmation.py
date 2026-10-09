@@ -12,6 +12,8 @@ import argparse
 import hashlib
 import json
 import os
+import platform
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,11 +22,88 @@ from typing import Any, Iterable
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from final_evaluation import FinalTestEvaluator, load_finalized_selection
-from pipeline import CONFIG
 
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _git_revision() -> str:
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    ).stdout.strip()
+
+
+def _validate_evaluation_payload(
+    payload: dict[str, Any],
+    *,
+    selection_id: str,
+    expected_config_sha256: str,
+    manifest_git_revision: str,
+    evaluation_seeds: list[int],
+) -> None:
+    if payload.get("selection_id") != selection_id:
+        raise ValueError("evaluator returned a different selection_id")
+    if payload.get("config_sha256") != expected_config_sha256:
+        raise ValueError("evaluator returned a configuration hash not frozen in the manifest")
+    if payload.get("manifest_git_revision") != manifest_git_revision:
+        raise ValueError("evaluator returned a different manifest Git revision")
+    rows = payload.get("per_seed")
+    if not isinstance(rows, list):
+        raise ValueError("evaluator payload lacks a per_seed failure ledger")
+    returned_seeds = [row.get("evaluation_seed") for row in rows]
+    if returned_seeds != evaluation_seeds:
+        raise ValueError("evaluator seed coverage differs from the frozen evaluation seeds")
+    if any(row.get("status") not in {"completed", "failed"} for row in rows):
+        raise ValueError("every evaluator row must have completed or failed status")
+    completed = sum(row["status"] == "completed" for row in rows)
+    expected_status = (
+        "completed"
+        if completed == len(rows)
+        else ("failed" if completed == 0 else "partial")
+    )
+    if payload.get("status") != expected_status:
+        raise ValueError("evaluator aggregate status disagrees with its per-seed ledger")
+
+
+def _failed_evaluation(
+    *,
+    selection_id: str,
+    config_sha256: str,
+    manifest_git_revision: str,
+    evaluation_seeds: list[int],
+    error: Exception,
+) -> dict[str, Any]:
+    message = f"{type(error).__name__}: {error}"
+    return {
+        "selection_id": selection_id,
+        "config_sha256": config_sha256,
+        "manifest_git_revision": manifest_git_revision,
+        "status": "failed",
+        "per_seed": [
+            {
+                "evaluation_seed": seed,
+                "status": "failed",
+                "val_rmse": None,
+                "test_rmse": None,
+                "error": message,
+            }
+            for seed in evaluation_seeds
+        ],
+    }
+
+
+def _write_atomic_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_text(
+        json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
+    temporary.replace(path)
 
 
 def execute_confirmation(
@@ -50,43 +129,77 @@ def execute_confirmation(
     if len(requested_ids) != len(set(requested_ids)):
         raise ValueError("selection_ids must not contain duplicates")
 
-    seeds = [
-        int(seed)
-        for seed in (
-            evaluation_seeds
-            if evaluation_seeds is not None
-            else CONFIG["revision_v2"]["modes"]["full"]["evaluation_seeds"]
-        )
-    ]
-    if not seeds or len(seeds) != len(set(seeds)):
-        raise ValueError("evaluation_seeds must be a non-empty sequence of unique integers")
+    frozen_evaluation = manifest["final_evaluation"]
+    frozen_seeds = [int(seed) for seed in frozen_evaluation["evaluation_seeds"]]
+    if evaluation_seeds is not None:
+        requested_seeds = [int(seed) for seed in evaluation_seeds]
+        if requested_seeds != frozen_seeds:
+            raise ValueError(
+                "Requested evaluation seeds do not exactly match the frozen manifest"
+            )
+    seeds = frozen_seeds
 
     final_evaluator = evaluator or FinalTestEvaluator()
-    evaluations = [
-        final_evaluator.evaluate(
-            manifest_path,
-            selection_id,
-            evaluation_seeds=seeds,
-        )
-        for selection_id in requested_ids
-    ]
+    expected_by_id = {
+        item["selection_id"]: item for item in manifest["configurations"]
+    }
+    evaluations = []
+    for selection_id in requested_ids:
+        configuration = expected_by_id[selection_id]
+        try:
+            if not hasattr(final_evaluator, "evaluation_protocol"):
+                raise TypeError("evaluator does not expose evaluation_protocol")
+            if final_evaluator.evaluation_protocol != frozen_evaluation["protocol"]:
+                raise ValueError("evaluator protocol does not match the frozen manifest")
+            result = final_evaluator.evaluate(
+                manifest_path,
+                selection_id,
+                evaluation_seeds=seeds,
+            )
+            _validate_evaluation_payload(
+                result,
+                selection_id=selection_id,
+                expected_config_sha256=configuration["config_sha256"],
+                manifest_git_revision=manifest["git_revision"],
+                evaluation_seeds=seeds,
+            )
+        except Exception as exc:
+            result = _failed_evaluation(
+                selection_id=selection_id,
+                config_sha256=configuration["config_sha256"],
+                manifest_git_revision=manifest["git_revision"],
+                evaluation_seeds=seeds,
+                error=exc,
+            )
+        evaluations.append(result)
+    completed = sum(item["status"] == "completed" for item in evaluations)
     artifact = {
-        "schema_version": 1,
+        "schema_version": 2,
         "classification": "gated_final_evaluation",
+        "status": (
+            "completed"
+            if completed == len(evaluations)
+            else ("failed" if completed == 0 else "partial")
+        ),
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "finalized_selection_manifest": str(manifest_path),
         "finalized_selection_manifest_sha256": _sha256(manifest_path),
         "manifest_git_revision": manifest["git_revision"],
+        "evaluation_code_git_revision": _git_revision(),
         "selection_ids": requested_ids,
         "evaluation_seeds": seeds,
+        "evaluation_protocol": frozen_evaluation["protocol"],
+        "runtime": {
+            "python": sys.version,
+            "platform": platform.platform(),
+        },
         "holdout_scope": (
             "External holdout metrics are emitted only after manifest validation; "
             "they are not returned to development-stage search code."
         ),
         "evaluations": evaluations,
     }
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+    _write_atomic_json(output_path, artifact)
     return artifact
 
 
