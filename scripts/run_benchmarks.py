@@ -947,8 +947,12 @@ def _historical_legacy_main():
     x_doe_so = np.array(p3["constrained_optimum_cube"]["x"])
 
     # 1. Run Optimizers across 20 sampler seeds serially on dedicated pinned core
-    # Eliminates scheduler contention during online latency timing (Codex Comment 4224787409)
-    print("Running 20 optimizer replicates serially on dedicated pinned core (no scheduler contention)...")
+    # Eliminates scheduler contention during online latency timing (Codex Comments 4224787409, 4225043379)
+    pinned = pin_cpu_affinity(0)
+    if pinned:
+        print("Running 20 optimizer replicates serially on dedicated pinned CPU core 0...")
+    else:
+        print("Running 20 optimizer replicates serially (CPU affinity pinning not supported on this platform)...")
     rep_results = []
     for rep_idx, s in enumerate(OPTIMIZER_SEEDS):
         t0_rep = time.time()

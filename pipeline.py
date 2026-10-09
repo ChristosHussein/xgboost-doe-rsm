@@ -33,22 +33,39 @@ import yaml
 from latency import PRIMARY_V1, measure_latencies
 
 # Pinned CPU core affinity and elevated process priority
-def pin_cpu_affinity():
-    """Pins execution to CPU 0 and sets ABOVE_NORMAL_PRIORITY_CLASS on Windows."""
-    try:
-        import ctypes
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
-        kernel32.SetProcessAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
-        kernel32.SetProcessAffinityMask.restype = ctypes.c_bool
-        kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
-        kernel32.SetPriorityClass.restype = ctypes.c_bool
+def pin_cpu_affinity(core_id: int = 0) -> bool:
+    """Pins execution to a single CPU core (default core 0) and sets elevated process priority where supported.
+    Supports Linux (os.sched_setaffinity) and Windows (kernel32 SetProcessAffinityMask).
+    Returns True if pinning was successful, False otherwise.
+    """
+    # 1. Linux / POSIX sched_setaffinity
+    if hasattr(os, "sched_setaffinity"):
+        try:
+            os.sched_setaffinity(0, {core_id})
+            return True
+        except Exception:
+            pass
 
-        handle = kernel32.GetCurrentProcess()
-        kernel32.SetProcessAffinityMask(handle, 1)
-        kernel32.SetPriorityClass(handle, 0x00008000)
-    except Exception:
-        pass
+    # 2. Windows SetProcessAffinityMask
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+            kernel32.SetProcessAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+            kernel32.SetProcessAffinityMask.restype = ctypes.c_bool
+            kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+            kernel32.SetPriorityClass.restype = ctypes.c_bool
+
+            handle = kernel32.GetCurrentProcess()
+            mask = 1 << core_id
+            success = kernel32.SetProcessAffinityMask(handle, mask)
+            kernel32.SetPriorityClass(handle, 0x00008000)
+            return bool(success)
+        except Exception:
+            pass
+
+    return False
 
 pin_cpu_affinity()
 
