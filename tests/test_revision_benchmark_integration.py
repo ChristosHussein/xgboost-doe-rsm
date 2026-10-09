@@ -83,12 +83,15 @@ def test_synthetic_revision_workflow_writes_gated_versioned_artifacts(
         "computational_budget.json",
         "optimizer_trials.csv",
         "optimizer_replicates.csv",
+        "optimizer_summary.json",
         "finalized_selections.json",
         "latency_measurement.json",
+        "latency_interface_overhead.json",
         "final_evaluations.csv",
         "final_summary.csv",
         "paired_comparisons.json",
         "hypervolume.json",
+        "provenance.json",
         "run_manifest.json",
     }
     assert expected <= {path.name for path in destination.iterdir()}
@@ -107,6 +110,53 @@ def test_synthetic_revision_workflow_writes_gated_versioned_artifacts(
     assert len(final_rows) == 8
     assert set(final_rows["evaluation_seed"]) == {101, 102}
 
+    budget = json.loads((destination / "computational_budget.json").read_text())
+    assert budget["search_model_fits"] == 8
+    assert budget["matched_historical_doe_candidate_fits"] == 0
+    assert budget["primary_latency_refit_fits"] == 8
+    assert budget["final_retraining_fits"] == 8
+    assert budget["maximum_total_model_fits"] == 24
+
+    latency = json.loads((destination / "latency_measurement.json").read_text())
+    assert len(latency["sessions"]) == 2
+    assert latency["aggregation"]["session_count"] == 2
+    assert set(latency["summaries"]) == {
+        "random_search-rep-0",
+        "single_objective_tpe-rep-0",
+        "constrained_tpe-rep-0",
+        "multi_objective_tpe-rep-0",
+    }
+    assert all(
+        "predict_latency_session_standard_deviation_us" in item
+        for item in latency["summaries"].values()
+    )
+
+    overhead = json.loads(
+        (destination / "latency_interface_overhead.json").read_text()
+    )
+    assert overhead["estimand"] == (
+        "predict_latency_us minus inplace_predict_latency_us within timing session"
+    )
+    assert len(overhead["per_session"]) == 8
+
+    optimizer_summary = json.loads(
+        (destination / "optimizer_summary.json").read_text()
+    )
+    assert optimizer_summary["inference_status"] == "smoke_underpowered"
+    assert set(optimizer_summary["optimizers"]) == {
+        "random_search",
+        "single_objective_tpe",
+        "constrained_tpe",
+        "multi_objective_tpe",
+    }
+
+    provenance = json.loads((destination / "provenance.json").read_text())
+    assert provenance["producer"] == "scripts/run_benchmarks.py"
+    assert "optimizer_trials.csv" in provenance["artifact_sha256"]
+    assert "scripts/run_benchmarks.py" in provenance["runtime_source_sha256"]
+
     run_manifest = json.loads((destination / "run_manifest.json").read_text())
     assert run_manifest["classification"] == "new revision_v2 experiment"
     assert run_manifest["historical_artifacts_modified"] is False
+    assert run_manifest["inference_status"] == "smoke_underpowered"
+    assert expected <= set(run_manifest["artifacts"])

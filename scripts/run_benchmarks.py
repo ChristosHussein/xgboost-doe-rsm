@@ -22,11 +22,15 @@ Implements:
 """
 
 import json
+import hashlib
+import io
 import os
+import platform
 import sys
 import time
 import argparse
 import subprocess
+from importlib import metadata as importlib_metadata
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -58,6 +62,7 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 FRESH_SEEDS = CONFIG["seeds"]["fresh_eval_seeds"]
 OPTIMIZER_SEEDS = CONFIG["seeds"]["optimizer_sampler_seeds"]
+HISTORICAL_BASELINE_REF = "v1.0.0"
 
 
 @dataclass
@@ -866,6 +871,8 @@ def run_single_optimizer_replicate(
 ) -> Dict[str, Any]:
     """Run all four optimizers against one development-only split."""
     dm = data_mgr or CaliforniaHousingDevelopmentDataManager()
+    method_wall_times = {}
+    started = time.perf_counter()
     rs = run_random_search(
         n_trials,
         sampler_seed=sampler_seed,
@@ -873,6 +880,8 @@ def run_single_optimizer_replicate(
         data_mgr=dm,
         replicate_id=replicate_id,
     )
+    method_wall_times[rs.optimizer] = time.perf_counter() - started
+    started = time.perf_counter()
     tpe = run_tpe_single_objective(
         n_trials,
         sampler_seed=sampler_seed,
@@ -880,6 +889,8 @@ def run_single_optimizer_replicate(
         data_mgr=dm,
         replicate_id=replicate_id,
     )
+    method_wall_times[tpe.optimizer] = time.perf_counter() - started
+    started = time.perf_counter()
     constrained = run_tpe_constrained(
         n_trials,
         sampler_seed=sampler_seed,
@@ -888,6 +899,8 @@ def run_single_optimizer_replicate(
         data_mgr=dm,
         replicate_id=replicate_id,
     )
+    method_wall_times[constrained.optimizer] = time.perf_counter() - started
+    started = time.perf_counter()
     multi = run_tpe_multi_objective(
         n_trials,
         sampler_seed=sampler_seed,
@@ -895,6 +908,7 @@ def run_single_optimizer_replicate(
         data_mgr=dm,
         replicate_id=replicate_id,
     )
+    method_wall_times[multi.optimizer] = time.perf_counter() - started
     return {
         "seed": sampler_seed,
         "replicate_id": replicate_id,
@@ -904,6 +918,7 @@ def run_single_optimizer_replicate(
             constrained.optimizer: constrained,
             multi.optimizer: multi,
         },
+        "method_wall_times_s": method_wall_times,
         "trial_records": [
             record
             for result in (rs, tpe, constrained, multi)
@@ -1220,6 +1235,19 @@ def _git_head() -> str:
     ).stdout.strip()
 
 
+def _git_show_bytes(path: str, ref: str = HISTORICAL_BASELINE_REF) -> bytes:
+    """Read exact immutable historical input bytes from the frozen Git ref."""
+    return subprocess.run(
+        ["git", "show", f"{ref}:{path}"],
+        check=True,
+        capture_output=True,
+    ).stdout
+
+
+def _git_show_text(path: str, ref: str = HISTORICAL_BASELINE_REF) -> str:
+    return _git_show_bytes(path, ref).decode("utf-8")
+
+
 def _default_revision_output(mode: str) -> Path:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     return Path(CONFIG["revision_v2"]["artifact_root"]) / mode / f"run_{timestamp}_{_git_head()[:8]}"
@@ -1283,10 +1311,8 @@ def _manifest_configuration(
 
 
 def _historical_doe_configurations() -> List[Dict[str, Any]]:
-    with open("results/confirmation.json", "r", encoding="utf-8") as handle:
-        confirmation = json.load(handle)
-    with open("results/phase3.json", "r", encoding="utf-8") as handle:
-        phase3 = json.load(handle)
+    confirmation = json.loads(_git_show_text("results/confirmation.json"))
+    phase3 = json.loads(_git_show_text("results/phase3.json"))
     model = {
         "n_estimators": CONFIG["model"]["n_estimators"],
         "objective": CONFIG["model"]["objective"],
@@ -1378,6 +1404,15 @@ def _measure_frozen_primary_latencies(
 def _metric_summary(values: List[float]) -> Dict[str, Any]:
     array = np.asarray(values, dtype=float)
     n = len(array)
+    if n == 0:
+        return {
+            "n": 0,
+            "mean": None,
+            "median": None,
+            "standard_deviation": None,
+            "interquartile_range": None,
+            "confidence_interval_95": [None, None],
+        }
     mean = float(np.mean(array))
     standard_deviation = float(np.std(array, ddof=1)) if n > 1 else None
     interval = [None, None]
@@ -1394,33 +1429,179 @@ def _metric_summary(values: List[float]) -> Dict[str, Any]:
     }
 
 
-def _evaluate_historical_doe_front(data_mgr, split_seed: int) -> List[Dict[str, Any]]:
-    historical = pd.read_csv("results/runs.csv")
+def _aggregate_primary_latency_sessions(
+    sessions: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    if not sessions:
+        raise ValueError("At least one primary latency session is required")
+    protocol_ids = {
+        session["metadata"]["protocol"]["protocol_id"] for session in sessions
+    }
+    if protocol_ids != {PRIMARY_V1.protocol_id}:
+        raise ValueError(f"Mixed primary latency protocols: {sorted(protocol_ids)}")
+    model_sets = [set(session["summaries"]) for session in sessions]
+    if any(model_ids != model_sets[0] for model_ids in model_sets[1:]):
+        raise ValueError("Every latency session must measure the same frozen selections")
+
+    summaries = {}
+    for model_id in sorted(model_sets[0]):
+        predict = [
+            float(session["summaries"][model_id]["predict_latency_us"])
+            for session in sessions
+        ]
+        inplace = [
+            float(session["summaries"][model_id]["inplace_predict_latency_us"])
+            for session in sessions
+        ]
+        predict_within_iqr = [
+            float(session["summaries"][model_id]["predict_latency_us_iqr"])
+            for session in sessions
+        ]
+        inplace_within_iqr = [
+            float(session["summaries"][model_id]["inplace_predict_latency_us_iqr"])
+            for session in sessions
+        ]
+        summaries[model_id] = {
+            "predict_latency_us": float(np.median(predict)),
+            "predict_latency_us_iqr": float(np.median(predict_within_iqr)),
+            "predict_latency_session_iqr_us": float(
+                np.subtract(*np.percentile(predict, [75, 25]))
+            ),
+            "predict_latency_session_standard_deviation_us": (
+                float(np.std(predict, ddof=1)) if len(predict) > 1 else None
+            ),
+            "inplace_predict_latency_us": float(np.median(inplace)),
+            "inplace_predict_latency_us_iqr": float(np.median(inplace_within_iqr)),
+            "inplace_predict_latency_session_iqr_us": float(
+                np.subtract(*np.percentile(inplace, [75, 25]))
+            ),
+            "inplace_predict_latency_session_standard_deviation_us": (
+                float(np.std(inplace, ddof=1)) if len(inplace) > 1 else None
+            ),
+        }
+    return {
+        "schema_version": 2,
+        "protocol_id": PRIMARY_V1.protocol_id,
+        "aggregation": {
+            "session_count": len(sessions),
+            "point_estimate": "median of session medians",
+            "within_session_dispersion": "median of session IQRs",
+            "between_session_dispersion": "IQR and sample standard deviation of session medians",
+            "session_scope": "separate randomized timing sessions in one process",
+        },
+        "summaries": summaries,
+        "sessions": sessions,
+    }
+
+
+def _latency_interface_overhead(
+    latency_measurement: Dict[str, Any],
+) -> Dict[str, Any]:
+    per_session = []
+    by_selection: Dict[str, List[float]] = {}
+    for session in latency_measurement["sessions"]:
+        session_id = session["metadata"]["session"]["session_id"]
+        for selection_id, summary in session["summaries"].items():
+            overhead = float(
+                summary["predict_latency_us"]
+                - summary["inplace_predict_latency_us"]
+            )
+            per_session.append({
+                "session_id": session_id,
+                "selection_id": selection_id,
+                "overhead_us": overhead,
+            })
+            by_selection.setdefault(selection_id, []).append(overhead)
+    return {
+        "schema_version": 1,
+        "protocol_id": latency_measurement["protocol_id"],
+        "estimand": (
+            "predict_latency_us minus inplace_predict_latency_us within timing session"
+        ),
+        "causal_interpretation": (
+            "Descriptive interface difference; no single implementation cause is inferred."
+        ),
+        "per_session": per_session,
+        "by_selection": {
+            selection_id: _metric_summary(values)
+            for selection_id, values in sorted(by_selection.items())
+        },
+        "pooled_descriptive_summary": _metric_summary(
+            [row["overhead_us"] for row in per_session]
+        ),
+    }
+
+
+def _evaluate_historical_doe_front(
+    data_mgr,
+    split_seed: int,
+    selected_configurations: Optional[List[Dict[str, Any]]] = None,
+) -> List[Dict[str, Any]]:
+    historical = pd.read_csv(io.StringIO(_git_show_text("results/runs.csv")))
     unique = historical.sort_values("point_id").drop_duplicates("point_id")
     split = _development_split(data_mgr, split_seed)
     rows = []
-    for row in unique.itertuples(index=False):
-        x = np.asarray([row.x1, row.x2, row.x3, row.x4], dtype=float)
-        eta, depth, subsample, reg_lambda = decode_factors(x)
+
+    def evaluate_candidate(
+        candidate_id: str,
+        candidate_type: str,
+        eta: float,
+        depth: int,
+        subsample: float,
+        reg_lambda: float,
+        x: np.ndarray,
+    ) -> None:
         model = xgb.XGBRegressor(
             **_model_config(eta, depth, subsample, reg_lambda, split_seed)
         )
         model.fit(split.X_train, split.y_train)
         rmse = float(np.sqrt(np.mean((split.y_val - model.predict(split.X_val)) ** 2)))
-        session = f"doe-point-{int(row.point_id)}-matched-online"
+        session = f"{candidate_id}-matched-online"
         latency = measure_trial_latency(model, split.X_val[:1], session_id=session)
         rows.append({
-            "candidate_id": f"doe-point-{int(row.point_id)}",
-            "candidate_type": "historical_doe_evaluated_coordinate",
+            "candidate_id": candidate_id,
+            "candidate_type": candidate_type,
             "validation_rmse": rmse,
             "predict_latency_us": latency,
             "latency_protocol_id": ONLINE_SEARCH_V1.protocol_id,
             "development_split_seed": split_seed,
-            "x1": float(row.x1),
-            "x2": float(row.x2),
-            "x3": float(row.x3),
-            "x4": float(row.x4),
+            "learning_rate": float(eta),
+            "max_depth": int(depth),
+            "subsample": float(subsample),
+            "reg_lambda": float(reg_lambda),
+            "x1": float(x[0]),
+            "x2": float(x[1]),
+            "x3": float(x[2]),
+            "x4": float(x[3]),
         })
+
+    for row in unique.itertuples(index=False):
+        x = np.asarray([row.x1, row.x2, row.x3, row.x4], dtype=float)
+        eta, depth, subsample, reg_lambda = decode_factors(x)
+        evaluate_candidate(
+            f"doe-point-{int(row.point_id)}",
+            "historical_doe_evaluated_coordinate",
+            eta,
+            depth,
+            subsample,
+            reg_lambda,
+            x,
+        )
+
+    for configuration in selected_configurations or []:
+        hp = configuration["hyperparameters"]
+        x = encode_factors(
+            hp["learning_rate"], hp["max_depth"], hp["subsample"], hp["reg_lambda"]
+        )
+        evaluate_candidate(
+            configuration["selection_id"],
+            "historical_doe_selected_operating_point",
+            float(hp["learning_rate"]),
+            int(hp["max_depth"]),
+            float(hp["subsample"]),
+            float(hp["reg_lambda"]),
+            x,
+        )
     return rows
 
 
@@ -1433,25 +1614,259 @@ def _hypervolume_payload(points, reference) -> Dict[str, Any]:
     }
 
 
-def _computational_budget(mode: str, settings: Dict[str, Any]) -> Dict[str, Any]:
+def _computational_budget(
+    mode: str,
+    settings: Dict[str, Any],
+    *,
+    include_historical_doe: bool = True,
+) -> Dict[str, Any]:
     replicates = int(settings["optimizer_replicates"])
     trials = int(settings["trials_per_optimizer"])
     evaluation_seeds = len(settings["evaluation_seeds"])
     frozen_max = 4 * replicates + 2
+    if not include_historical_doe:
+        frozen_max -= 2
+    latency_sessions = int(settings["latency_sessions"])
+    historical_candidates = 27 if include_historical_doe else 0
+    search_fits = 4 * replicates * trials
+    primary_latency_refit_fits = frozen_max * latency_sessions
+    final_retraining_fits = frozen_max * evaluation_seeds
     return {
         "mode": mode,
         "optimizer_methods": 4,
         "optimizer_replicates": replicates,
         "trials_per_optimizer": trials,
-        "search_model_fits": 4 * replicates * trials,
-        "matched_historical_doe_coordinate_fits": 25,
+        "search_model_fits": search_fits,
+        "matched_historical_doe_candidate_fits": historical_candidates,
+        "matched_historical_doe_coordinate_fits": 25 if include_historical_doe else 0,
+        "matched_historical_doe_selected_point_fits": 2 if include_historical_doe else 0,
         "maximum_frozen_configurations": frozen_max,
-        "final_retraining_fits": frozen_max * evaluation_seeds,
-        "maximum_total_model_fits": 4 * replicates * trials + 25 + frozen_max * evaluation_seeds,
+        "primary_latency_sessions": latency_sessions,
+        "primary_latency_refit_fits": primary_latency_refit_fits,
+        "final_retraining_fits": final_retraining_fits,
+        "maximum_total_model_fits": (
+            search_fits
+            + historical_candidates
+            + primary_latency_refit_fits
+            + final_retraining_fits
+        ),
+        "online_latency_measured_search_trials_maximum": 2 * replicates * trials,
         "online_latency_calls_per_search_trial": ONLINE_SEARCH_V1.timed_calls_per_interface,
+        "online_latency_warmups_per_search_trial": ONLINE_SEARCH_V1.warmup_calls_per_interface,
         "primary_latency_calls_per_frozen_configuration_per_interface": PRIMARY_V1.timed_calls_per_interface,
+        "primary_latency_warmups_per_frozen_configuration_per_interface": PRIMARY_V1.warmup_calls_per_interface,
+        "primary_latency_interfaces": len(PRIMARY_V1.interfaces),
         "note": "The total is an upper bound; failed or infeasible searches produce no frozen configuration.",
     }
+
+
+def _optimizer_level_summary(
+    mode: str,
+    replicate_rows: List[Dict[str, Any]],
+    trial_rows: List[Dict[str, Any]],
+    configurations: List[Dict[str, Any]],
+    summary_rows: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    final_by_id = {row["selection_id"]: row for row in summary_rows}
+    optimizers = {}
+    optimizer_names = sorted({row["optimizer"] for row in replicate_rows})
+    for optimizer in optimizer_names:
+        optimizer_replicates = [
+            row for row in replicate_rows if row["optimizer"] == optimizer
+        ]
+        selected_configs = [
+            item
+            for item in configurations
+            if item["optimizer"] == optimizer
+            and item["selection_id"] in final_by_id
+        ]
+        statuses = {
+            status: sum(row["status"] == status for row in optimizer_replicates)
+            for status in sorted({row["status"] for row in optimizer_replicates})
+        }
+        hyperparameter_distributions = {}
+        for name in ("learning_rate", "max_depth", "subsample", "reg_lambda"):
+            hyperparameter_distributions[name] = _metric_summary([
+                float(item["hyperparameters"][name]) for item in selected_configs
+            ])
+
+        search_values = []
+        independent_validation = []
+        final_test = []
+        optimism = []
+        retraining_variability = {}
+        for item in selected_configs:
+            selection_id = item["selection_id"]
+            final = final_by_id[selection_id]
+            metric = item.get("selection_metric", {})
+            if metric.get("name") == "validation_rmse" and metric.get("value") is not None:
+                search_value = float(metric["value"])
+                independent_value = float(final["validation_rmse"]["mean"])
+                search_values.append(search_value)
+                independent_validation.append(independent_value)
+                optimism.append(independent_value - search_value)
+            final_test.append(float(final["test_rmse"]["mean"]))
+            retraining_variability[selection_id] = {
+                "validation_rmse": final["validation_rmse"],
+                "test_rmse": final["test_rmse"],
+            }
+
+        completed_trials = [
+            row
+            for row in trial_rows
+            if row["optimizer"] == optimizer and row["trial_status"] == "completed"
+        ]
+        failed_trials = [
+            row
+            for row in trial_rows
+            if row["optimizer"] == optimizer and row["trial_status"] != "completed"
+        ]
+        success_count = statuses.get("completed", 0)
+        replicate_count = len(optimizer_replicates)
+        optimizers[optimizer] = {
+            "optimizer_replicates": replicate_count,
+            "replicate_status_counts": statuses,
+            "search_success_rate": success_count / replicate_count,
+            "search_failure_rate": (replicate_count - success_count) / replicate_count,
+            "completed_trial_count": len(completed_trials),
+            "failed_trial_count": len(failed_trials),
+            "model_fit_evaluations_attempted": sum(
+                int(row["model_fit_evaluations"]) for row in optimizer_replicates
+            ),
+            "search_wall_time_s": _metric_summary([
+                float(row["method_wall_time_s"]) for row in optimizer_replicates
+            ]),
+            "best_observed_search_validation_rmse": _metric_summary(search_values),
+            "independently_retrained_validation_rmse": _metric_summary(
+                independent_validation
+            ),
+            "final_test_rmse": _metric_summary(final_test),
+            "selection_optimism_independent_minus_search_rmse": _metric_summary(
+                optimism
+            ),
+            "selected_hyperparameter_distributions": hyperparameter_distributions,
+            "between_search_variability": {
+                "estimand": "distribution of per-replicate independent validation means",
+                "summary": _metric_summary(independent_validation),
+            },
+            "conditional_retraining_variability": retraining_variability,
+        }
+    return {
+        "schema_version": 1,
+        "mode": mode,
+        "inference_status": (
+            "smoke_underpowered" if mode == "smoke" else "full_protocol"
+        ),
+        "variance_note": (
+            "Between-search summaries use one independent-validation mean per search replicate. "
+            "Conditional retraining summaries remain separate and are not pooled into one standard error."
+        ),
+        "optimizers": optimizers,
+    }
+
+
+def _sha256_bytes(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    return _sha256_bytes(path.read_bytes())
+
+
+def _installed_version(distribution: str) -> Optional[str]:
+    try:
+        return importlib_metadata.version(distribution)
+    except importlib_metadata.PackageNotFoundError:
+        return None
+
+
+def _write_run_provenance(
+    destination: Path,
+    *,
+    mode: str,
+    settings: Dict[str, Any],
+) -> None:
+    baseline_inputs = (
+        "results/runs.csv",
+        "results/confirmation.json",
+        "results/phase3.json",
+    )
+    runtime_sources = (
+        "config.yaml",
+        "pipeline.py",
+        "latency.py",
+        "final_evaluation.py",
+        "scientific_stats.py",
+        "scripts/run_benchmarks.py",
+    )
+    status = subprocess.run(
+        ["git", "status", "--short"],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    ).stdout.splitlines()
+    provenance = {
+        "schema_version": 1,
+        "producer": "scripts/run_benchmarks.py",
+        "classification": "new revision_v2 experiment",
+        "mode": mode,
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "git_revision": _git_head(),
+        "git_worktree_status_short": status,
+        "historical_baseline_ref": HISTORICAL_BASELINE_REF,
+        "historical_baseline_revision": subprocess.run(
+            ["git", "rev-parse", HISTORICAL_BASELINE_REF],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        ).stdout.strip(),
+        "settings": settings,
+        "baseline_input_sha256": {
+            f"{HISTORICAL_BASELINE_REF}:{path}": _sha256_bytes(_git_show_bytes(path))
+            for path in baseline_inputs
+        },
+        "runtime_source_sha256": {
+            path: _sha256_file(Path(path)) for path in runtime_sources
+        },
+        "dataset": {
+            "name": "scikit-learn California housing",
+            "loader": "sklearn.datasets.fetch_california_housing",
+            "external_holdout_split_seed": 42,
+            "development_split_seed": int(
+                CONFIG["revision_v2"]["development_split_seed"]
+            ),
+        },
+        "environment": {
+            "python": sys.version,
+            "platform": platform.platform(),
+            "machine": platform.machine(),
+            "processor": platform.processor()
+            or os.environ.get("PROCESSOR_IDENTIFIER", ""),
+            "logical_cpu_count": os.cpu_count(),
+            "packages": {
+                name: _installed_version(distribution)
+                for name, distribution in {
+                    "numpy": "numpy",
+                    "pandas": "pandas",
+                    "scipy": "scipy",
+                    "scikit_learn": "scikit-learn",
+                    "statsmodels": "statsmodels",
+                    "xgboost": "xgboost",
+                    "optuna": "optuna",
+                }.items()
+            },
+        },
+        "artifact_sha256": {
+            path.name: _sha256_file(path)
+            for path in sorted(destination.iterdir())
+            if path.is_file() and path.name != "provenance.json"
+        },
+    }
+    (destination / "provenance.json").write_text(
+        json.dumps(provenance, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def run_revision_benchmark(
@@ -1475,7 +1890,9 @@ def run_revision_benchmark(
         raise FileExistsError(f"Refusing to overwrite non-empty experiment directory: {destination}")
     destination.mkdir(parents=True, exist_ok=True)
 
-    budget = _computational_budget(mode, settings)
+    budget = _computational_budget(
+        mode, settings, include_historical_doe=include_historical_doe
+    )
     (destination / "computational_budget.json").write_text(
         json.dumps(budget, indent=2) + "\n", encoding="utf-8"
     )
@@ -1516,6 +1933,7 @@ def run_revision_benchmark(
                 "selected_score": result.selected_score,
                 "selection_rule": result.selection_rule,
                 "model_fit_evaluations": len(result.trial_records),
+                "method_wall_time_s": output["method_wall_times_s"][result.optimizer],
                 "replicate_wall_time_s_all_four_methods": wall_time,
             })
     _write_csv(trial_rows, destination / "optimizer_trials.csv")
@@ -1544,14 +1962,23 @@ def run_revision_benchmark(
         git_revision=_git_head(),
     )
 
-    primary_measurement = _measure_frozen_primary_latencies(
-        configurations,
-        manager,
-        development_seed,
-        session_id=f"revision-v2-{mode}-frozen-primary",
-    )
+    latency_session_count = int(settings["latency_sessions"])
+    primary_sessions = [
+        _measure_frozen_primary_latencies(
+            configurations,
+            manager,
+            development_seed,
+            session_id=f"revision-v2-{mode}-frozen-primary-session-{session_index + 1}",
+        )
+        for session_index in range(latency_session_count)
+    ]
+    primary_measurement = _aggregate_primary_latency_sessions(primary_sessions)
     (destination / "latency_measurement.json").write_text(
         json.dumps(primary_measurement, indent=2) + "\n", encoding="utf-8"
+    )
+    latency_overhead = _latency_interface_overhead(primary_measurement)
+    (destination / "latency_interface_overhead.json").write_text(
+        json.dumps(latency_overhead, indent=2) + "\n", encoding="utf-8"
     )
 
     evaluator = final_evaluator or FinalTestEvaluator()
@@ -1579,12 +2006,26 @@ def run_revision_benchmark(
     for selection_id, group in final_frame.groupby("selection_id", sort=True):
         latency_summary = primary_measurement["summaries"][selection_id]
         configuration = config_by_id[selection_id]
+        selection_metric = configuration.get("selection_metric", {})
+        search_validation_rmse = (
+            float(selection_metric["value"])
+            if selection_metric.get("name") == "validation_rmse"
+            and selection_metric.get("value") is not None
+            else None
+        )
+        independent_validation_mean = _metric_summary(group["val_rmse"].tolist())
         summary_rows.append({
             "selection_id": selection_id,
             "optimizer": configuration["optimizer"],
             "optimizer_replicate_id": configuration.get("optimizer_replicate_id"),
-            "validation_rmse": _metric_summary(group["val_rmse"].tolist()),
+            "search_validation_rmse": search_validation_rmse,
+            "validation_rmse": independent_validation_mean,
             "test_rmse": _metric_summary(group["test_rmse"].tolist()),
+            "selection_optimism_independent_minus_search_rmse": (
+                None
+                if search_validation_rmse is None
+                else independent_validation_mean["mean"] - search_validation_rmse
+            ),
             **latency_summary,
             "latency_protocol_id": PRIMARY_V1.protocol_id,
             "search_time_feasible": configuration.get("search_time_feasible"),
@@ -1593,6 +2034,12 @@ def run_revision_benchmark(
             ),
         })
     _write_csv(summary_rows, destination / "final_summary.csv")
+    optimizer_summary = _optimizer_level_summary(
+        mode, replicate_rows, trial_rows, configurations, summary_rows
+    )
+    (destination / "optimizer_summary.json").write_text(
+        json.dumps(optimizer_summary, indent=2) + "\n", encoding="utf-8"
+    )
 
     paired = []
     pair_specs = [
@@ -1620,6 +2067,9 @@ def run_revision_benchmark(
                         "anchor_selection_id": anchor_id,
                         "comparator_selection_id": comparator["selection_id"],
                         "metric": metric,
+                        "inference_status": (
+                            "smoke_underpowered" if mode == "smoke" else "full_protocol"
+                        ),
                         "scope": "conditional on frozen selections; common holdout dependence retained",
                         "paired_difference": paired_difference_summary(
                             anchor[metric].to_numpy(), other[metric].to_numpy()
@@ -1635,6 +2085,9 @@ def run_revision_benchmark(
     )
 
     hv_report = {
+        "inference_status": (
+            "smoke_underpowered" if mode == "smoke" else "full_protocol"
+        ),
         "development_domain": {
             "objective_definition": ["validation_rmse", "predict_latency_us"],
             "latency_protocol_id": ONLINE_SEARCH_V1.protocol_id,
@@ -1649,7 +2102,14 @@ def run_revision_benchmark(
     }
     doe_front_rows = []
     if include_historical_doe:
-        doe_front_rows = _evaluate_historical_doe_front(manager, development_seed)
+        historical_selections = [
+            item for item in configurations if item["selection_id"].startswith("doe-")
+        ]
+        doe_front_rows = _evaluate_historical_doe_front(
+            manager,
+            development_seed,
+            selected_configurations=historical_selections,
+        )
         _write_csv(doe_front_rows, destination / "doe_matched_candidate_front.csv")
     references = CONFIG["revision_v2"]["hypervolume_reference_points"]
     mo_trials = [
@@ -1659,19 +2119,65 @@ def run_revision_benchmark(
     for reference in references:
         key = json.dumps(reference)
         development_entry = {"mo_tpe_by_replicate": {}}
+        doe_full_value = None
         if doe_front_rows:
+            doe_coordinate_rows = [
+                row
+                for row in doe_front_rows
+                if row["candidate_type"] == "historical_doe_evaluated_coordinate"
+            ]
             development_entry["full_doe_evaluated_front"] = _hypervolume_payload(
-                [(row["validation_rmse"], row["predict_latency_us"]) for row in doe_front_rows],
+                [
+                    (row["validation_rmse"], row["predict_latency_us"])
+                    for row in doe_coordinate_rows
+                ],
                 reference,
             )
+            doe_full_value = development_entry["full_doe_evaluated_front"]["value"]
+            doe_selected = {
+                row["candidate_id"]: row
+                for row in doe_front_rows
+                if row["candidate_type"] == "historical_doe_selected_operating_point"
+            }
+            development_entry["doe_selected_point"] = _hypervolume_payload(
+                [(
+                    doe_selected["doe-mo-historical"]["validation_rmse"],
+                    doe_selected["doe-mo-historical"]["predict_latency_us"],
+                )],
+                reference,
+            )
+            development_entry["doe_two_point"] = _hypervolume_payload(
+                [
+                    (
+                        doe_selected["doe-mo-historical"]["validation_rmse"],
+                        doe_selected["doe-mo-historical"]["predict_latency_us"],
+                    ),
+                    (
+                        doe_selected["doe-so-historical"]["validation_rmse"],
+                        doe_selected["doe-so-historical"]["predict_latency_us"],
+                    ),
+                ],
+                reference,
+            )
+        mo_hypervolumes = []
         for replicate_id in sorted({row["replicate_id"] for row in mo_trials}):
             points = [
                 (row["validation_rmse"], row["predict_latency_us"])
                 for row in mo_trials if row["replicate_id"] == replicate_id
             ]
-            development_entry["mo_tpe_by_replicate"][str(replicate_id)] = _hypervolume_payload(
-                points, reference
-            )
+            payload = _hypervolume_payload(points, reference)
+            development_entry["mo_tpe_by_replicate"][str(replicate_id)] = payload
+            mo_hypervolumes.append(float(payload["value"]))
+        development_entry["mo_tpe_hypervolume_distribution"] = _metric_summary(
+            mo_hypervolumes
+        )
+        if doe_full_value is not None:
+            differences = [doe_full_value - value for value in mo_hypervolumes]
+            development_entry["full_doe_minus_mo_tpe_hypervolume"] = {
+                "sign_convention": "positive values favor the full DOE evaluated front",
+                "summary": _metric_summary(differences),
+                "per_replicate": differences,
+            }
         hv_report["development_domain"]["reference_points"][key] = development_entry
 
         external_points = {
@@ -1696,19 +2202,27 @@ def run_revision_benchmark(
         json.dumps(hv_report, indent=2) + "\n", encoding="utf-8"
     )
 
+    artifact_names = sorted(
+        {path.name for path in destination.iterdir()}
+        | {"run_manifest.json", "provenance.json"}
+    )
     run_manifest = {
         "schema_version": 1,
         "classification": "new revision_v2 experiment",
         "mode": mode,
+        "inference_status": (
+            "smoke_underpowered" if mode == "smoke" else "full_protocol"
+        ),
         "git_revision": _git_head(),
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "settings": settings,
-        "artifacts": sorted(path.name for path in destination.iterdir()),
+        "artifacts": artifact_names,
         "historical_artifacts_modified": False,
     }
     (destination / "run_manifest.json").write_text(
         json.dumps(run_manifest, indent=2) + "\n", encoding="utf-8"
     )
+    _write_run_provenance(destination, mode=mode, settings=settings)
     return destination
 
 
