@@ -22,6 +22,7 @@ from statsmodels.stats.stattools import durbin_watson
 import yaml
 
 from pipeline import decode_factors, encode_factors, CONFIG
+from scientific_stats import blocked_lack_of_fit_decomposition
 
 Q = ["x1", "x2", "x3", "x4"]
 
@@ -294,7 +295,7 @@ def run_phase3_canonical_analysis(df: pd.DataFrame) -> Dict[str, Any]:
 
 
 def run_task3_lack_of_fit(df: pd.DataFrame) -> Dict[str, Any]:
-    """Task 3: Nested-model Lack-of-Fit F-test and Box-Cox analysis for both responses."""
+    """Rank-aware blocked lack-of-fit decomposition for both responses."""
     df_aug = df.copy()
     for q in Q:
         df_aug[q + "_sq"] = df_aug[q]**2
@@ -302,99 +303,97 @@ def run_task3_lack_of_fit(df: pd.DataFrame) -> Dict[str, Any]:
         for j in range(i + 1, 4):
             df_aug[f"{Q[i]}_{Q[j]}"] = df_aug[Q[i]] * df_aug[Q[j]]
 
-    # Y1: Val RMSE
-    red_y1 = smf.ols("val_rmse ~ C(block) + x1+x2+x3+x4 + x1_sq+x2_sq+x3_sq+x4_sq + "
-                     "x1_x2+x1_x3+x1_x4+x2_x3+x2_x4+x3_x4", df_aug).fit()
-    sat_y1 = smf.ols("val_rmse ~ C(block) + C(point_id)", df_aug).fit()
-    tab_y1 = sm.stats.anova_lm(red_y1, sat_y1)
-
-    df_diff_y1 = int(tab_y1["df_diff"].iloc[1])
-    df_resid_y1 = int(tab_y1["df_resid"].iloc[1])
-    ss_diff_y1 = float(tab_y1["ss_diff"].iloc[1])
-    ss_pe_y1 = float(tab_y1["ssr"].iloc[1])
-    f_lof_y1 = float(tab_y1["F"].iloc[1])
-    p_lof_y1 = float(tab_y1["Pr(>F)"].iloc[1])
-    ms_lof_y1 = ss_diff_y1 / df_diff_y1
-    ms_pe_y1 = ss_pe_y1 / df_resid_y1
-
-    # Y2: Latency
-    red_y2 = smf.ols("latency_us_median ~ C(block) + x1+x2+x3+x4 + x1_sq+x2_sq+x3_sq+x4_sq + "
-                     "x1_x2+x1_x3+x1_x4+x2_x3+x2_x4+x3_x4", df_aug).fit()
-    sat_y2 = smf.ols("latency_us_median ~ C(block) + C(point_id)", df_aug).fit()
-    tab_y2 = sm.stats.anova_lm(red_y2, sat_y2)
-
-    df_diff_y2 = int(tab_y2["df_diff"].iloc[1])
-    df_resid_y2 = int(tab_y2["df_resid"].iloc[1])
-    ss_diff_y2 = float(tab_y2["ss_diff"].iloc[1])
-    ss_pe_y2 = float(tab_y2["ssr"].iloc[1])
-    f_lof_y2 = float(tab_y2["F"].iloc[1])
-    p_lof_y2 = float(tab_y2["Pr(>F)"].iloc[1])
-    ms_lof_y2 = ss_diff_y2 / df_diff_y2
-    ms_pe_y2 = ss_pe_y2 / df_resid_y2
-
-    # Restricted domain refit on x1 >= -0.5 to test causal lack-of-fit hypothesis
     df_aug_restr = df_aug[df_aug["x1"] >= -0.5].copy()
-    red_y1_restr = smf.ols("val_rmse ~ C(block) + x1+x2+x3+x4 + x1_sq+x2_sq+x3_sq+x4_sq + "
-                           "x1_x2+x1_x3+x1_x4+x2_x3+x2_x4+x3_x4", df_aug_restr).fit()
-    sat_y1_restr = smf.ols("val_rmse ~ C(block) + C(point_id)", df_aug_restr).fit()
-    tab_y1_restr = sm.stats.anova_lm(red_y1_restr, sat_y1_restr)
 
-    df_diff_y1_restr = int(tab_y1_restr["df_diff"].iloc[1])
-    df_resid_y1_restr = int(tab_y1_restr["df_resid"].iloc[1])
-    ss_diff_y1_restr = float(tab_y1_restr["ss_diff"].iloc[1])
-    ss_pe_y1_restr = float(tab_y1_restr["ssr"].iloc[1])
-    f_lof_y1_restr = float(tab_y1_restr["F"].iloc[1])
-    p_lof_y1_restr = float(tab_y1_restr["Pr(>F)"].iloc[1])
-    ms_lof_y1_restr = ss_diff_y1_restr / df_diff_y1_restr
-    ms_pe_y1_restr = ss_pe_y1_restr / df_resid_y1_restr
-    ss_lof_reduction_pct = float((ss_diff_y1 - ss_diff_y1_restr) / ss_diff_y1 * 100.0)
+    def matrices(frame: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        reduced = build_design_matrix(frame).to_numpy(dtype=float)
+        additive = np.column_stack([
+            np.ones(len(frame)),
+            pd.get_dummies(frame["block"], drop_first=True, dtype=float).to_numpy(),
+            pd.get_dummies(frame["point_id"], drop_first=True, dtype=float).to_numpy(),
+        ])
+        cell_key = frame["block"].astype(str) + ":" + frame["point_id"].astype(str)
+        cell_means = pd.get_dummies(cell_key, dtype=float).to_numpy()
+        return reduced, additive, cell_means
+
+    full_matrices = matrices(df_aug)
+    restricted_matrices = matrices(df_aug_restr)
+    full_y1 = blocked_lack_of_fit_decomposition(
+        df_aug["val_rmse"].to_numpy(), *full_matrices
+    )
+    full_y2 = blocked_lack_of_fit_decomposition(
+        df_aug["latency_us_median"].to_numpy(), *full_matrices
+    )
+    restricted_y1 = blocked_lack_of_fit_decomposition(
+        df_aug_restr["val_rmse"].to_numpy(), *restricted_matrices
+    )
+
+    def response_payload(decomposition: Dict[str, Any], boxcox_lambda=None) -> Dict[str, Any]:
+        components = decomposition["components"]
+        historical = decomposition["tests"]["structural_vs_pooled_additive"]
+        sensitivity = decomposition["tests"]["structural_vs_center_pure_error_sensitivity"]
+        structural = components["structural_lack_of_fit"]
+        pooled = components["pooled_additive_residual"]
+        payload = {
+            **components,
+            "historical_pooled_additive_test": historical,
+            "center_pure_error_sensitivity": sensitivity,
+            "interaction_test": decomposition["tests"]["interaction_vs_center_pure_error"],
+            "structural_vs_interaction_test": decomposition["tests"]["structural_vs_treatment_by_block"],
+            "identity": decomposition["identity"],
+            "n_observations": decomposition["n_observations"],
+            "assumptions": {
+                "historical_pooled_additive_test": (
+                    "Uses treatment-by-block interaction plus center-cell residual as the denominator."
+                ),
+                "center_pure_error_sensitivity": (
+                    "Sensitivity only; requires center-point seed variance to represent the full domain."
+                ),
+            },
+            "legacy_compatibility": {
+                "df_PE_alias": "pooled_additive_residual.df",
+                "SS_PE_alias": "pooled_additive_residual.ss",
+            },
+            # Stable aliases retained for historical artifact readers. They are
+            # explicitly the pooled additive residual, not pure error.
+            "df_LoF": structural["df"],
+            "df_PE": pooled["df"],
+            "SS_LoF": structural["ss"],
+            "SS_PE": pooled["ss"],
+            "MS_LoF": structural["ms"],
+            "MS_PE": pooled["ms"],
+            "F_LoF": historical["f_statistic"],
+            "p_LoF": historical["pvalue"],
+            "sqrt_MS_LoF": float(np.sqrt(structural["ms"])),
+            "sqrt_MS_PE": float(np.sqrt(pooled["ms"])),
+        }
+        if boxcox_lambda is not None:
+            payload["boxcox_lambda"] = float(boxcox_lambda)
+        return payload
 
     # Box-Cox
     _, lam_y1 = stats.boxcox(df["val_rmse"])
     _, lam_y2 = stats.boxcox(df["latency_us_median"])
-
+    y1_payload = response_payload(full_y1, lam_y1)
+    y2_payload = response_payload(full_y2, lam_y2)
+    restricted_payload = response_payload(restricted_y1)
+    restricted_payload["ss_lof_reduction_pct"] = float(
+        (full_y1["components"]["structural_lack_of_fit"]["ss"]
+         - restricted_y1["components"]["structural_lack_of_fit"]["ss"])
+        / full_y1["components"]["structural_lack_of_fit"]["ss"]
+        * 100.0
+    )
+    restricted_payload["reduction_interpretation"] = (
+        "Descriptive change after refitting a restricted domain; not a causal contribution."
+    )
     return {
-        "Y1": {
-            "df_LoF": df_diff_y1,
-            "df_PE": df_resid_y1,
-            "SS_LoF": ss_diff_y1,
-            "SS_PE": ss_pe_y1,
-            "MS_LoF": ms_lof_y1,
-            "MS_PE": ms_pe_y1,
-            "F_LoF": f_lof_y1,
-            "p_LoF": p_lof_y1,
-            "sqrt_MS_LoF": float(np.sqrt(ms_lof_y1)),
-            "sqrt_MS_PE": float(np.sqrt(ms_pe_y1)),
-            "boxcox_lambda": float(lam_y1),
-            "verdict": "Significant lack of fit detected (higher-order curvature present)" if p_lof_y1 < 0.05 else "No significant lack of fit detected"
+        "rank_diagnostics": {
+            "full": full_y1["models"],
+            "restricted": restricted_y1["models"],
         },
-        "Y1_restricted": {
-            "df_LoF": df_diff_y1_restr,
-            "df_PE": df_resid_y1_restr,
-            "SS_LoF": ss_diff_y1_restr,
-            "SS_PE": ss_pe_y1_restr,
-            "MS_LoF": ms_lof_y1_restr,
-            "MS_PE": ms_pe_y1_restr,
-            "F_LoF": f_lof_y1_restr,
-            "p_LoF": p_lof_y1_restr,
-            "sqrt_MS_LoF": float(np.sqrt(ms_lof_y1_restr)),
-            "sqrt_MS_PE": float(np.sqrt(ms_pe_y1_restr)),
-            "ss_lof_reduction_pct": ss_lof_reduction_pct,
-        },
-        "Y2": {
-            "df_LoF": df_diff_y2,
-            "df_PE": df_resid_y2,
-            "SS_LoF": ss_diff_y2,
-            "SS_PE": ss_pe_y2,
-            "MS_LoF": ms_lof_y2,
-            "MS_PE": ms_pe_y2,
-            "F_LoF": f_lof_y2,
-            "p_LoF": p_lof_y2,
-            "sqrt_MS_LoF": float(np.sqrt(ms_lof_y2)),
-            "sqrt_MS_PE": float(np.sqrt(ms_pe_y2)),
-            "boxcox_lambda": float(lam_y2),
-            "verdict": "Significant lack of fit detected" if p_lof_y2 < 0.05 else "No significant lack of fit detected (power limited by pure error)"
-        }
+        "Y1": y1_payload,
+        "Y1_restricted": restricted_payload,
+        "Y2": y2_payload,
     }
 
 

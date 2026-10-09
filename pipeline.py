@@ -20,6 +20,7 @@ Ground rules & Architectural specifications:
 import os
 import sys
 import time
+import json
 from typing import Dict, Any, List, NamedTuple, Tuple
 import numpy as np
 import pandas as pd
@@ -28,6 +29,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import xgboost as xgb
 import yaml
+
+from latency import PRIMARY_V1, measure_latencies
 
 # Pinned CPU core affinity and elevated process priority
 def pin_cpu_affinity():
@@ -202,7 +205,8 @@ def evaluate_development_model(
     measure_latency_details: bool = True,
     split_seed: int = None,
     model_seed: int = None,
-) -> Dict[str, float]:
+    latency_session_id: str = None,
+) -> Dict[str, Any]:
     """Fit and evaluate a model using development data only."""
     if data_mgr is None:
         data_mgr = CaliforniaHousingDevelopmentDataManager()
@@ -219,6 +223,10 @@ def evaluate_development_model(
         max_depth=depth,
         subsample=subsample,
         reg_lambda=reg_lambda,
+        colsample_bytree=CONFIG["model"].get("colsample_bytree", 1.0),
+        min_child_weight=CONFIG["model"].get("min_child_weight", 1.0),
+        gamma=CONFIG["model"].get("gamma", 0.0),
+        tree_method=CONFIG["model"].get("tree_method", "auto"),
         random_state=model_seed,
         n_jobs=CONFIG["model"]["n_jobs_train"],
         objective=CONFIG["model"]["objective"],
@@ -228,43 +236,42 @@ def evaluate_development_model(
     val_pred = model.predict(split.X_val)
     val_rmse = float(np.sqrt(mean_squared_error(split.y_val, val_pred)))
 
-    latency_median = latency_iqr = inplace_median = inplace_iqr = 0.0
+    latency_median = latency_iqr = inplace_median = inplace_iqr = None
+    latency_metadata = latency_observations = None
     if measure_latency_details:
-        pin_cpu_affinity()
-        model.set_params(n_jobs=1)
-        booster = model.get_booster()
-        booster.set_param({"nthread": 1})
         single_sample = split.X_val[:1]
-        for _ in range(CONFIG["model"]["latency_warmup"]):
-            model.predict(single_sample)
-            booster.inplace_predict(single_sample)
-
-        reps = CONFIG["model"]["latency_reps"]
-        batch_size = CONFIG["model"]["latency_iters"] // reps
-        predict_batches = []
-        inplace_batches = []
-        for _ in range(reps):
-            t0 = time.perf_counter_ns()
-            for _ in range(batch_size):
-                model.predict(single_sample)
-            predict_batches.append((time.perf_counter_ns() - t0) / (batch_size * 1000.0))
-
-            t0 = time.perf_counter_ns()
-            for _ in range(batch_size):
-                booster.inplace_predict(single_sample)
-            inplace_batches.append((time.perf_counter_ns() - t0) / (batch_size * 1000.0))
-
-        latency_median = float(np.median(predict_batches))
-        latency_iqr = float(np.subtract(*np.percentile(predict_batches, [75, 25])))
-        inplace_median = float(np.median(inplace_batches))
-        inplace_iqr = float(np.subtract(*np.percentile(inplace_batches, [75, 25])))
+        session_id = latency_session_id or f"development-split-{split_seed}-model-{model_seed}"
+        measurement = measure_latencies(
+            {"candidate": model},
+            single_sample,
+            session_id=session_id,
+            protocol=PRIMARY_V1,
+        )
+        summary = measurement["summaries"]["candidate"]
+        latency_median = summary["predict_latency_us"]
+        latency_iqr = summary["predict_latency_us_iqr"]
+        inplace_median = summary["inplace_predict_latency_us"]
+        inplace_iqr = summary["inplace_predict_latency_us_iqr"]
+        latency_metadata = json.dumps(measurement["metadata"], sort_keys=True)
+        latency_observations = json.dumps(measurement["observations"], sort_keys=True)
 
     return {
         "val_rmse": val_rmse,
+        "predict_latency_us": latency_median,
+        "predict_latency_us_iqr": latency_iqr,
+        "inplace_predict_latency_us": inplace_median,
+        "inplace_predict_latency_us_iqr": inplace_iqr,
         "latency_us_median": latency_median,
         "latency_us_iqr": latency_iqr,
         "inplace_latency_us_median": inplace_median,
         "inplace_latency_us_iqr": inplace_iqr,
+        "latency_protocol_id": PRIMARY_V1.protocol_id if measure_latency_details else None,
+        "latency_session_id": (
+            latency_session_id or f"development-split-{split_seed}-model-{model_seed}"
+            if measure_latency_details else None
+        ),
+        "latency_metadata_json": latency_metadata,
+        "latency_observations_json": latency_observations,
         "fit_time_s": fit_duration,
     }
 
@@ -279,7 +286,8 @@ def evaluate_model(
     measure_latency_details: bool = True,
     split_seed: int = None,
     model_seed: int = None,
-) -> Dict[str, float]:
+    latency_session_id: str = None,
+) -> Dict[str, Any]:
     """
     Fits XGBoost regressor and evaluates:
       - val_rmse: Validation RMSE (Y1 objective)
@@ -305,6 +313,10 @@ def evaluate_model(
         max_depth=depth,
         subsample=subsample,
         reg_lambda=reg_lambda,
+        colsample_bytree=CONFIG["model"].get("colsample_bytree", 1.0),
+        min_child_weight=CONFIG["model"].get("min_child_weight", 1.0),
+        gamma=CONFIG["model"].get("gamma", 0.0),
+        tree_method=CONFIG["model"].get("tree_method", "auto"),
         random_state=model_seed,
         n_jobs=CONFIG["model"]["n_jobs_train"],
         objective=CONFIG["model"]["objective"],
@@ -320,57 +332,44 @@ def evaluate_model(
     test_pred = model.predict(X_test)
     test_rmse = float(np.sqrt(mean_squared_error(y_test, test_pred)))
 
-    latency_median = 0.0
-    latency_iqr = 0.0
-    inplace_median = 0.0
-    inplace_iqr = 0.0
+    latency_median = latency_iqr = inplace_median = inplace_iqr = None
+    latency_metadata = latency_observations = None
 
     if measure_latency_details:
-        pin_cpu_affinity()
-        model.set_params(n_jobs=1)
-        booster = model.get_booster()
-        booster.set_param({"nthread": 1})
         single_sample = X_val[:1]
-
-        # Warmup
-        warmup_calls = CONFIG["model"]["latency_warmup"]
-        for _ in range(warmup_calls):
-            _ = model.predict(single_sample)
-            _ = booster.inplace_predict(single_sample)
-
-        # Timed repetitions (5 batches of 200 calls = 1000 calls)
-        reps = CONFIG["model"]["latency_reps"]
-        batch_size = CONFIG["model"]["latency_iters"] // reps
-        batch_times_pred = []
-        batch_times_inp = []
-
-        for _ in range(reps):
-            # 1. Standard predict
-            t0 = time.perf_counter_ns()
-            for _ in range(batch_size):
-                _ = model.predict(single_sample)
-            t1 = time.perf_counter_ns()
-            batch_times_pred.append((t1 - t0) / (batch_size * 1000.0))
-
-            # 2. Inplace predict
-            t0 = time.perf_counter_ns()
-            for _ in range(batch_size):
-                _ = booster.inplace_predict(single_sample)
-            t1 = time.perf_counter_ns()
-            batch_times_inp.append((t1 - t0) / (batch_size * 1000.0))
-
-        latency_median = float(np.median(batch_times_pred))
-        latency_iqr = float(np.subtract(*np.percentile(batch_times_pred, [75, 25])))
-        inplace_median = float(np.median(batch_times_inp))
-        inplace_iqr = float(np.subtract(*np.percentile(batch_times_inp, [75, 25])))
+        session_id = latency_session_id or f"historical-final-split-{split_seed}-model-{model_seed}"
+        measurement = measure_latencies(
+            {"candidate": model},
+            single_sample,
+            session_id=session_id,
+            protocol=PRIMARY_V1,
+        )
+        summary = measurement["summaries"]["candidate"]
+        latency_median = summary["predict_latency_us"]
+        latency_iqr = summary["predict_latency_us_iqr"]
+        inplace_median = summary["inplace_predict_latency_us"]
+        inplace_iqr = summary["inplace_predict_latency_us_iqr"]
+        latency_metadata = json.dumps(measurement["metadata"], sort_keys=True)
+        latency_observations = json.dumps(measurement["observations"], sort_keys=True)
 
     return {
         "val_rmse": val_rmse,
         "test_rmse": test_rmse,
+        "predict_latency_us": latency_median,
+        "predict_latency_us_iqr": latency_iqr,
+        "inplace_predict_latency_us": inplace_median,
+        "inplace_predict_latency_us_iqr": inplace_iqr,
         "latency_us_median": latency_median,
         "latency_us_iqr": latency_iqr,
         "inplace_latency_us_median": inplace_median,
         "inplace_latency_us_iqr": inplace_iqr,
+        "latency_protocol_id": PRIMARY_V1.protocol_id if measure_latency_details else None,
+        "latency_session_id": (
+            latency_session_id or f"historical-final-split-{split_seed}-model-{model_seed}"
+            if measure_latency_details else None
+        ),
+        "latency_metadata_json": latency_metadata,
+        "latency_observations_json": latency_observations,
         "fit_time_s": fit_duration,
     }
 
