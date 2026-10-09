@@ -22,3 +22,10 @@ fix*.md
 Fix Plan*.md
 *Fix Plan*.md
 
+# Agent tools output
+graphify-out/
+output/
+
+# Generated revision experiment runs
+results/revision_v2/
+
