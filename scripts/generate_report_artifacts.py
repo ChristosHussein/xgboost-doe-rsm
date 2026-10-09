@@ -632,7 +632,23 @@ def generate_tables():
         conf = json.load(f)
     so_conf = conf["Single_Objective_Optimum"]
 
-    status_pass = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
+    # Derive confirmation status labels dynamically from confirmation.json (Codex Comment 4225043377)
+    if conf["Y1_Val_RMSE"].get("inside_pi", False):
+        status_mo_val = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
+    else:
+        mo_bias_val = conf["Y1_Val_RMSE"]["empirical_mean"] - conf["Y1_Val_RMSE"]["predicted_mean"]
+        mo_bias_type = "Optimism" if mo_bias_val > 0 else "Pessimism"
+        status_mo_val = "\\makecell[c]{\\textbf{Not Confirmed}\\\\(" + f"{mo_bias_type}: {mo_bias_val:+.4f}" + ")}"
+
+    if conf["Y2_Latency"].get("inside_pi", False):
+        lat_lo_mo, _ = conf["Y2_Latency"]["prediction_interval_95"]
+        if abs(conf["Y2_Latency"]["empirical_mean"] - lat_lo_mo) < 0.5:
+            status_mo_lat = "\\makecell[c]{Borderline\\\\(At Lower PI)}"
+        else:
+            status_mo_lat = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
+    else:
+        status_mo_lat = "\\makecell[c]{\\textbf{Not Confirmed}\\\\(Outside PI)}"
+
     bias_val = so_conf['empirical_val_rmse'] - so_conf['predicted_val_rmse']
     if so_conf.get("inside_pi_val", False):
         status_bias = "\\makecell[c]{\\textbf{Pass}\\\\(Inside 95\\% PI)}"
@@ -658,9 +674,9 @@ def generate_tables():
         "\\makecell[l]{\\textbf{Configuration /}\\\\\\textbf{Response Metric}} & \\makecell{\\textbf{Surrogate}\\\\\\textbf{Pred ($\\hat{y}$)}} & \\makecell{\\textbf{95\\% Pred}\\\\\\textbf{Interval (PI)}} & \\makecell{\\textbf{Empirical}\\\\\\textbf{Mean $\\pm$ SD}} & \\makecell{\\textbf{Confirmation}\\\\\\textbf{Status}} \\\\",
         "\\midrule",
         "\\multicolumn{5}{l}{\\textbf{DOE Multi-Objective Optimum $\\mathbf{x}^*_{\\text{MO}}$ (Depth 4)}} \\\\",
-        f"Validation RMSE ($Y_1$) & ${conf['Y1_Val_RMSE']['predicted_mean']:.4f}$ & ${pi_y1_mo_str}$ & ${conf['Y1_Val_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Val_RMSE']['empirical_std']:.4f}$ & " + status_pass + " \\\\",
+        f"Validation RMSE ($Y_1$) & ${conf['Y1_Val_RMSE']['predicted_mean']:.4f}$ & ${pi_y1_mo_str}$ & ${conf['Y1_Val_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Val_RMSE']['empirical_std']:.4f}$ & " + status_mo_val + " \\\\",
         f"Holdout Test RMSE & --- & --- & ${conf['Y1_Test_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Test_RMSE']['empirical_std']:.4f}$ & Holdout Test Set \\\\",
-        f"Inference Latency ($\\mu$s) & ${conf['Y2_Latency']['predicted_mean']:.1f}$ & $[{conf['Y2_Latency']['prediction_interval_95'][0]:.1f}, {conf['Y2_Latency']['prediction_interval_95'][1]:.1f}]$ & ${conf['Y2_Latency']['empirical_mean']:.1f} \\pm {conf['Y2_Latency']['empirical_std']:.1f}$ & " + status_pass + " \\\\",
+        f"Inference Latency ($\\mu$s) & ${conf['Y2_Latency']['predicted_mean']:.1f}$ & $[{conf['Y2_Latency']['prediction_interval_95'][0]:.1f}, {conf['Y2_Latency']['prediction_interval_95'][1]:.1f}]$ & ${conf['Y2_Latency']['empirical_mean']:.1f} \\pm {conf['Y2_Latency']['empirical_std']:.1f}$ & " + status_mo_lat + " \\\\",
         "\\midrule",
         "\\multicolumn{5}{l}{\\textbf{DOE Single-Objective Candidate $\\mathbf{x}^*_{\\text{SO}}$ (Depth 7)}} \\\\",
         f"Validation RMSE ($Y_1$) & ${so_conf['predicted_val_rmse']:.4f}$ & ${pi_y1_so_str}$ & ${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$ & " + status_bias + " \\\\",
