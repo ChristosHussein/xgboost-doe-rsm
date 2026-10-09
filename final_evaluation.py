@@ -140,7 +140,7 @@ class FinalTestEvaluator:
             X_train, X_val, y_train, y_val = train_test_split(
                 self._X_dev, self._y_dev, test_size=0.25, random_state=seed
             )
-            model = xgb.XGBRegressor(
+            estimator_args = dict(
                 n_estimators=model_config["n_estimators"],
                 learning_rate=hp["learning_rate"],
                 max_depth=int(hp["max_depth"]),
@@ -150,6 +150,12 @@ class FinalTestEvaluator:
                 n_jobs=model_config["n_jobs_train"],
                 objective=model_config["objective"],
             )
+            for optional_name in (
+                "colsample_bytree", "min_child_weight", "gamma", "tree_method"
+            ):
+                if optional_name in model_config:
+                    estimator_args[optional_name] = model_config[optional_name]
+            model = xgb.XGBRegressor(**estimator_args)
             model.fit(X_train, y_train)
             val_rmse = float(np.sqrt(np.mean((y_val - model.predict(X_val)) ** 2)))
             test_rmse = float(np.sqrt(np.mean((self._y_test - model.predict(self._X_test)) ** 2)))
