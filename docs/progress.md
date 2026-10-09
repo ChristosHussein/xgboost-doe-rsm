@@ -100,20 +100,57 @@ All generated data structures were audited: no NaN or missing values in complete
 
 ---
 
+### Continuous Integration (GitHub Actions) Results
+- **Workflow:** `.github/workflows/test.yml` (Matrix: `ubuntu-latest`, `windows-latest` on Python 3.11).
+- **Pull Request #2 Verification Run (ID 38005501561):**
+  - `ubuntu-latest, Python 3.11`: **PASS** (54s) — 106 passed in 5.3s.
+  - `windows-latest, Python 3.11`: **PASS** (2m 0s) — 106 passed in 4.9s.
+- **Branch Push Verification Run (ID 38005496379, commit `a336f33`):**
+  - `ubuntu-latest, Python 3.11`: **PASS** (38s).
+  - `windows-latest, Python 3.11`: **PASS** (2m 4s).
+- **CI Defects Resolved:**
+  1. `actions/setup-python@v5` cache error: Added tested `requirements.txt` manifest and configured `cache-dependency-path: 'requirements.txt'`.
+  2. Git baseline tag resolution error: `actions/checkout@v4` defaulted to shallow `fetch-depth: 1`, omitting the baseline tag `v1.0.0`. Added `fetch-depth: 0` to checkout step, restoring full tag history for cryptographic baseline comparison.
+
+---
+
 ## 4. Current Work Package Status
 
 | Package | Title | Status | Notes |
 |---|---|---|---|
 | **Package A** | Audit and Correctness | **Completed & Verified** | Holdout isolation, incumbent selection integrity, centralized latency. |
-| **Package B** | Benchmark and Statistical Redesign | **Completed & Verified** | Candidate Pareto fronts, hypervolume, CI workflow, atomic checkpointing. |
+| **Package B** | Benchmark and Statistical Redesign | **Completed & Verified** | Candidate Pareto fronts, hypervolume, CI workflow green on Ubuntu & Windows, atomic checkpointing. |
 | **Package C** | Full Scientific Experiments | **Ready for Execution** | Pre-computed budget (17,077 fits, ~51 min), guarded by `--confirm-full-budget`. |
 | **Package D** | Publication Revision | **Pending Package C** | Blocked on completion of Package C; PDF/macros will be updated from validated full results. |
 
 ---
 
-## 5. Next Step
+## 5. Scientific Limitations & Experimental Caveats
 
-Awaiting user authorization to launch the full experimental protocol:
+Prior to executing the full experimental protocol, the following known methodological boundaries are documented:
+
+1. **Historical Holdout Exposure (SA-001, SA-002):**
+   - The historical v1.0.0 experimental run recorded test set RMSE during exploration. In revision v2, all development and optimizer search paths are strictly isolated via `CaliforniaHousingDevelopmentDataManager` and holdout evaluation is cryptographically gated. Historical results are preserved with this explicit disclosure; new comparative claims rely exclusively on gated development evaluations.
+2. **Pre-Planned vs Adaptive Design (SA-010):**
+   - The 140-run FCCD was pre-planned in fixed nuisance blocks rather than dynamically or adaptively navigated in real time. The revision clarifies this terminology throughout report and documentation.
+3. **Latency Platform-Dependence:**
+   - While thread pinning and interface overhead isolation eliminate within-session drift and process migration, physical microseconds vary across processor architectures and instruction sets (AMD Zen 5 desktop vs Intel Xeon cloud runner).
+4. **Search vs Retraining Variance Separation:**
+   - To avoid conflating retraining noise with search robustness, the pipeline explicitly decomposes variation into between-search replicate variance ($N=20$) and holdout retraining variance ($N=20$).
+
+---
+
+## 6. Revised Runtime Estimate & Readiness Statement
+
+- **Estimated Total Fits:** 17,077 model fits.
+- **Estimated Timed Latency Calls:** 1,640,810 calls.
+- **Empirical Single-Core Timing:** ~134.4 ms/fit, ~127.9 µs/call.
+- **Wall-Clock Runtime Estimate:** **~51 minutes (0.85 – 1.2 hours)**.
+- **Memory & Storage:** $\ge 4\,\text{GB}$ RAM, $\approx 150\,\text{MB}$ disk storage.
+- **Checkpoint Resilience:** Atomic checkpoints saved per-replicate in `<output-dir>/checkpoints/`; `--resume` supported.
+
+**READINESS STATUS:** Both CI runners (Ubuntu and Windows) are 100% green. The pipeline is fully verified and ready for full experimental execution upon user authorization:
 ```powershell
 python scripts/run_benchmarks.py --mode full --output-dir results/revision_v2/full_run_001 --confirm-full-budget
 ```
+
