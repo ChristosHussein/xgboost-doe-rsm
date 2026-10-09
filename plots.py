@@ -1,14 +1,6 @@
-"""
-plots.py - Publication-Quality Visualizations for Sequential RSM/CCD HPO
-========================================================================
-Implements Task 10 per fix.md:
-  1. 4-in-1 Residual Diagnostics Panel (Studentized, Q-Q, Execution Order Drift, Cook's D).
-  2. 2D Contour and 3D Wireframe Surface for RMSE passing through Constrained Optimum.
-  3. Latency vs. Depth with 95% CI band and mechanistic curve comparison (replacing inert subsample slice).
-  4. Multi-objective Pareto Front with DOE x*, Confirmation point, and baseline incumbents.
-  5. Optimization Efficiency Convergence with 20-replicate median and IQR bands.
-"""
+"""Historical diagnostics and versioned revision-v2 comparison plots."""
 
+import argparse
 import json
 import os
 import sys
@@ -340,23 +332,58 @@ def plot_pareto_front_and_desirability(df_runs: pd.DataFrame, save_path: str = "
 def load_revision_pareto_data(run_dir: str | Path) -> Dict[str, pd.DataFrame]:
     """Load and validate the two non-mixed estimands used by the revision plot."""
     run_dir = Path(run_dir)
-    doe = pd.read_csv(run_dir / "doe_matched_candidate_front.csv")
+    doe = pd.read_csv(run_dir / "doe_matched_candidate_front.csv").copy()
     trials = pd.read_csv(run_dir / "optimizer_trials.csv")
-    final = pd.read_csv(run_dir / "final_summary.csv")
-    development_protocols = set(doe["latency_protocol_id"].dropna())
-    trial_protocols = set(
-        trials.loc[
-            trials["optimizer"].eq("multi_objective_tpe")
-            & trials["trial_status"].eq("completed"),
-            "latency_protocol_id",
-        ].dropna()
+    final = pd.read_csv(run_dir / "final_summary.csv").copy()
+    mo_tpe = trials.loc[
+        trials["optimizer"].eq("multi_objective_tpe")
+        & trials["trial_status"].eq("completed")
+    ].copy()
+    if doe.empty or mo_tpe.empty or final.empty:
+        raise ValueError("Revision Pareto inputs must each contain at least one row")
+
+    def one_complete_value(frame: pd.DataFrame, column: str, label: str):
+        if column not in frame or frame[column].isna().any():
+            raise ValueError(f"{label} requires complete {column} values")
+        values = frame[column].astype(str)
+        if values.str.strip().eq("").any() or values.nunique() != 1:
+            raise ValueError(f"{label} requires exactly one complete {column}")
+        return frame[column].iloc[0]
+
+    development_protocol = one_complete_value(
+        doe, "latency_protocol_id", "DOE development panel"
     )
-    if len(development_protocols) != 1 or development_protocols != trial_protocols:
+    trial_protocol = one_complete_value(
+        mo_tpe, "latency_protocol_id", "MO-TPE development panel"
+    )
+    if development_protocol != trial_protocol:
         raise ValueError(
             "Development Pareto panel requires one matching latency protocol for DOE and MO-TPE"
         )
-    if len(set(final["latency_protocol_id"].dropna())) != 1:
-        raise ValueError("Independent-evaluation panel requires one primary latency protocol")
+    doe_split = one_complete_value(
+        doe, "development_split_seed", "DOE development panel"
+    )
+    trial_split = one_complete_value(
+        mo_tpe, "development_split_seed", "MO-TPE development panel"
+    )
+    if int(doe_split) != int(trial_split):
+        raise ValueError(
+            "Development Pareto panel requires DOE and MO-TPE rows from the same split"
+        )
+    one_complete_value(
+        final, "latency_protocol_id", "Independent-evaluation panel"
+    )
+
+    for label, frame in (("DOE", doe), ("MO-TPE", mo_tpe)):
+        for column in ("validation_rmse", "predict_latency_us"):
+            numeric = pd.to_numeric(frame[column], errors="coerce").to_numpy(dtype=float)
+            if not np.all(np.isfinite(numeric)):
+                raise ValueError(f"{label} {column} values must be finite")
+            frame[column] = numeric
+    final_latency = pd.to_numeric(final["predict_latency_us"], errors="coerce")
+    if not np.all(np.isfinite(final_latency.to_numpy(dtype=float))):
+        raise ValueError("Independent predict_latency_us values must be finite")
+    final["predict_latency_us"] = final_latency
 
     parsed = final.copy()
     parsed["validation_rmse_mean"] = parsed["validation_rmse"].map(
@@ -368,12 +395,18 @@ def load_revision_pareto_data(run_dir: str | Path) -> Dict[str, pd.DataFrame]:
     parsed["validation_rmse_ci_high"] = parsed["validation_rmse"].map(
         lambda value: json.loads(value)["confidence_interval_95"][1]
     )
+    interval_columns = [
+        "validation_rmse_mean",
+        "validation_rmse_ci_low",
+        "validation_rmse_ci_high",
+    ]
+    if not np.all(
+        np.isfinite(parsed[interval_columns].to_numpy(dtype=float))
+    ):
+        raise ValueError("Independent validation summaries require finite means and intervals")
     return {
         "doe_development": doe,
-        "mo_tpe_development": trials[
-            trials["optimizer"].eq("multi_objective_tpe")
-            & trials["trial_status"].eq("completed")
-        ].copy(),
+        "mo_tpe_development": mo_tpe,
         "independent_selected": parsed,
     }
 
@@ -462,7 +495,9 @@ def plot_revision_pareto_front(
     primary_protocol = independent["latency_protocol_id"].iloc[0]
     axes[1].set_title("Frozen selections: independent validation means")
     axes[1].set_xlabel("Independent validation RMSE mean (95% t interval)")
-    axes[1].set_ylabel(f"predict() latency (μs)\n{primary_protocol}")
+    axes[1].set_ylabel(
+        f"predict() latency (μs; bars = between-session SD)\n{primary_protocol}"
+    )
     axes[1].legend(fontsize=7)
     axes[1].grid(True, linestyle=":", alpha=0.5)
 
@@ -478,10 +513,13 @@ def plot_revision_pareto_front(
 
 
 def plot_efficiency_comparison(save_path: str = "figures/efficiency_comparison_curve.png"):
-    """
-    Renders Optimization Efficiency Convergence:
+    """Render the historical v1 efficiency figure for archival reproduction only.
+
     Median and IQR shaded bands across 20 replicate runs for Random Search and TPE,
     with single illustrative DOE trajectory in actual randomized run_order.
+
+    This mixes a single DOE run-order trace with optimizer replicate summaries and
+    is deliberately excluded from the revision-v2 rendering entry point.
     """
     df_traj = pd.read_csv("results/benchmark_evals_trajectories.csv")
     evals = df_traj["eval_idx"].values
@@ -535,14 +573,22 @@ def plot_efficiency_comparison(save_path: str = "figures/efficiency_comparison_c
     print(f"[Plot] Saved Efficiency Comparison to: {save_path}")
 
 
-def render_all_plots():
+def render_revision_plots(revision_run_dir: str | Path):
+    """Render the supported diagnostics plus the estimand-separated v2 Pareto figure."""
     df_runs = pd.read_csv("results/runs.csv")
     plot_residual_diagnostics(df_runs, "figures/diagnostics_panel_4in1.png")
     plot_response_surface_rmse_2d_3d(df_runs, "figures/response_surface_rmse_2d_3d.png")
     plot_latency_vs_depth(df_runs, "figures/response_surface_latency_2d_3d.png")
     plot_pareto_front_and_desirability(df_runs, "figures/desirability_pareto_front.png")
-    plot_efficiency_comparison("figures/efficiency_comparison_curve.png")
-    print("All 5 publication plots rendered successfully.")
+    plot_revision_pareto_front(
+        revision_run_dir, "figures/revision_v2_pareto_front.png"
+    )
+    print("Revision diagnostics and estimand-separated Pareto plot rendered successfully.")
 
 if __name__ == "__main__":
-    render_all_plots()
+    parser = argparse.ArgumentParser(
+        description="Render plots from an explicit versioned revision-v2 run."
+    )
+    parser.add_argument("--revision-run-dir", required=True)
+    arguments = parser.parse_args()
+    render_revision_plots(arguments.revision_run_dir)

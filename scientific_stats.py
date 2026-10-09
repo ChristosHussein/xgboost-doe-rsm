@@ -243,6 +243,9 @@ def regression_interval(
         raise ValueError(
             "estimand must be surrogate_mean, future_observation, or future_mean"
         )
+    numeric_inputs = (prediction, leverage, residual_mean_square, residual_df, confidence)
+    if not all(np.isfinite(value) for value in numeric_inputs):
+        raise ValueError("interval inputs must be finite")
     if leverage < 0.0 or residual_mean_square < 0.0 or residual_df <= 0.0:
         raise ValueError("leverage, residual mean square, and residual df are invalid")
     if not 0.0 < confidence < 1.0:
@@ -295,12 +298,25 @@ def satterthwaite_blocked_future_mean_interval(
     This reproduces the historical expected-mean-square parameterization while
     exposing its assumptions and applying the zero block-variance boundary.
     """
+    numeric_inputs = (
+        prediction,
+        leverage,
+        residual_mean_square,
+        residual_df,
+        block_mean_square,
+        block_df,
+        confidence,
+    )
+    if not all(np.isfinite(value) for value in numeric_inputs):
+        raise ValueError("blocked interval inputs must be finite")
     if leverage < 0.0 or residual_mean_square < 0.0 or residual_df <= 0.0:
         raise ValueError("invalid residual or leverage inputs")
     if block_mean_square < 0.0 or block_df <= 0.0:
         raise ValueError("invalid block mean square or degrees of freedom")
     if historical_runs_per_block <= 0 or historical_block_count <= 0:
         raise ValueError("historical block dimensions must be positive")
+    if not np.isclose(block_df, historical_block_count - 1):
+        raise ValueError("block_df must equal historical_block_count - 1")
     if future_observations <= 0:
         raise ValueError("future_observations must be positive")
     if not 0.0 < confidence < 1.0:
@@ -357,6 +373,14 @@ def satterthwaite_blocked_future_mean_interval(
         "estimated_block_variance": float(estimated_block_variance),
         "zero_block_variance_boundary_applied": boundary_applied,
         "mean_square_coefficients": coefficients,
+        "variance_component_inputs": {
+            "residual_mean_square": float(residual_mean_square),
+            "residual_degrees_of_freedom": float(residual_df),
+            "block_mean_square": float(block_mean_square),
+            "block_degrees_of_freedom": float(block_df),
+            "historical_runs_per_block": int(historical_runs_per_block),
+            "historical_block_count": int(historical_block_count),
+        },
         "assumptions": [
             "Residual and block mean squares are treated as independent.",
             "The historical residual mean square includes any unmodelled structural discrepancy.",

@@ -15,12 +15,14 @@ import time
 from pathlib import Path
 from typing import Sequence
 
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+
 
 def run_step(command: Sequence[str], description: str) -> None:
     """Run one argv-safe reproduction step and fail on its first error."""
     print(f"\n[Step] {description}...")
     started = time.perf_counter()
-    subprocess.run(list(command), check=True)
+    subprocess.run(list(command), check=True, cwd=REPOSITORY_ROOT)
     print(f"[Done] {description} in {time.perf_counter() - started:.1f}s.")
 
 
@@ -38,9 +40,17 @@ def build_commands(
         commands.append(
             ([sys.executable, "-m", "pytest", "-q"], "software verification suite")
         )
-    benchmark = [sys.executable, "scripts/run_benchmarks.py", "--mode", mode]
+    benchmark = [
+        sys.executable,
+        str(REPOSITORY_ROOT / "scripts" / "run_benchmarks.py"),
+        "--mode",
+        mode,
+    ]
     if output_dir is not None:
-        benchmark.extend(["--output-dir", output_dir])
+        destination = Path(output_dir)
+        if not destination.is_absolute():
+            destination = REPOSITORY_ROOT / destination
+        benchmark.extend(["--output-dir", str(destination.resolve())])
     if mode == "full":
         benchmark.append("--confirm-full-budget")
     commands.append((benchmark, f"revision-v2 {mode} experiment"))
@@ -60,8 +70,11 @@ def main() -> None:
         help="Required for the expensive full protocol.",
     )
     args = parser.parse_args()
-    if args.output_dir and Path(args.output_dir).exists() and any(Path(args.output_dir).iterdir()):
-        raise SystemExit(f"Refusing to overwrite non-empty directory: {args.output_dir}")
+    destination = Path(args.output_dir) if args.output_dir else None
+    if destination is not None and not destination.is_absolute():
+        destination = REPOSITORY_ROOT / destination
+    if destination is not None and destination.exists() and any(destination.iterdir()):
+        raise SystemExit(f"Refusing to overwrite non-empty directory: {destination}")
     try:
         commands = build_commands(
             mode=args.mode,

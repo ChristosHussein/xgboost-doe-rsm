@@ -62,25 +62,104 @@ def _normalized_latency_frame(frame: pd.DataFrame) -> pd.DataFrame:
             result["depth"] = result["max_depth"]
         else:
             raise ValueError("Expected depth or max_depth column")
+    numeric_columns = ["latency_us", "depth"]
+    numeric_columns.extend(
+        name
+        for name in (
+            "learning_rate", "subsample", "reg_lambda", "x1", "x2", "x3", "x4"
+        )
+        if name in result
+    )
+    for name in numeric_columns:
+        result[name] = pd.to_numeric(result[name], errors="coerce")
+    invalid = {
+        name: result.index[~np.isfinite(result[name].to_numpy(dtype=float))].tolist()
+        for name in numeric_columns
+        if not np.all(np.isfinite(result[name].to_numpy(dtype=float)))
+    }
+    if invalid:
+        raise ValueError(f"Latency analysis requires finite complete numeric rows: {invalid}")
+    if "block" in result and result["block"].isna().any():
+        raise ValueError("Latency analysis requires complete block identifiers")
     if len(result) < 4:
-        raise ValueError("At least four timing rows are required")
+        raise ValueError("At least four complete timing rows are required")
     if (result["latency_us"] <= 0).any():
         raise ValueError("Latency responses must be positive")
     return result
 
 
-def _model_record(name: str, formula: str, fit, observed, predicted) -> dict[str, Any]:
-    residual = np.asarray(observed, dtype=float) - np.asarray(predicted, dtype=float)
+def _fit_checked(formula: str, data: pd.DataFrame):
+    fit = smf.ols(formula, data, missing="raise").fit()
+    expected_rank = int(fit.model.exog.shape[1])
+    if int(fit.nobs) != len(data):
+        raise ValueError("statsmodels changed the declared complete-case analysis rows")
+    if int(fit.model.rank) != expected_rank:
+        raise ValueError(
+            f"design is rank deficient ({fit.model.rank} < {expected_rank})"
+        )
+    if fit.df_resid <= 0:
+        raise ValueError("model has no positive residual degrees of freedom")
+    if not np.all(np.isfinite(np.asarray(fit.params, dtype=float))):
+        raise ValueError("model parameters are not finite")
+    return fit
+
+
+def _unavailable_model(name: str, formula: str, response_scale: str, error: Exception):
     return {
         "model": name,
         "formula": formula,
-        "n": int(fit.nobs),
-        "rank": int(fit.model.rank),
+        "available": False,
+        "fit_response_scale": response_scale,
+        "reason": f"{type(error).__name__}: {error}",
+    }
+
+
+def _model_record(
+    name: str,
+    formula: str,
+    fit,
+    observed,
+    predicted,
+    *,
+    response_scale: str,
+    smearing_factor: float | None = None,
+) -> dict[str, Any]:
+    residual = np.asarray(observed, dtype=float) - np.asarray(predicted, dtype=float)
+    if not np.all(np.isfinite(residual)):
+        raise ValueError("raw-scale model predictions must be finite")
+    fit_statistics = {
+        "response_scale": response_scale,
         "r_squared": float(fit.rsquared),
         "adjusted_r_squared": float(fit.rsquared_adj),
         "aic": float(fit.aic),
         "bic": float(fit.bic),
-        "rmse_on_response_scale": float(np.sqrt(np.mean(residual**2))),
+        "comparability": (
+            "AIC, BIC, and R-squared are comparable only with models fitted to this same "
+            "response scale."
+        ),
+    }
+    if not all(
+        np.isfinite(value)
+        for key, value in fit_statistics.items()
+        if key in {"r_squared", "adjusted_r_squared", "aic", "bic"}
+    ):
+        raise ValueError("fit statistics must be finite")
+    return {
+        "model": name,
+        "formula": formula,
+        "available": True,
+        "n": int(fit.nobs),
+        "rank": int(fit.model.rank),
+        "residual_degrees_of_freedom": float(fit.df_resid),
+        "fit_response_scale": response_scale,
+        "fit_statistics": fit_statistics,
+        "raw_scale_in_sample_rmse": float(np.sqrt(np.mean(residual**2))),
+        "raw_scale_prediction_definition": (
+            "conditional mean using Duan smearing"
+            if smearing_factor is not None
+            else "ordinary fitted mean"
+        ),
+        "duan_smearing_factor": smearing_factor,
         "parameters": {name: float(value) for name, value in fit.params.items()},
     }
 
@@ -99,32 +178,61 @@ def analyze_latency_models(
     data = _normalized_latency_frame(frame)
     models = []
 
-    linear = smf.ols("latency_us ~ depth", data).fit()
-    models.append(
-        _model_record(
-            "linear_depth", "latency_us ~ depth", linear, data["latency_us"], linear.fittedvalues
+    formula = "latency_us ~ depth"
+    try:
+        linear = _fit_checked(formula, data)
+        models.append(
+            _model_record(
+                "linear_depth",
+                formula,
+                linear,
+                data["latency_us"],
+                linear.fittedvalues,
+                response_scale="latency_us",
+            )
         )
-    )
-    quadratic = smf.ols("latency_us ~ depth + I(depth**2)", data).fit()
-    models.append(
-        _model_record(
-            "quadratic_depth",
-            "latency_us ~ depth + depth^2",
-            quadratic,
-            data["latency_us"],
-            quadratic.fittedvalues,
+    except (ValueError, np.linalg.LinAlgError) as exc:
+        models.append(_unavailable_model("linear_depth", formula, "latency_us", exc))
+
+    formula = "latency_us ~ depth + I(depth**2)"
+    try:
+        quadratic = _fit_checked(formula, data)
+        models.append(
+            _model_record(
+                "quadratic_depth",
+                "latency_us ~ depth + depth^2",
+                quadratic,
+                data["latency_us"],
+                quadratic.fittedvalues,
+                response_scale="latency_us",
+            )
         )
-    )
-    log_linear = smf.ols("np.log(latency_us) ~ depth", data).fit()
-    models.append(
-        _model_record(
-            "log_linear_depth",
-            "log(latency_us) ~ depth",
-            log_linear,
-            data["latency_us"],
-            np.exp(log_linear.fittedvalues),
+    except (ValueError, np.linalg.LinAlgError) as exc:
+        models.append(_unavailable_model("quadratic_depth", formula, "latency_us", exc))
+
+    formula = "np.log(latency_us) ~ depth"
+    try:
+        log_linear = _fit_checked(formula, data)
+        smearing_factor = float(np.mean(np.exp(log_linear.resid)))
+        if not np.isfinite(smearing_factor) or smearing_factor <= 0:
+            raise ValueError("Duan smearing factor must be positive and finite")
+        models.append(
+            _model_record(
+                "log_linear_depth",
+                "log(latency_us) ~ depth",
+                log_linear,
+                data["latency_us"],
+                np.exp(log_linear.fittedvalues) * smearing_factor,
+                response_scale="log_latency_us",
+                smearing_factor=smearing_factor,
+            )
         )
-    )
+    except (ValueError, np.linalg.LinAlgError) as exc:
+        models.append(
+            _unavailable_model(
+                "log_linear_depth", formula, "log_latency_us", exc
+            )
+        )
 
     multifactor_terms = [
         name
@@ -133,16 +241,24 @@ def analyze_latency_models(
     ]
     if multifactor_terms:
         formula = "latency_us ~ depth + I(depth**2) + " + " + ".join(multifactor_terms)
-        multifactor = smf.ols(formula, data).fit()
-        models.append(
-            _model_record(
-                "multifactor_descriptive",
-                formula,
-                multifactor,
-                data["latency_us"],
-                multifactor.fittedvalues,
+        try:
+            multifactor = _fit_checked(formula, data)
+            models.append(
+                _model_record(
+                    "multifactor_descriptive",
+                    formula,
+                    multifactor,
+                    data["latency_us"],
+                    multifactor.fittedvalues,
+                    response_scale="latency_us",
+                )
             )
-        )
+        except (ValueError, np.linalg.LinAlgError) as exc:
+            models.append(
+                _unavailable_model(
+                    "multifactor_descriptive", formula, "latency_us", exc
+                )
+            )
 
     full_ccd = None
     ccd_columns = {"block", "x1", "x2", "x3", "x4"}
@@ -163,26 +279,50 @@ def analyze_latency_models(
             "latency_us ~ C(block) + "
             + " + ".join(factors + [f"{factor}_sq" for factor in factors] + interactions)
         )
-        fit = smf.ols(formula, augmented).fit()
-        full_ccd = _model_record(
-            "blocked_second_order_ccd",
-            formula,
-            fit,
-            augmented["latency_us"],
-            fit.fittedvalues,
-        )
-        full_ccd["anova_type_3"] = (
-            sm.stats.anova_lm(fit, typ=3).reset_index().rename(columns={"index": "term"}).to_dict("records")
-        )
-        models.append(full_ccd)
+        try:
+            fit = _fit_checked(formula, augmented)
+            full_ccd = _model_record(
+                "blocked_second_order_ccd",
+                formula,
+                fit,
+                augmented["latency_us"],
+                fit.fittedvalues,
+                response_scale="latency_us",
+            )
+            anova = (
+                sm.stats.anova_lm(fit, typ=3)
+                .reset_index()
+                .rename(columns={"index": "term"})
+            )
+            anova = anova.replace([np.inf, -np.inf], np.nan)
+            full_ccd["anova_type_3"] = [
+                {
+                    key: (None if pd.isna(value) else value)
+                    for key, value in row.items()
+                }
+                for row in anova.to_dict("records")
+            ]
+            models.append(full_ccd)
+        except (ValueError, np.linalg.LinAlgError) as exc:
+            models.append(
+                _unavailable_model(
+                    "blocked_second_order_ccd", formula, "latency_us", exc
+                )
+            )
 
     return {
         "schema_version": 2,
         "latency_protocol_id": protocol_id,
         "response": "predict_latency_us",
+        "input_rows": int(len(frame)),
+        "analysis_rows": int(len(data)),
+        "excluded_rows": 0,
+        "model_comparison_metric": "raw_scale_in_sample_rmse",
         "interpretation": (
             "Descriptive association within one timing protocol; model form does not establish "
-            "a hardware mechanism or a causal source of interface overhead."
+            "a hardware mechanism or a causal source of interface overhead. Likelihood and R-squared "
+            "statistics are comparable only among models fitted on the same response scale; the "
+            "log-linear model uses Duan smearing for raw-scale mean predictions."
         ),
         "models": models,
     }
@@ -194,8 +334,26 @@ def write_analysis(result: dict[str, Any], output_dir: str | Path) -> Path:
         raise FileExistsError(f"Refusing to overwrite non-empty directory: {destination}")
     destination.mkdir(parents=True, exist_ok=True)
     output = destination / "latency_modeling.json"
-    output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    pd.DataFrame(result["models"]).drop(columns=["parameters", "anova_type_3"], errors="ignore").to_csv(
+    output.write_text(
+        json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
+    comparison_rows = []
+    for model in result["models"]:
+        fit_statistics = model.get("fit_statistics", {})
+        comparison_rows.append({
+            "model": model["model"],
+            "available": model["available"],
+            "fit_response_scale": model["fit_response_scale"],
+            "raw_scale_in_sample_rmse": model.get("raw_scale_in_sample_rmse"),
+            "r_squared_within_response_scale": fit_statistics.get("r_squared"),
+            "adjusted_r_squared_within_response_scale": fit_statistics.get(
+                "adjusted_r_squared"
+            ),
+            "aic_within_response_scale": fit_statistics.get("aic"),
+            "bic_within_response_scale": fit_statistics.get("bic"),
+            "reason": model.get("reason"),
+        })
+    pd.DataFrame(comparison_rows).to_csv(
         destination / "latency_models_comparison.csv", index=False
     )
     return output

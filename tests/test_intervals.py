@@ -77,6 +77,14 @@ def test_satterthwaite_block_interval_reports_components_and_effective_df():
     assert result["mean_square_coefficients"]["block_mean_square"] == pytest.approx(c2)
     assert result["zero_block_variance_boundary_applied"] is False
     assert result["effective_degrees_of_freedom"] < 121
+    assert result["variance_component_inputs"] == {
+        "residual_mean_square": 0.0004,
+        "residual_degrees_of_freedom": 121.0,
+        "block_mean_square": 0.002,
+        "block_degrees_of_freedom": 4.0,
+        "historical_runs_per_block": 28,
+        "historical_block_count": 5,
+    }
 
 
 def test_satterthwaite_block_interval_applies_zero_variance_boundary():
@@ -95,3 +103,26 @@ def test_satterthwaite_block_interval_applies_zero_variance_boundary():
     assert result["estimated_block_variance"] == 0.0
     assert result["effective_degrees_of_freedom"] == 50
     assert result["variance"] == pytest.approx(0.001 * (0.1 + 0.2))
+
+
+def test_interval_helpers_reject_nonfinite_and_incoherent_inputs():
+    with pytest.raises(ValueError, match="finite"):
+        regression_interval(
+            prediction=np.nan,
+            leverage=0.1,
+            residual_mean_square=0.001,
+            residual_df=20,
+            estimand="surrogate_mean",
+        )
+    with pytest.raises(ValueError, match="block_df"):
+        satterthwaite_blocked_future_mean_interval(
+            prediction=0.48,
+            leverage=0.1,
+            residual_mean_square=0.001,
+            residual_df=50,
+            block_mean_square=0.002,
+            block_df=3,
+            historical_runs_per_block=28,
+            historical_block_count=5,
+            future_observations=5,
+        )
