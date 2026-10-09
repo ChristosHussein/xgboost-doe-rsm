@@ -1,8 +1,14 @@
 {
   "schema_version": 1,
-  "classification": "historical_reanalysis_no_new_model_fits",
+  "classification": "historical_data_reanalysis_no_new_xgboost_evaluations",
   "baseline_ref": "v1.0.0",
   "baseline_commit": "cd63135d2b70a0ee324555c11b67a541b32b98a4",
+  "input_sha256": {
+    "v1.0.0:config.yaml": "ab8c99fb17dcc5a32763e8f8d7bdbc3c16c50eb14c24fb784c93079c4ace3af9",
+    "v1.0.0:results/runs.csv": "87486cb5691c92d3861379f6b45026ecbd1a20897e6bd57ddda5b423e26efeac",
+    "v1.0.0:results/confirmation.json": "d8f6b88627a1cc6e3a925ad7af5e0dec6272a44c0df843a8982073ab48139b03",
+    "scripts/audit_desirability_selection.py": "9205caff9b219a7e049a9745190a12a24326a63528874fb32ad769934e22a9d1"
+  },
   "stated_grid": {
     "candidate_count": 588,
     "x1_levels": [
@@ -115,9 +121,9 @@
     "desirability": 0.6697921477067277
   },
   "boundary_statement": "A face-centered CCD boundary is observed within the declared domain; it is not extrapolation solely because it lies on a face.",
-  "latency_uncertainty_sensitivity": {
+  "common_latency_calibration_shift_sensitivity": {
     "offset_magnitude_us": 11.645749999999992,
-    "basis": "median historical within-run latency IQR",
+    "basis": "Common additive shift equal to the median historical within-run latency IQR. This is a calibration-shift stress test, not a candidate standard error, prediction interval, or estimate of timing uncertainty.",
     "results": [
       {
         "scenario": "standard",
@@ -128,7 +134,9 @@
           1.0,
           0.0
         ],
-        "desirability": 0.7794625961699131
+        "desirability": 0.7794625961699131,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "standard",
@@ -139,7 +147,9 @@
           1.0,
           0.0
         ],
-        "desirability": 0.6952181747318353
+        "desirability": 0.6952181747318353,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "standard",
@@ -150,7 +160,9 @@
           1.0,
           0.0
         ],
-        "desirability": 0.5992450935360158
+        "desirability": 0.5992450935360158,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "latency_weight_2",
@@ -161,7 +173,9 @@
           1.0,
           0.0
         ],
-        "desirability": 0.7562635025098483
+        "desirability": 0.7562635025098483,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "latency_weight_2",
@@ -172,7 +186,9 @@
           1.0,
           0.0
         ],
-        "desirability": 0.6492933053124113
+        "desirability": 0.6492933053124113,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "latency_weight_2",
@@ -183,7 +199,9 @@
           1.0,
           0.0
         ],
-        "desirability": 0.5326215710355219
+        "desirability": 0.5326215710355219,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "rmse_weight_2",
@@ -194,7 +212,9 @@
           1.0,
           1.0
         ],
-        "desirability": 0.8053454160513842
+        "desirability": 0.8053454160513842,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "rmse_weight_2",
@@ -205,7 +225,9 @@
           1.0,
           0.0
         ],
-        "desirability": 0.744391335199288
+        "desirability": 0.744391335199288,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "rmse_weight_2",
@@ -216,7 +238,9 @@
           1.0,
           0.0
         ],
-        "desirability": 0.6742022885570278
+        "desirability": 0.6742022885570278,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "strict_latency",
@@ -227,7 +251,9 @@
           1.0,
           0.0
         ],
-        "desirability": 0.46122195202413757
+        "desirability": 0.46122195202413757,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "strict_latency",
@@ -238,7 +264,9 @@
           1.0,
           0.0
         ],
-        "desirability": 0.2205747267849676
+        "desirability": 0.2205747267849676,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "strict_latency",
@@ -249,7 +277,9 @@
           0.0,
           0.0
         ],
-        "desirability": 0.0
+        "desirability": 0.0,
+        "tie_count": 588,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "strict_accuracy",
@@ -260,7 +290,9 @@
           1.0,
           1.0
         ],
-        "desirability": 0.7812093318526525
+        "desirability": 0.7812093318526525,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "strict_accuracy",
@@ -271,7 +303,9 @@
           1.0,
           1.0
         ],
-        "desirability": 0.729251258405197
+        "desirability": 0.729251258405197,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       },
       {
         "scenario": "strict_accuracy",
@@ -282,7 +316,9 @@
           1.0,
           1.0
         ],
-        "desirability": 0.6690428939896338
+        "desirability": 0.6690428939896338,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
       }
     ]
   }
