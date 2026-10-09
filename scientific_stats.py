@@ -228,6 +228,143 @@ def paired_tost(
     }
 
 
+def regression_interval(
+    prediction: float,
+    leverage: float,
+    residual_mean_square: float,
+    residual_df: float,
+    *,
+    estimand: str,
+    future_observations: int = 1,
+    confidence: float = 0.95,
+) -> dict:
+    """Compute a labelled OLS interval for one explicitly chosen estimand."""
+    if estimand not in {"surrogate_mean", "future_observation", "future_mean"}:
+        raise ValueError(
+            "estimand must be surrogate_mean, future_observation, or future_mean"
+        )
+    if leverage < 0.0 or residual_mean_square < 0.0 or residual_df <= 0.0:
+        raise ValueError("leverage, residual mean square, and residual df are invalid")
+    if not 0.0 < confidence < 1.0:
+        raise ValueError("confidence must lie strictly between zero and one")
+    if not isinstance(future_observations, int) or future_observations <= 0:
+        raise ValueError("future_observations must be a positive integer")
+
+    if estimand == "surrogate_mean":
+        future_variance_multiplier = 0.0
+    elif estimand == "future_observation":
+        if future_observations != 1:
+            raise ValueError("future_observation requires future_observations=1")
+        future_variance_multiplier = 1.0
+    else:
+        future_variance_multiplier = 1.0 / future_observations
+    variance = residual_mean_square * (leverage + future_variance_multiplier)
+    critical = float(stats.t.ppf(0.5 + confidence / 2.0, residual_df))
+    half_width = critical * np.sqrt(variance)
+    return {
+        "estimand": estimand,
+        "future_observations": (
+            0 if estimand == "surrogate_mean" else future_observations
+        ),
+        "prediction": float(prediction),
+        "leverage": float(leverage),
+        "residual_mean_square": float(residual_mean_square),
+        "degrees_of_freedom": float(residual_df),
+        "confidence_level": float(confidence),
+        "variance": float(variance),
+        "lower": float(prediction - half_width),
+        "upper": float(prediction + half_width),
+    }
+
+
+def satterthwaite_blocked_future_mean_interval(
+    prediction: float,
+    leverage: float,
+    residual_mean_square: float,
+    residual_df: float,
+    block_mean_square: float,
+    block_df: float,
+    *,
+    historical_runs_per_block: int,
+    historical_block_count: int,
+    future_observations: int,
+    confidence: float = 0.95,
+) -> dict:
+    """Blocked interval for the mean of future runs under an explicit EMS model.
+
+    This reproduces the historical expected-mean-square parameterization while
+    exposing its assumptions and applying the zero block-variance boundary.
+    """
+    if leverage < 0.0 or residual_mean_square < 0.0 or residual_df <= 0.0:
+        raise ValueError("invalid residual or leverage inputs")
+    if block_mean_square < 0.0 or block_df <= 0.0:
+        raise ValueError("invalid block mean square or degrees of freedom")
+    if historical_runs_per_block <= 0 or historical_block_count <= 0:
+        raise ValueError("historical block dimensions must be positive")
+    if future_observations <= 0:
+        raise ValueError("future_observations must be positive")
+    if not 0.0 < confidence < 1.0:
+        raise ValueError("confidence must lie strictly between zero and one")
+
+    estimated_block_variance = max(
+        0.0,
+        (block_mean_square - residual_mean_square) / historical_runs_per_block,
+    )
+    boundary_applied = estimated_block_variance == 0.0
+    if boundary_applied:
+        variance = residual_mean_square * (
+            leverage + 1.0 / future_observations
+        )
+        effective_df = float(residual_df)
+        coefficients = {
+            "residual_mean_square": leverage + 1.0 / future_observations,
+            "block_mean_square": 0.0,
+        }
+    else:
+        block_coefficient = (
+            1.0 / future_observations + 1.0 / historical_block_count
+        ) / historical_runs_per_block
+        residual_coefficient = (
+            leverage + 1.0 / future_observations - block_coefficient
+        )
+        if residual_coefficient < 0.0:
+            raise ValueError("variance-component coefficients are not non-negative")
+        variance = (
+            residual_coefficient * residual_mean_square
+            + block_coefficient * block_mean_square
+        )
+        denominator = (
+            (residual_coefficient * residual_mean_square) ** 2 / residual_df
+            + (block_coefficient * block_mean_square) ** 2 / block_df
+        )
+        effective_df = float(variance**2 / denominator)
+        coefficients = {
+            "residual_mean_square": float(residual_coefficient),
+            "block_mean_square": float(block_coefficient),
+        }
+    critical = float(stats.t.ppf(0.5 + confidence / 2.0, effective_df))
+    half_width = critical * np.sqrt(variance)
+    return {
+        "estimand": "mean_of_future_confirmation_runs",
+        "future_observations": int(future_observations),
+        "prediction": float(prediction),
+        "leverage": float(leverage),
+        "confidence_level": float(confidence),
+        "variance": float(variance),
+        "effective_degrees_of_freedom": effective_df,
+        "lower": float(prediction - half_width),
+        "upper": float(prediction + half_width),
+        "estimated_block_variance": float(estimated_block_variance),
+        "zero_block_variance_boundary_applied": boundary_applied,
+        "mean_square_coefficients": coefficients,
+        "assumptions": [
+            "Residual and block mean squares are treated as independent.",
+            "The historical residual mean square includes any unmodelled structural discrepancy.",
+            "Block variance is assumed transferable to the future confirmation runs.",
+        ],
+    }
+
+
 def _design_matrix(name: str, values: Sequence[Sequence[float]], n_rows: int) -> np.ndarray:
     matrix = np.asarray(values, dtype=float)
     if matrix.ndim != 2 or matrix.shape[0] != n_rows or matrix.shape[1] == 0:
