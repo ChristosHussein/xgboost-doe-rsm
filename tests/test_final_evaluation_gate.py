@@ -120,3 +120,52 @@ def test_final_evaluator_rejects_unknown_selection(tmp_path):
     evaluator = FinalTestEvaluator(X=X, y=y)
     with pytest.raises(KeyError, match="not frozen"):
         evaluator.evaluate(path, "ad-hoc-config", evaluation_seeds=[101])
+
+
+def test_confirmation_entrypoint_requires_manifest_and_refuses_overwrite(tmp_path):
+    from final_evaluation import create_finalized_selection
+    from scripts.run_confirmation import execute_confirmation
+
+    manifest_path = tmp_path / "selection.json"
+    output_path = tmp_path / "confirmation.json"
+    create_finalized_selection(
+        manifest_path,
+        configurations=[selected_configuration()],
+        selection_policy="minimum validation RMSE",
+        development_seeds=[42],
+        source_artifact="trials.csv",
+        git_revision="abc123",
+    )
+
+    class FakeEvaluator:
+        def evaluate(self, path, selection_id, *, evaluation_seeds):
+            assert path == manifest_path
+            assert selection_id == "tpe-so-rep-0"
+            assert evaluation_seeds == [101, 102]
+            return {
+                "selection_id": selection_id,
+                "config_sha256": "frozen-hash",
+                "manifest_git_revision": "abc123",
+                "per_seed": [
+                    {"evaluation_seed": seed, "val_rmse": 0.5, "test_rmse": 0.51}
+                    for seed in evaluation_seeds
+                ],
+            }
+
+    result = execute_confirmation(
+        manifest_path,
+        output_path,
+        evaluation_seeds=[101, 102],
+        evaluator=FakeEvaluator(),
+    )
+    assert result["classification"] == "gated_final_evaluation"
+    assert result["selection_ids"] == ["tpe-so-rep-0"]
+    assert output_path.exists()
+
+    with pytest.raises(FileExistsError, match="overwrite"):
+        execute_confirmation(
+            manifest_path,
+            output_path,
+            evaluation_seeds=[101, 102],
+            evaluator=FakeEvaluator(),
+        )
