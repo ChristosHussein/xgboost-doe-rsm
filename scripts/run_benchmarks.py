@@ -25,7 +25,8 @@ import json
 import os
 import sys
 import time
-from typing import Dict, Any, List, Tuple
+from dataclasses import dataclass
+from typing import Dict, Any, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -36,13 +37,205 @@ import yaml
 
 # Ensure root directory is on sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from pipeline import CaliforniaHousingDataManager, decode_factors, encode_factors, pin_cpu_affinity, CONFIG
+from pipeline import (
+    CaliforniaHousingDataManager,
+    CaliforniaHousingDevelopmentDataManager,
+    decode_factors,
+    encode_factors,
+    pin_cpu_affinity,
+    CONFIG,
+)
 from analysis import derringer_suich_desirability
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 FRESH_SEEDS = CONFIG["seeds"]["fresh_eval_seeds"]
 OPTIMIZER_SEEDS = CONFIG["seeds"]["optimizer_sampler_seeds"]
+
+
+@dataclass
+class SearchResult:
+    """One optimizer replicate with its actual selected trial and full trial ledger."""
+
+    optimizer: str
+    replicate_id: int
+    sampler_seed: int
+    development_split_seed: int
+    status: str
+    selected_x: Optional[np.ndarray]
+    selected_score: Optional[float]
+    selection_rule: str
+    trajectory: List[float]
+    trial_records: List[Dict[str, Any]]
+
+
+def _development_split(data_mgr, split_seed: int):
+    """Require the named development-only split interface."""
+    split = data_mgr.get_split(split_seed)
+    required = ("X_train", "X_val", "y_train", "y_val")
+    missing = [name for name in required if not hasattr(split, name)]
+    if missing:
+        raise TypeError(f"development split is missing fields: {', '.join(missing)}")
+    return split
+
+
+def _model_config(
+    learning_rate: float,
+    max_depth: int,
+    subsample: float,
+    reg_lambda: float,
+    random_state: int,
+) -> Dict[str, Any]:
+    """Build the declared common XGBoost configuration for every optimizer."""
+    configured = CONFIG["model"]
+    return {
+        "n_estimators": int(configured["n_estimators"]),
+        "learning_rate": float(learning_rate),
+        "max_depth": int(max_depth),
+        "subsample": float(subsample),
+        "reg_lambda": float(reg_lambda),
+        "colsample_bytree": float(configured.get("colsample_bytree", 1.0)),
+        "min_child_weight": float(configured.get("min_child_weight", 1.0)),
+        "gamma": float(configured.get("gamma", 0.0)),
+        "tree_method": configured.get("tree_method", "auto"),
+        "random_state": int(random_state),
+        "n_jobs": int(configured["n_jobs_train"]),
+        "objective": configured["objective"],
+    }
+
+
+def _natural_from_trial(trial) -> Tuple[np.ndarray, float, int, float, float]:
+    """Sample the common natural search space, with depth explicitly integer-valued."""
+    factor_cfg = CONFIG["factors"]
+    eta = float(
+        trial.suggest_float(
+            "learning_rate",
+            float(factor_cfg["x1"]["min"]),
+            float(factor_cfg["x1"]["max"]),
+            log=True,
+        )
+    )
+    depth = int(
+        trial.suggest_int(
+            "max_depth",
+            int(factor_cfg["x2"]["min"]),
+            int(factor_cfg["x2"]["max"]),
+        )
+    )
+    subsample = float(
+        trial.suggest_float(
+            "subsample",
+            float(factor_cfg["x3"]["min"]),
+            float(factor_cfg["x3"]["max"]),
+        )
+    )
+    reg_lambda = float(
+        trial.suggest_float(
+            "reg_lambda",
+            float(factor_cfg["x4"]["min"]),
+            float(factor_cfg["x4"]["max"]),
+            log=True,
+        )
+    )
+    x = encode_factors(eta, depth, subsample, reg_lambda)
+    return x, eta, depth, subsample, reg_lambda
+
+
+def _trial_record(
+    *,
+    optimizer: str,
+    optimizer_version: str,
+    replicate_id: int,
+    sampler_seed: int,
+    development_split_seed: int,
+    trial_number: int,
+    x: np.ndarray,
+    model_config: Dict[str, Any],
+    validation_rmse: Optional[float],
+    predict_latency_us: Optional[float],
+    objective_value: Optional[Any],
+    max_latency_us: Optional[float],
+    training_time_s: float,
+    evaluation_time_s: float,
+    trial_status: str = "completed",
+    error: Optional[str] = None,
+) -> Dict[str, Any]:
+    latency = None if predict_latency_us is None else float(predict_latency_us)
+    violation = (
+        None
+        if latency is None or max_latency_us is None
+        else float(max(0.0, latency - max_latency_us))
+    )
+    feasible = None if max_latency_us is None else bool(violation == 0.0)
+    return {
+        "optimizer": optimizer,
+        "optimizer_version": optimizer_version,
+        "replicate_id": int(replicate_id),
+        "sampler_seed": int(sampler_seed),
+        "development_split_seed": int(development_split_seed),
+        "trial_number": int(trial_number),
+        "x1": float(x[0]),
+        "x2": float(x[1]),
+        "x3": float(x[2]),
+        "x4": float(x[3]),
+        "learning_rate": float(model_config["learning_rate"]),
+        "max_depth": int(model_config["max_depth"]),
+        "subsample": float(model_config["subsample"]),
+        "reg_lambda": float(model_config["reg_lambda"]),
+        "model_config": json.dumps(model_config, sort_keys=True),
+        "validation_rmse": validation_rmse,
+        "predict_latency_us": latency,
+        "objective_value": objective_value,
+        "feasibility": feasible,
+        "constraint_violation_us": violation,
+        "training_time_s": float(training_time_s),
+        "evaluation_time_s": float(evaluation_time_s),
+        "trial_status": trial_status,
+        "error": error,
+        "selected": False,
+        "selection_rule": None,
+    }
+
+
+def _mark_selected(
+    records: List[Dict[str, Any]], selected: Optional[Dict[str, Any]], rule: str
+) -> None:
+    if selected is not None:
+        selected["selected"] = True
+        selected["selection_rule"] = rule
+
+
+def _completed_result(
+    optimizer: str,
+    replicate_id: int,
+    sampler_seed: int,
+    eval_seed: int,
+    records: List[Dict[str, Any]],
+    selected: Optional[Dict[str, Any]],
+    selected_score: Optional[float],
+    rule: str,
+    trajectory: List[float],
+    status: str = "completed",
+) -> SearchResult:
+    _mark_selected(records, selected, rule)
+    selected_x = None
+    if selected is not None:
+        selected_x = np.asarray(
+            [selected["x1"], selected["x2"], selected["x3"], selected["x4"]],
+            dtype=float,
+        )
+    return SearchResult(
+        optimizer=optimizer,
+        replicate_id=int(replicate_id),
+        sampler_seed=int(sampler_seed),
+        development_split_seed=int(eval_seed),
+        status=status,
+        selected_x=selected_x,
+        selected_score=None if selected_score is None else float(selected_score),
+        selection_rule=rule,
+        trajectory=trajectory,
+        trial_records=records,
+    )
 
 
 def evaluate_config_on_seeds(
@@ -174,71 +367,211 @@ def measure_interleaved_latencies(
     return results
 
 
-def run_random_search(n_trials: int, sampler_seed: int, eval_seed: int, data_mgr: CaliforniaHousingDataManager):
-    """Uniform Random Search over the 4-factor continuous hypercube."""
+def run_random_search(
+    n_trials: int,
+    sampler_seed: int,
+    eval_seed: int,
+    data_mgr,
+    replicate_id: int = 0,
+) -> SearchResult:
+    """Uniform random search over the declared natural four-factor space."""
     rng = np.random.RandomState(sampler_seed)
-    best_val = 1e9
-    best_x = None
-    trajectory = []
+    split = _development_split(data_mgr, eval_seed)
+    factor_cfg = CONFIG["factors"]
+    records: List[Dict[str, Any]] = []
+    trajectory: List[float] = []
+    best_record = None
+    best_value = float("inf")
 
-    X_tr, X_val, _, y_tr, y_val, _ = data_mgr.get_split(eval_seed)
-
-    for i in range(1, n_trials + 1):
-        x = rng.uniform(-1.0, 1.0, 4)
-        eta, depth, subsample, reg_lambda = decode_factors(x)
-        m = xgb.XGBRegressor(
-            n_estimators=CONFIG["model"]["n_estimators"],
-            learning_rate=eta,
-            max_depth=depth,
-            subsample=subsample,
-            reg_lambda=reg_lambda,
-            random_state=eval_seed,
-            n_jobs=CONFIG["model"]["n_jobs_train"],
-            objective=CONFIG["model"]["objective"],
+    for trial_number in range(n_trials):
+        eta = float(
+            np.exp(
+                rng.uniform(
+                    np.log(float(factor_cfg["x1"]["min"])),
+                    np.log(float(factor_cfg["x1"]["max"])),
+                )
+            )
         )
-        m.fit(X_tr, y_tr)
-        val_rmse = float(np.sqrt(np.mean((y_val - m.predict(X_val))**2)))
-        if val_rmse < best_val:
-            best_val = val_rmse
-            best_x = x
-        trajectory.append(best_val)
-
-    return best_x, best_val, trajectory
-
-
-def run_tpe_single_objective(n_trials: int, sampler_seed: int, eval_seed: int, data_mgr: CaliforniaHousingDataManager):
-    """Single-Objective TPE optimizing Val RMSE."""
-    X_tr, X_val, _, y_tr, y_val, _ = data_mgr.get_split(eval_seed)
-    trajectory = []
-    best_val = 1e9
-    best_x = None
-
-    def obj(trial):
-        nonlocal best_val, best_x
-        x = np.array([trial.suggest_float(f"x{i}", -1.0, 1.0) for i in range(1, 5)])
-        eta, depth, subsample, reg_lambda = decode_factors(x)
-        m = xgb.XGBRegressor(
-            n_estimators=CONFIG["model"]["n_estimators"],
-            learning_rate=eta,
-            max_depth=depth,
-            subsample=subsample,
-            reg_lambda=reg_lambda,
-            random_state=eval_seed,
-            n_jobs=CONFIG["model"]["n_jobs_train"],
-            objective=CONFIG["model"]["objective"],
+        depth = int(
+            rng.randint(
+                int(factor_cfg["x2"]["min"]),
+                int(factor_cfg["x2"]["max"]) + 1,
+            )
         )
-        m.fit(X_tr, y_tr)
-        val_rmse = float(np.sqrt(np.mean((y_val - m.predict(X_val))**2)))
-        if val_rmse < best_val:
-            best_val = val_rmse
-            best_x = x
-        trajectory.append(best_val)
-        return val_rmse
+        subsample = float(
+            rng.uniform(
+                float(factor_cfg["x3"]["min"]),
+                float(factor_cfg["x3"]["max"]),
+            )
+        )
+        reg_lambda = float(
+            np.exp(
+                rng.uniform(
+                    np.log(float(factor_cfg["x4"]["min"])),
+                    np.log(float(factor_cfg["x4"]["max"])),
+                )
+            )
+        )
+        x = encode_factors(eta, depth, subsample, reg_lambda)
+        model_config = _model_config(eta, depth, subsample, reg_lambda, eval_seed)
+        train_start = time.perf_counter()
+        try:
+            model = xgb.XGBRegressor(**model_config)
+            model.fit(split.X_train, split.y_train)
+            training_time = time.perf_counter() - train_start
+            eval_start = time.perf_counter()
+            prediction = model.predict(split.X_val)
+            val_rmse = float(np.sqrt(np.mean((split.y_val - prediction) ** 2)))
+            latency = measure_trial_latency(model, split.X_val[:1])
+            evaluation_time = time.perf_counter() - eval_start
+            record = _trial_record(
+                optimizer="random_search",
+                optimizer_version=f"numpy-{np.__version__}",
+                replicate_id=replicate_id,
+                sampler_seed=sampler_seed,
+                development_split_seed=eval_seed,
+                trial_number=trial_number,
+                x=x,
+                model_config=model_config,
+                validation_rmse=val_rmse,
+                predict_latency_us=latency,
+                objective_value=val_rmse,
+                max_latency_us=None,
+                training_time_s=training_time,
+                evaluation_time_s=evaluation_time,
+            )
+            if val_rmse < best_value:
+                best_value = val_rmse
+                best_record = record
+        except Exception as exc:
+            record = _trial_record(
+                optimizer="random_search",
+                optimizer_version=f"numpy-{np.__version__}",
+                replicate_id=replicate_id,
+                sampler_seed=sampler_seed,
+                development_split_seed=eval_seed,
+                trial_number=trial_number,
+                x=x,
+                model_config=model_config,
+                validation_rmse=None,
+                predict_latency_us=None,
+                objective_value=None,
+                max_latency_us=None,
+                training_time_s=time.perf_counter() - train_start,
+                evaluation_time_s=0.0,
+                trial_status="failed",
+                error=f"{type(exc).__name__}: {exc}",
+            )
+        records.append(record)
+        trajectory.append(best_value)
+
+    rule = "minimum_validation_rmse"
+    status = "completed" if best_record is not None else "failed"
+    return _completed_result(
+        "random_search",
+        replicate_id,
+        sampler_seed,
+        eval_seed,
+        records,
+        best_record,
+        None if best_record is None else best_value,
+        rule,
+        trajectory,
+        status,
+    )
+
+
+def run_tpe_single_objective(
+    n_trials: int,
+    sampler_seed: int,
+    eval_seed: int,
+    data_mgr,
+    replicate_id: int = 0,
+) -> SearchResult:
+    """TPE minimizing validation RMSE with an explicitly integer depth dimension."""
+    split = _development_split(data_mgr, eval_seed)
+    records: List[Dict[str, Any]] = []
+    trajectory: List[float] = []
+    best_value = float("inf")
+    best_record = None
+
+    def objective(trial):
+        nonlocal best_value, best_record
+        x, eta, depth, subsample, reg_lambda = _natural_from_trial(trial)
+        model_config = _model_config(eta, depth, subsample, reg_lambda, eval_seed)
+        train_start = time.perf_counter()
+        try:
+            model = xgb.XGBRegressor(**model_config)
+            model.fit(split.X_train, split.y_train)
+            training_time = time.perf_counter() - train_start
+            eval_start = time.perf_counter()
+            prediction = model.predict(split.X_val)
+            val_rmse = float(np.sqrt(np.mean((split.y_val - prediction) ** 2)))
+            latency = measure_trial_latency(model, split.X_val[:1])
+            evaluation_time = time.perf_counter() - eval_start
+            record = _trial_record(
+                optimizer="single_objective_tpe",
+                optimizer_version=f"optuna-{optuna.__version__}",
+                replicate_id=replicate_id,
+                sampler_seed=sampler_seed,
+                development_split_seed=eval_seed,
+                trial_number=trial.number,
+                x=x,
+                model_config=model_config,
+                validation_rmse=val_rmse,
+                predict_latency_us=latency,
+                objective_value=val_rmse,
+                max_latency_us=None,
+                training_time_s=training_time,
+                evaluation_time_s=evaluation_time,
+            )
+            records.append(record)
+            if val_rmse < best_value:
+                best_value = val_rmse
+                best_record = record
+            trajectory.append(best_value)
+            return val_rmse
+        except Exception as exc:
+            records.append(
+                _trial_record(
+                    optimizer="single_objective_tpe",
+                    optimizer_version=f"optuna-{optuna.__version__}",
+                    replicate_id=replicate_id,
+                    sampler_seed=sampler_seed,
+                    development_split_seed=eval_seed,
+                    trial_number=trial.number,
+                    x=x,
+                    model_config=model_config,
+                    validation_rmse=None,
+                    predict_latency_us=None,
+                    objective_value=None,
+                    max_latency_us=None,
+                    training_time_s=time.perf_counter() - train_start,
+                    evaluation_time_s=0.0,
+                    trial_status="failed",
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+            )
+            trajectory.append(best_value)
+            return float("inf")
 
     sampler = optuna.samplers.TPESampler(seed=sampler_seed)
     study = optuna.create_study(direction="minimize", sampler=sampler)
-    study.optimize(obj, n_trials=n_trials)
-    return best_x, best_val, trajectory
+    study.optimize(objective, n_trials=n_trials)
+    rule = "minimum_validation_rmse"
+    status = "completed" if best_record is not None else "failed"
+    return _completed_result(
+        "single_objective_tpe",
+        replicate_id,
+        sampler_seed,
+        eval_seed,
+        records,
+        best_record,
+        None if best_record is None else best_value,
+        rule,
+        trajectory,
+        status,
+    )
 
 
 def measure_trial_latency(model, sample: np.ndarray, warmup: int = 10, reps: int = 30) -> float:
@@ -255,101 +588,227 @@ def measure_trial_latency(model, sample: np.ndarray, warmup: int = 10, reps: int
     return float((t1 - t0) / (reps * 1000.0))
 
 
-def run_tpe_constrained(n_trials: int, sampler_seed: int, eval_seed: int, max_latency_us: float, data_mgr: CaliforniaHousingDataManager):
-    """Constrained TPE: Minimize Val RMSE s.t. Latency <= max_latency_us (strictly enforced)."""
-    X_tr, X_val, _, y_tr, y_val, _ = data_mgr.get_split(eval_seed)
+def run_tpe_constrained(
+    n_trials: int,
+    sampler_seed: int,
+    eval_seed: int,
+    max_latency_us: float,
+    data_mgr,
+    replicate_id: int = 0,
+) -> SearchResult:
+    """TPE with selection restricted to trials feasible by measured latency."""
+    split = _development_split(data_mgr, eval_seed)
+    records: List[Dict[str, Any]] = []
+    trajectory: List[float] = []
+    best_feasible = float("inf")
 
-    trials_data = []
-
-    def obj(trial):
-        x = np.array([trial.suggest_float(f"x{i}", -1.0, 1.0) for i in range(1, 5)])
-        eta, depth, subsample, reg_lambda = decode_factors(x)
-
-        m = xgb.XGBRegressor(
-            n_estimators=CONFIG["model"]["n_estimators"],
-            learning_rate=eta,
-            max_depth=depth,
-            subsample=subsample,
-            reg_lambda=reg_lambda,
-            random_state=eval_seed,
-            n_jobs=CONFIG["model"]["n_jobs_train"],
-            objective=CONFIG["model"]["objective"],
-        )
-        m.fit(X_tr, y_tr)
-        val_rmse = float(np.sqrt(np.mean((y_val - m.predict(X_val))**2)))
-
-        # CR-001: Measure genuine single-sample prediction latency on fitted model
-        lat_measured = measure_trial_latency(m, X_val[:1])
-
-        # Penalty if measured latency violates constraint
-        penalty = max(0.0, (lat_measured - max_latency_us)) * 0.05
-        score = val_rmse + penalty
-        trials_data.append((x, val_rmse, lat_measured, score))
-        return score
+    def objective(trial):
+        nonlocal best_feasible
+        x, eta, depth, subsample, reg_lambda = _natural_from_trial(trial)
+        model_config = _model_config(eta, depth, subsample, reg_lambda, eval_seed)
+        train_start = time.perf_counter()
+        try:
+            model = xgb.XGBRegressor(**model_config)
+            model.fit(split.X_train, split.y_train)
+            training_time = time.perf_counter() - train_start
+            eval_start = time.perf_counter()
+            prediction = model.predict(split.X_val)
+            val_rmse = float(np.sqrt(np.mean((split.y_val - prediction) ** 2)))
+            latency = measure_trial_latency(model, split.X_val[:1])
+            evaluation_time = time.perf_counter() - eval_start
+            violation = max(0.0, latency - max_latency_us)
+            score = val_rmse + violation * 0.05
+            record = _trial_record(
+                optimizer="constrained_tpe",
+                optimizer_version=f"optuna-{optuna.__version__}",
+                replicate_id=replicate_id,
+                sampler_seed=sampler_seed,
+                development_split_seed=eval_seed,
+                trial_number=trial.number,
+                x=x,
+                model_config=model_config,
+                validation_rmse=val_rmse,
+                predict_latency_us=latency,
+                objective_value=score,
+                max_latency_us=max_latency_us,
+                training_time_s=training_time,
+                evaluation_time_s=evaluation_time,
+            )
+            records.append(record)
+            if record["feasibility"]:
+                best_feasible = min(best_feasible, val_rmse)
+            trajectory.append(best_feasible)
+            return score
+        except Exception as exc:
+            records.append(
+                _trial_record(
+                    optimizer="constrained_tpe",
+                    optimizer_version=f"optuna-{optuna.__version__}",
+                    replicate_id=replicate_id,
+                    sampler_seed=sampler_seed,
+                    development_split_seed=eval_seed,
+                    trial_number=trial.number,
+                    x=x,
+                    model_config=model_config,
+                    validation_rmse=None,
+                    predict_latency_us=None,
+                    objective_value=None,
+                    max_latency_us=max_latency_us,
+                    training_time_s=time.perf_counter() - train_start,
+                    evaluation_time_s=0.0,
+                    trial_status="failed",
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+            )
+            trajectory.append(best_feasible)
+            return float("inf")
 
     sampler = optuna.samplers.TPESampler(seed=sampler_seed)
     study = optuna.create_study(direction="minimize", sampler=sampler)
-    study.optimize(obj, n_trials=n_trials)
+    study.optimize(objective, n_trials=n_trials)
+    feasible = [
+        record
+        for record in records
+        if record["trial_status"] == "completed" and record["feasibility"] is True
+    ]
+    selected = min(feasible, key=lambda record: record["validation_rmse"]) if feasible else None
+    rule = "minimum_validation_rmse_among_measured_feasible_trials"
+    return _completed_result(
+        "constrained_tpe",
+        replicate_id,
+        sampler_seed,
+        eval_seed,
+        records,
+        selected,
+        None if selected is None else selected["validation_rmse"],
+        rule,
+        trajectory,
+        "completed" if selected is not None else "infeasible",
+    )
 
-    # Strictly filter to trials satisfying constraint
-    valid_trials = [t for t in trials_data if t[2] <= max_latency_us]
-    if not valid_trials:
-        raise RuntimeError(f"Constrained TPE found no feasible trials satisfying latency <= {max_latency_us} us across {n_trials} evaluations.")
-    best_t = min(valid_trials, key=lambda t: t[1])
-    return best_t[0], best_t[1]
 
+def run_tpe_multi_objective(
+    n_trials: int,
+    sampler_seed: int,
+    eval_seed: int,
+    data_mgr,
+    replicate_id: int = 0,
+) -> SearchResult:
+    """TPE minimizing validation RMSE and measured prediction latency."""
+    split = _development_split(data_mgr, eval_seed)
+    records: List[Dict[str, Any]] = []
+    trajectory: List[float] = []
+    best_desirability = float("-inf")
+    L1 = float(CONFIG["desirability"]["Y1_RMSE"]["L"])
+    U1 = float(CONFIG["desirability"]["Y1_RMSE"]["U"])
+    L2 = float(CONFIG["desirability"]["Y2_Latency"]["L"])
+    U2 = float(CONFIG["desirability"]["Y2_Latency"]["U"])
 
-def run_tpe_multi_objective(n_trials: int, sampler_seed: int, eval_seed: int, data_mgr: CaliforniaHousingDataManager):
-    """Multi-Objective TPE optimizing Val RMSE and genuine measured Latency."""
-    X_tr, X_val, _, y_tr, y_val, _ = data_mgr.get_split(eval_seed)
-
-    def obj(trial):
-        x = np.array([trial.suggest_float(f"x{i}", -1.0, 1.0) for i in range(1, 5)])
-        eta, depth, subsample, reg_lambda = decode_factors(x)
-
-        m = xgb.XGBRegressor(
-            n_estimators=CONFIG["model"]["n_estimators"],
-            learning_rate=eta,
-            max_depth=depth,
-            subsample=subsample,
-            reg_lambda=reg_lambda,
-            random_state=eval_seed,
-            n_jobs=CONFIG["model"]["n_jobs_train"],
-            objective=CONFIG["model"]["objective"],
-        )
-        m.fit(X_tr, y_tr)
-        val_rmse = float(np.sqrt(np.mean((y_val - m.predict(X_val))**2)))
-
-        # CR-001: Measure genuine single-sample prediction latency on fitted model
-        lat_measured = measure_trial_latency(m, X_val[:1])
-
-        return val_rmse, lat_measured
+    def objective(trial):
+        nonlocal best_desirability
+        x, eta, depth, subsample, reg_lambda = _natural_from_trial(trial)
+        model_config = _model_config(eta, depth, subsample, reg_lambda, eval_seed)
+        train_start = time.perf_counter()
+        try:
+            model = xgb.XGBRegressor(**model_config)
+            model.fit(split.X_train, split.y_train)
+            training_time = time.perf_counter() - train_start
+            eval_start = time.perf_counter()
+            prediction = model.predict(split.X_val)
+            val_rmse = float(np.sqrt(np.mean((split.y_val - prediction) ** 2)))
+            latency = measure_trial_latency(model, split.X_val[:1])
+            evaluation_time = time.perf_counter() - eval_start
+            _, _, desirability = derringer_suich_desirability(
+                val_rmse, latency, L1, U1, L2, U2
+            )
+            record = _trial_record(
+                optimizer="multi_objective_tpe",
+                optimizer_version=f"optuna-{optuna.__version__}",
+                replicate_id=replicate_id,
+                sampler_seed=sampler_seed,
+                development_split_seed=eval_seed,
+                trial_number=trial.number,
+                x=x,
+                model_config=model_config,
+                validation_rmse=val_rmse,
+                predict_latency_us=latency,
+                objective_value={
+                    "validation_rmse": val_rmse,
+                    "predict_latency_us": latency,
+                    "desirability": float(desirability),
+                },
+                max_latency_us=None,
+                training_time_s=training_time,
+                evaluation_time_s=evaluation_time,
+            )
+            records.append(record)
+            best_desirability = max(best_desirability, float(desirability))
+            trajectory.append(best_desirability)
+            return val_rmse, latency
+        except Exception as exc:
+            records.append(
+                _trial_record(
+                    optimizer="multi_objective_tpe",
+                    optimizer_version=f"optuna-{optuna.__version__}",
+                    replicate_id=replicate_id,
+                    sampler_seed=sampler_seed,
+                    development_split_seed=eval_seed,
+                    trial_number=trial.number,
+                    x=x,
+                    model_config=model_config,
+                    validation_rmse=None,
+                    predict_latency_us=None,
+                    objective_value=None,
+                    max_latency_us=None,
+                    training_time_s=time.perf_counter() - train_start,
+                    evaluation_time_s=0.0,
+                    trial_status="failed",
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+            )
+            trajectory.append(best_desirability)
+            return float("inf"), float("inf")
 
     sampler = optuna.samplers.TPESampler(seed=sampler_seed)
     study = optuna.create_study(directions=["minimize", "minimize"], sampler=sampler)
-    study.optimize(obj, n_trials=n_trials)
-
-    best_D = -1.0
-    best_x = None
-    all_pareto = []
-    L1, U1 = CONFIG["desirability"]["Y1_RMSE"]["L"], CONFIG["desirability"]["Y1_RMSE"]["U"]
-    L2, U2 = CONFIG["desirability"]["Y2_Latency"]["L"], CONFIG["desirability"]["Y2_Latency"]["U"]
-
-    for t in study.trials:
-        if t.values is not None:
-            v_rmse, v_lat = t.values[0], t.values[1]
-            d1, d2, D = derringer_suich_desirability(v_rmse, v_lat, L1, U1, L2, U2)
-            all_pareto.append((t, v_rmse, v_lat, D))
-            if D > best_D and D > 0.0:
-                best_D = D
-                best_x = np.array([t.params[f"x{i}"] for i in range(1, 5)])
-
-    if best_x is None and all_pareto:
-        best_t = min(all_pareto, key=lambda item: ((max(0.0, item[1] - L1) / (U1 - L1))**2 + (max(0.0, item[2] - L2) / (U2 - L2))**2))
-        best_x = np.array([best_t[0].params[f"x{i}"] for i in range(1, 5)])
-        best_D = best_t[3]
-
-    return best_x, best_D
+    study.optimize(objective, n_trials=n_trials)
+    completed = [record for record in records if record["trial_status"] == "completed"]
+    rule = "maximum_predeclared_derringer_suich_desirability"
+    selected = None
+    selected_score = None
+    if completed:
+        selected = max(
+            completed,
+            key=lambda record: (
+                record["objective_value"]["desirability"],
+                -record["validation_rmse"],
+                -record["predict_latency_us"],
+            ),
+        )
+        selected_score = selected["objective_value"]["desirability"]
+        if selected_score <= 0.0:
+            rule = "minimum_normalized_distance_to_predeclared_desirability_ideal"
+            selected = min(
+                completed,
+                key=lambda record: (
+                    ((max(0.0, record["validation_rmse"] - L1) / (U1 - L1)) ** 2)
+                    + ((max(0.0, record["predict_latency_us"] - L2) / (U2 - L2)) ** 2),
+                    record["trial_number"],
+                ),
+            )
+            selected_score = selected["objective_value"]["desirability"]
+    return _completed_result(
+        "multi_objective_tpe",
+        replicate_id,
+        sampler_seed,
+        eval_seed,
+        records,
+        selected,
+        selected_score,
+        rule,
+        trajectory,
+        "completed" if selected is not None else "failed",
+    )
 
 
 def compute_hypervolume(points: List[Tuple[float, float]], ref_point: Tuple[float, float]) -> float:
@@ -366,19 +825,70 @@ def compute_hypervolume(points: List[Tuple[float, float]], ref_point: Tuple[floa
     return float(hv)
 
 
-def run_single_optimizer_replicate(s: int, eval_seed: int = 42) -> Dict[str, Any]:
-    """Runs a single optimizer replicate across all 4 baselines on the fixed development seed."""
-    dm = CaliforniaHousingDataManager()
-    x_rs, val_rs, traj_rs = run_random_search(140, sampler_seed=s, eval_seed=eval_seed, data_mgr=dm)
-    x_tpe, val_tpe, traj_tpe = run_tpe_single_objective(140, sampler_seed=s, eval_seed=eval_seed, data_mgr=dm)
-    x_co, val_co = run_tpe_constrained(140, sampler_seed=s, eval_seed=eval_seed, max_latency_us=145.0, data_mgr=dm)
-    x_mo, des_mo = run_tpe_multi_objective(140, sampler_seed=s, eval_seed=eval_seed, data_mgr=dm)
+def run_single_optimizer_replicate(
+    sampler_seed: int,
+    eval_seed: int = 42,
+    *,
+    replicate_id: int = 0,
+    n_trials: int = 140,
+    max_latency_us: float = 145.0,
+    data_mgr=None,
+) -> Dict[str, Any]:
+    """Run all four optimizers against one development-only split."""
+    dm = data_mgr or CaliforniaHousingDevelopmentDataManager()
+    rs = run_random_search(
+        n_trials,
+        sampler_seed=sampler_seed,
+        eval_seed=eval_seed,
+        data_mgr=dm,
+        replicate_id=replicate_id,
+    )
+    tpe = run_tpe_single_objective(
+        n_trials,
+        sampler_seed=sampler_seed,
+        eval_seed=eval_seed,
+        data_mgr=dm,
+        replicate_id=replicate_id,
+    )
+    constrained = run_tpe_constrained(
+        n_trials,
+        sampler_seed=sampler_seed,
+        eval_seed=eval_seed,
+        max_latency_us=max_latency_us,
+        data_mgr=dm,
+        replicate_id=replicate_id,
+    )
+    multi = run_tpe_multi_objective(
+        n_trials,
+        sampler_seed=sampler_seed,
+        eval_seed=eval_seed,
+        data_mgr=dm,
+        replicate_id=replicate_id,
+    )
     return {
-        "seed": s,
-        "x_rs": x_rs, "val_rs": val_rs, "traj_rs": traj_rs,
-        "x_tpe": x_tpe, "val_tpe": val_tpe, "traj_tpe": traj_tpe,
-        "x_co": x_co, "val_co": val_co,
-        "x_mo": x_mo, "des_mo": des_mo,
+        "seed": sampler_seed,
+        "replicate_id": replicate_id,
+        "search_results": {
+            rs.optimizer: rs,
+            tpe.optimizer: tpe,
+            constrained.optimizer: constrained,
+            multi.optimizer: multi,
+        },
+        "trial_records": [
+            record
+            for result in (rs, tpe, constrained, multi)
+            for record in result.trial_records
+        ],
+        "x_rs": rs.selected_x,
+        "val_rs": rs.selected_score,
+        "traj_rs": rs.trajectory,
+        "x_tpe": tpe.selected_x,
+        "val_tpe": tpe.selected_score,
+        "traj_tpe": tpe.trajectory,
+        "x_co": constrained.selected_x,
+        "val_co": constrained.selected_score,
+        "x_mo": multi.selected_x,
+        "des_mo": multi.selected_score,
     }
 
 
