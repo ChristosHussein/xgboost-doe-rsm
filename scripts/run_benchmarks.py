@@ -1815,8 +1815,15 @@ def _write_run_provenance(
         "git_revision": _git_head(),
         "git_worktree_status_short": status,
         "historical_baseline_ref": HISTORICAL_BASELINE_REF,
-        "historical_baseline_revision": subprocess.run(
+        "historical_baseline_tag_object": subprocess.run(
             ["git", "rev-parse", HISTORICAL_BASELINE_REF],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        ).stdout.strip(),
+        "historical_baseline_revision": subprocess.run(
+            ["git", "rev-parse", f"{HISTORICAL_BASELINE_REF}^{{commit}}"],
             check=True,
             capture_output=True,
             text=True,
@@ -2126,14 +2133,23 @@ def run_revision_benchmark(
                 for row in doe_front_rows
                 if row["candidate_type"] == "historical_doe_evaluated_coordinate"
             ]
-            development_entry["full_doe_evaluated_front"] = _hypervolume_payload(
+            development_entry["historical_doe_design_coordinate_front"] = _hypervolume_payload(
                 [
                     (row["validation_rmse"], row["predict_latency_us"])
                     for row in doe_coordinate_rows
                 ],
                 reference,
             )
-            doe_full_value = development_entry["full_doe_evaluated_front"]["value"]
+            development_entry["full_doe_evaluated_candidate_front"] = _hypervolume_payload(
+                [
+                    (row["validation_rmse"], row["predict_latency_us"])
+                    for row in doe_front_rows
+                ],
+                reference,
+            )
+            doe_full_value = development_entry[
+                "full_doe_evaluated_candidate_front"
+            ]["value"]
             doe_selected = {
                 row["candidate_id"]: row
                 for row in doe_front_rows
@@ -2173,7 +2189,7 @@ def run_revision_benchmark(
         )
         if doe_full_value is not None:
             differences = [doe_full_value - value for value in mo_hypervolumes]
-            development_entry["full_doe_minus_mo_tpe_hypervolume"] = {
+            development_entry["full_doe_candidate_front_minus_mo_tpe_hypervolume"] = {
                 "sign_convention": "positive values favor the full DOE evaluated front",
                 "summary": _metric_summary(differences),
                 "per_replicate": differences,

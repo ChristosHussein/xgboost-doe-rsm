@@ -1,4 +1,5 @@
 import json
+import subprocess
 from collections import namedtuple
 
 import numpy as np
@@ -152,6 +153,14 @@ def test_synthetic_revision_workflow_writes_gated_versioned_artifacts(
 
     provenance = json.loads((destination / "provenance.json").read_text())
     assert provenance["producer"] == "scripts/run_benchmarks.py"
+    peeled_baseline = subprocess.run(
+        ["git", "rev-parse", "v1.0.0^{commit}"],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    ).stdout.strip()
+    assert provenance["historical_baseline_revision"] == peeled_baseline
     assert "optimizer_trials.csv" in provenance["artifact_sha256"]
     assert "scripts/run_benchmarks.py" in provenance["runtime_source_sha256"]
 
