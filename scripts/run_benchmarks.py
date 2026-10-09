@@ -25,7 +25,11 @@ import json
 import os
 import sys
 import time
-from dataclasses import dataclass
+import argparse
+import subprocess
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 import numpy as np
 import pandas as pd
@@ -47,6 +51,8 @@ from pipeline import (
 )
 from analysis import derringer_suich_desirability
 from latency import ONLINE_SEARCH_V1, PRIMARY_V1, measure_latencies
+from final_evaluation import FinalTestEvaluator, create_finalized_selection
+from scientific_stats import hypervolume_2d_min, paired_difference_summary, paired_tost
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
@@ -927,7 +933,7 @@ def select_median_actual_incumbent(incumbents: List[np.ndarray], scores: List[fl
     return incumbents[med_idx], med_idx
 
 
-def main():
+def _historical_legacy_main():
     print("="*70)
     print("RUNNING FAIR EMPIRICAL BENCHMARKS (20 Replicates x 140 Budget)")
     print("="*70)
@@ -1198,6 +1204,531 @@ def main():
         json.dump(summary_json, f, indent=2)
 
     print("\nBenchmark summary & sensitivity analysis completed successfully.")
+
+
+def _git_head() -> str:
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    ).stdout.strip()
+
+
+def _default_revision_output(mode: str) -> Path:
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return Path(CONFIG["revision_v2"]["artifact_root"]) / mode / f"run_{timestamp}_{_git_head()[:8]}"
+
+
+def _json_cell(value: Any) -> Any:
+    if isinstance(value, (dict, list, tuple)):
+        return json.dumps(value, sort_keys=True, allow_nan=False)
+    return value
+
+
+def _write_csv(records: List[Dict[str, Any]], path: Path) -> None:
+    normalized = [
+        {key: _json_cell(value) for key, value in record.items()}
+        for record in records
+    ]
+    pd.DataFrame(normalized).to_csv(path, index=False)
+
+
+def _selected_record(result: SearchResult) -> Optional[Dict[str, Any]]:
+    selected = [record for record in result.trial_records if record["selected"]]
+    if result.status == "completed" and len(selected) != 1:
+        raise RuntimeError(
+            f"{result.optimizer} replicate {result.replicate_id} has {len(selected)} selected trials"
+        )
+    return selected[0] if selected else None
+
+
+def _manifest_configuration(
+    record: Dict[str, Any], selection_id: str
+) -> Dict[str, Any]:
+    model_config = json.loads(record["model_config"])
+    return {
+        "selection_id": selection_id,
+        "optimizer": record["optimizer"],
+        "optimizer_replicate_id": record["replicate_id"],
+        "source_trial_id": record["trial_number"],
+        "selection_rule": record["selection_rule"],
+        "selection_metric": {
+            "name": "validation_rmse",
+            "value": record["validation_rmse"],
+        },
+        "search_time_predict_latency_us": record["predict_latency_us"],
+        "search_time_feasible": record["feasibility"],
+        "hyperparameters": {
+            "learning_rate": record["learning_rate"],
+            "max_depth": record["max_depth"],
+            "subsample": record["subsample"],
+            "reg_lambda": record["reg_lambda"],
+        },
+        "model": {
+            "n_estimators": model_config["n_estimators"],
+            "objective": model_config["objective"],
+            "n_jobs_train": model_config["n_jobs"],
+            "colsample_bytree": model_config["colsample_bytree"],
+            "min_child_weight": model_config["min_child_weight"],
+            "gamma": model_config["gamma"],
+            "tree_method": model_config["tree_method"],
+        },
+    }
+
+
+def _historical_doe_configurations() -> List[Dict[str, Any]]:
+    with open("results/confirmation.json", "r", encoding="utf-8") as handle:
+        confirmation = json.load(handle)
+    with open("results/phase3.json", "r", encoding="utf-8") as handle:
+        phase3 = json.load(handle)
+    model = {
+        "n_estimators": CONFIG["model"]["n_estimators"],
+        "objective": CONFIG["model"]["objective"],
+        "n_jobs_train": CONFIG["model"]["n_jobs_train"],
+        "colsample_bytree": CONFIG["model"].get("colsample_bytree", 1.0),
+        "min_child_weight": CONFIG["model"].get("min_child_weight", 1.0),
+        "gamma": CONFIG["model"].get("gamma", 0.0),
+        "tree_method": CONFIG["model"].get("tree_method", "auto"),
+    }
+    return [
+        {
+            "selection_id": "doe-mo-historical",
+            "optimizer": "historical_preplanned_doe_desirability",
+            "optimizer_replicate_id": None,
+            "source_trial_id": None,
+            "selection_rule": "historical post-search engineering compromise",
+            "selection_metric": {
+                "name": "surrogate_desirability",
+                "value": None,
+            },
+            "historical_holdout_exposure_caveat": True,
+            "hyperparameters": {
+                "learning_rate": confirmation["x_star_natural"]["eta"],
+                "max_depth": confirmation["x_star_natural"]["depth"],
+                "subsample": confirmation["x_star_natural"]["subsample"],
+                "reg_lambda": confirmation["x_star_natural"]["reg_lambda"],
+            },
+            "model": model,
+        },
+        {
+            "selection_id": "doe-so-historical",
+            "optimizer": "historical_preplanned_doe_single_objective",
+            "optimizer_replicate_id": None,
+            "source_trial_id": None,
+            "selection_rule": "minimum fitted quadratic response with integer depth",
+            "selection_metric": {
+                "name": "predicted_validation_rmse",
+                "value": phase3["constrained_optimum_cube"]["pred_rmse"],
+            },
+            "historical_holdout_exposure_caveat": True,
+            "hyperparameters": {
+                "learning_rate": phase3["constrained_optimum_cube"]["natural"]["eta"],
+                "max_depth": phase3["constrained_optimum_cube"]["natural"]["depth"],
+                "subsample": phase3["constrained_optimum_cube"]["natural"]["subsample"],
+                "reg_lambda": phase3["constrained_optimum_cube"]["natural"]["reg_lambda"],
+            },
+            "model": model,
+        },
+    ]
+
+
+def _fit_manifest_models(configurations, data_mgr, split_seed: int):
+    split = _development_split(data_mgr, split_seed)
+    models = {}
+    for configuration in configurations:
+        hp = configuration["hyperparameters"]
+        model_cfg = configuration["model"]
+        model = xgb.XGBRegressor(
+            n_estimators=model_cfg["n_estimators"],
+            learning_rate=hp["learning_rate"],
+            max_depth=int(hp["max_depth"]),
+            subsample=hp["subsample"],
+            reg_lambda=hp["reg_lambda"],
+            colsample_bytree=model_cfg.get("colsample_bytree", 1.0),
+            min_child_weight=model_cfg.get("min_child_weight", 1.0),
+            gamma=model_cfg.get("gamma", 0.0),
+            tree_method=model_cfg.get("tree_method", "auto"),
+            random_state=split_seed,
+            n_jobs=model_cfg["n_jobs_train"],
+            objective=model_cfg["objective"],
+        )
+        model.fit(split.X_train, split.y_train)
+        models[configuration["selection_id"]] = model
+    return split, models
+
+
+def _measure_frozen_primary_latencies(
+    configurations, data_mgr, split_seed: int, session_id: str
+) -> Dict[str, Any]:
+    split, models = _fit_manifest_models(configurations, data_mgr, split_seed)
+    return measure_latencies(
+        models,
+        split.X_val[:1],
+        session_id=session_id,
+        protocol=PRIMARY_V1,
+    )
+
+
+def _metric_summary(values: List[float]) -> Dict[str, Any]:
+    array = np.asarray(values, dtype=float)
+    n = len(array)
+    mean = float(np.mean(array))
+    standard_deviation = float(np.std(array, ddof=1)) if n > 1 else None
+    interval = [None, None]
+    if n > 1:
+        half = float(stats.t.ppf(0.975, n - 1) * standard_deviation / np.sqrt(n))
+        interval = [mean - half, mean + half]
+    return {
+        "n": n,
+        "mean": mean,
+        "median": float(np.median(array)),
+        "standard_deviation": standard_deviation,
+        "interquartile_range": float(np.subtract(*np.percentile(array, [75, 25]))),
+        "confidence_interval_95": interval,
+    }
+
+
+def _evaluate_historical_doe_front(data_mgr, split_seed: int) -> List[Dict[str, Any]]:
+    historical = pd.read_csv("results/runs.csv")
+    unique = historical.sort_values("point_id").drop_duplicates("point_id")
+    split = _development_split(data_mgr, split_seed)
+    rows = []
+    for row in unique.itertuples(index=False):
+        x = np.asarray([row.x1, row.x2, row.x3, row.x4], dtype=float)
+        eta, depth, subsample, reg_lambda = decode_factors(x)
+        model = xgb.XGBRegressor(
+            **_model_config(eta, depth, subsample, reg_lambda, split_seed)
+        )
+        model.fit(split.X_train, split.y_train)
+        rmse = float(np.sqrt(np.mean((split.y_val - model.predict(split.X_val)) ** 2)))
+        session = f"doe-point-{int(row.point_id)}-matched-online"
+        latency = measure_trial_latency(model, split.X_val[:1], session_id=session)
+        rows.append({
+            "candidate_id": f"doe-point-{int(row.point_id)}",
+            "candidate_type": "historical_doe_evaluated_coordinate",
+            "validation_rmse": rmse,
+            "predict_latency_us": latency,
+            "latency_protocol_id": ONLINE_SEARCH_V1.protocol_id,
+            "development_split_seed": split_seed,
+            "x1": float(row.x1),
+            "x2": float(row.x2),
+            "x3": float(row.x3),
+            "x4": float(row.x4),
+        })
+    return rows
+
+
+def _hypervolume_payload(points, reference) -> Dict[str, Any]:
+    result = hypervolume_2d_min(points, reference)
+    return {
+        "value": result.value,
+        "reference": list(result.reference),
+        "pareto": asdict(result.pareto),
+    }
+
+
+def _computational_budget(mode: str, settings: Dict[str, Any]) -> Dict[str, Any]:
+    replicates = int(settings["optimizer_replicates"])
+    trials = int(settings["trials_per_optimizer"])
+    evaluation_seeds = len(settings["evaluation_seeds"])
+    frozen_max = 4 * replicates + 2
+    return {
+        "mode": mode,
+        "optimizer_methods": 4,
+        "optimizer_replicates": replicates,
+        "trials_per_optimizer": trials,
+        "search_model_fits": 4 * replicates * trials,
+        "matched_historical_doe_coordinate_fits": 25,
+        "maximum_frozen_configurations": frozen_max,
+        "final_retraining_fits": frozen_max * evaluation_seeds,
+        "maximum_total_model_fits": 4 * replicates * trials + 25 + frozen_max * evaluation_seeds,
+        "online_latency_calls_per_search_trial": ONLINE_SEARCH_V1.timed_calls_per_interface,
+        "primary_latency_calls_per_frozen_configuration_per_interface": PRIMARY_V1.timed_calls_per_interface,
+        "note": "The total is an upper bound; failed or infeasible searches produce no frozen configuration.",
+    }
+
+
+def run_revision_benchmark(
+    mode: str = "smoke",
+    *,
+    output_dir: Optional[str] = None,
+    data_mgr=None,
+    final_evaluator=None,
+    settings_override: Optional[Dict[str, Any]] = None,
+    include_historical_doe: bool = True,
+) -> Path:
+    """Run the versioned benchmark workflow without overwriting historical artifacts."""
+    modes = CONFIG["revision_v2"]["modes"]
+    if mode not in modes:
+        raise ValueError(f"Unknown benchmark mode {mode!r}; choose one of {sorted(modes)}")
+    settings = dict(modes[mode])
+    if settings_override:
+        settings.update(settings_override)
+    destination = Path(output_dir) if output_dir else _default_revision_output(mode)
+    if destination.exists() and any(destination.iterdir()):
+        raise FileExistsError(f"Refusing to overwrite non-empty experiment directory: {destination}")
+    destination.mkdir(parents=True, exist_ok=True)
+
+    budget = _computational_budget(mode, settings)
+    (destination / "computational_budget.json").write_text(
+        json.dumps(budget, indent=2) + "\n", encoding="utf-8"
+    )
+    print(json.dumps(budget, indent=2))
+
+    development_seed = int(CONFIG["revision_v2"]["development_split_seed"])
+    manager = data_mgr or CaliforniaHousingDevelopmentDataManager()
+    replicate_count = int(settings["optimizer_replicates"])
+    sampler_seeds = OPTIMIZER_SEEDS[:replicate_count]
+    trials = int(settings["trials_per_optimizer"])
+    max_latency = float(CONFIG["revision_v2"]["max_latency_us"])
+
+    replicate_outputs = []
+    replicate_rows = []
+    trial_rows = []
+    for replicate_id, sampler_seed in enumerate(sampler_seeds):
+        started = time.perf_counter()
+        output = run_single_optimizer_replicate(
+            sampler_seed,
+            development_seed,
+            replicate_id=replicate_id,
+            n_trials=trials,
+            max_latency_us=max_latency,
+            data_mgr=manager,
+        )
+        wall_time = time.perf_counter() - started
+        replicate_outputs.append(output)
+        trial_rows.extend(output["trial_records"])
+        for result in output["search_results"].values():
+            selected = _selected_record(result)
+            replicate_rows.append({
+                "optimizer": result.optimizer,
+                "replicate_id": replicate_id,
+                "sampler_seed": sampler_seed,
+                "development_split_seed": development_seed,
+                "status": result.status,
+                "selected_trial_number": None if selected is None else selected["trial_number"],
+                "selected_score": result.selected_score,
+                "selection_rule": result.selection_rule,
+                "model_fit_evaluations": len(result.trial_records),
+                "replicate_wall_time_s_all_four_methods": wall_time,
+            })
+    _write_csv(trial_rows, destination / "optimizer_trials.csv")
+    _write_csv(replicate_rows, destination / "optimizer_replicates.csv")
+
+    configurations = []
+    for output in replicate_outputs:
+        for result in output["search_results"].values():
+            selected = _selected_record(result)
+            if selected is not None:
+                selection_id = f"{result.optimizer}-rep-{result.replicate_id}"
+                configurations.append(_manifest_configuration(selected, selection_id))
+    if include_historical_doe:
+        configurations.extend(_historical_doe_configurations())
+
+    manifest_path = destination / "finalized_selections.json"
+    create_finalized_selection(
+        manifest_path,
+        configurations=configurations,
+        selection_policy=(
+            "Per-replicate actual winning trial selected on development data only; "
+            "historical DOE selections retain an explicit prior-exposure caveat."
+        ),
+        development_seeds=[development_seed],
+        source_artifact=str(destination / "optimizer_trials.csv"),
+        git_revision=_git_head(),
+    )
+
+    primary_measurement = _measure_frozen_primary_latencies(
+        configurations,
+        manager,
+        development_seed,
+        session_id=f"revision-v2-{mode}-frozen-primary",
+    )
+    (destination / "latency_measurement.json").write_text(
+        json.dumps(primary_measurement, indent=2) + "\n", encoding="utf-8"
+    )
+
+    evaluator = final_evaluator or FinalTestEvaluator()
+    evaluation_seeds = [int(seed) for seed in settings["evaluation_seeds"]]
+    final_rows = []
+    for configuration in configurations:
+        result = evaluator.evaluate(
+            manifest_path,
+            configuration["selection_id"],
+            evaluation_seeds=evaluation_seeds,
+        )
+        for row in result["per_seed"]:
+            final_rows.append({
+                "selection_id": configuration["selection_id"],
+                "optimizer": configuration["optimizer"],
+                "optimizer_replicate_id": configuration.get("optimizer_replicate_id"),
+                "config_sha256": result["config_sha256"],
+                **row,
+            })
+    _write_csv(final_rows, destination / "final_evaluations.csv")
+
+    config_by_id = {item["selection_id"]: item for item in configurations}
+    summary_rows = []
+    final_frame = pd.DataFrame(final_rows)
+    for selection_id, group in final_frame.groupby("selection_id", sort=True):
+        latency_summary = primary_measurement["summaries"][selection_id]
+        configuration = config_by_id[selection_id]
+        summary_rows.append({
+            "selection_id": selection_id,
+            "optimizer": configuration["optimizer"],
+            "optimizer_replicate_id": configuration.get("optimizer_replicate_id"),
+            "validation_rmse": _metric_summary(group["val_rmse"].tolist()),
+            "test_rmse": _metric_summary(group["test_rmse"].tolist()),
+            **latency_summary,
+            "latency_protocol_id": PRIMARY_V1.protocol_id,
+            "search_time_feasible": configuration.get("search_time_feasible"),
+            "benchmark_time_feasible": bool(
+                latency_summary["predict_latency_us"] <= max_latency
+            ),
+        })
+    _write_csv(summary_rows, destination / "final_summary.csv")
+
+    paired = []
+    pair_specs = [
+        ("doe-mo-historical", "multi_objective_tpe", "DOE MO minus MO-TPE"),
+        ("doe-mo-historical", "constrained_tpe", "DOE MO minus constrained TPE"),
+        ("doe-so-historical", "single_objective_tpe", "DOE SO minus SO-TPE"),
+        ("doe-so-historical", "random_search", "DOE SO minus random search"),
+    ]
+    equivalence_margin = CONFIG["revision_v2"].get("rmse_equivalence_margin")
+    if include_historical_doe:
+        for anchor_id, comparator_optimizer, label in pair_specs:
+            anchor = final_frame[final_frame["selection_id"] == anchor_id].sort_values("evaluation_seed")
+            comparators = [
+                item for item in configurations if item["optimizer"] == comparator_optimizer
+            ]
+            for comparator in comparators:
+                other = final_frame[
+                    final_frame["selection_id"] == comparator["selection_id"]
+                ].sort_values("evaluation_seed")
+                if anchor["evaluation_seed"].tolist() != other["evaluation_seed"].tolist():
+                    raise RuntimeError("paired comparisons require identical evaluation seeds")
+                for metric in ("val_rmse", "test_rmse"):
+                    paired.append({
+                        "comparison": label,
+                        "anchor_selection_id": anchor_id,
+                        "comparator_selection_id": comparator["selection_id"],
+                        "metric": metric,
+                        "scope": "conditional on frozen selections; common holdout dependence retained",
+                        "paired_difference": paired_difference_summary(
+                            anchor[metric].to_numpy(), other[metric].to_numpy()
+                        ),
+                        "equivalence": paired_tost(
+                            anchor[metric].to_numpy(),
+                            other[metric].to_numpy(),
+                            margin=equivalence_margin,
+                        ),
+                    })
+    (destination / "paired_comparisons.json").write_text(
+        json.dumps(paired, indent=2) + "\n", encoding="utf-8"
+    )
+
+    hv_report = {
+        "development_domain": {
+            "objective_definition": ["validation_rmse", "predict_latency_us"],
+            "latency_protocol_id": ONLINE_SEARCH_V1.protocol_id,
+            "reference_points": {},
+        },
+        "external_test_domain": {
+            "interpretation": "retrospective evaluation of frozen selections only",
+            "objective_definition": ["mean_test_rmse", "predict_latency_us"],
+            "latency_protocol_id": PRIMARY_V1.protocol_id,
+            "reference_points": {},
+        },
+    }
+    doe_front_rows = []
+    if include_historical_doe:
+        doe_front_rows = _evaluate_historical_doe_front(manager, development_seed)
+        _write_csv(doe_front_rows, destination / "doe_matched_candidate_front.csv")
+    references = CONFIG["revision_v2"]["hypervolume_reference_points"]
+    mo_trials = [
+        row for row in trial_rows
+        if row["optimizer"] == "multi_objective_tpe" and row["trial_status"] == "completed"
+    ]
+    for reference in references:
+        key = json.dumps(reference)
+        development_entry = {"mo_tpe_by_replicate": {}}
+        if doe_front_rows:
+            development_entry["full_doe_evaluated_front"] = _hypervolume_payload(
+                [(row["validation_rmse"], row["predict_latency_us"]) for row in doe_front_rows],
+                reference,
+            )
+        for replicate_id in sorted({row["replicate_id"] for row in mo_trials}):
+            points = [
+                (row["validation_rmse"], row["predict_latency_us"])
+                for row in mo_trials if row["replicate_id"] == replicate_id
+            ]
+            development_entry["mo_tpe_by_replicate"][str(replicate_id)] = _hypervolume_payload(
+                points, reference
+            )
+        hv_report["development_domain"]["reference_points"][key] = development_entry
+
+        external_points = {
+            row["selection_id"]: (
+                row["test_rmse"]["mean"], row["predict_latency_us"]
+            )
+            for row in summary_rows
+        }
+        external_entry = {
+            "all_frozen_selections": _hypervolume_payload(external_points.values(), reference)
+        }
+        if include_historical_doe:
+            external_entry["doe_selected_point"] = _hypervolume_payload(
+                [external_points["doe-mo-historical"]], reference
+            )
+            external_entry["doe_two_point"] = _hypervolume_payload(
+                [external_points["doe-mo-historical"], external_points["doe-so-historical"]],
+                reference,
+            )
+        hv_report["external_test_domain"]["reference_points"][key] = external_entry
+    (destination / "hypervolume.json").write_text(
+        json.dumps(hv_report, indent=2) + "\n", encoding="utf-8"
+    )
+
+    run_manifest = {
+        "schema_version": 1,
+        "classification": "new revision_v2 experiment",
+        "mode": mode,
+        "git_revision": _git_head(),
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "settings": settings,
+        "artifacts": sorted(path.name for path in destination.iterdir()),
+        "historical_artifacts_modified": False,
+    }
+    (destination / "run_manifest.json").write_text(
+        json.dumps(run_manifest, indent=2) + "\n", encoding="utf-8"
+    )
+    return destination
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Run versioned development-only optimizer benchmarks and gated final evaluation."
+    )
+    parser.add_argument("--mode", choices=sorted(CONFIG["revision_v2"]["modes"]), default="smoke")
+    parser.add_argument("--output-dir")
+    parser.add_argument(
+        "--confirm-full-budget",
+        action="store_true",
+        help="Required with --mode full after reviewing the computational budget.",
+    )
+    args = parser.parse_args()
+    if args.mode == "full" and not args.confirm_full_budget:
+        budget = _computational_budget("full", CONFIG["revision_v2"]["modes"]["full"])
+        raise SystemExit(
+            "Full mode requires --confirm-full-budget after reviewing this estimate:\n"
+            + json.dumps(budget, indent=2)
+        )
+    destination = run_revision_benchmark(args.mode, output_dir=args.output_dir)
+    print(f"Revision benchmark artifacts written to {destination}")
+
 
 if __name__ == "__main__":
     main()
