@@ -22,7 +22,7 @@ from statsmodels.stats.stattools import durbin_watson
 import yaml
 
 from pipeline import decode_factors, encode_factors, CONFIG
-from scientific_stats import blocked_lack_of_fit_decomposition
+from scientific_stats import blocked_lack_of_fit_decomposition, regression_interval
 
 Q = ["x1", "x2", "x3", "x4"]
 
@@ -571,11 +571,17 @@ def compute_prediction_interval_mean(fit: sm.regression.linear_model.RegressionR
     """
     XtXi = np.linalg.inv(X.T @ X)
     h = float(x_row @ XtXi @ x_row)
-    df_res = fit.df_resid
-    t_val = float(stats.t.ppf(1.0 - (1.0 - level) / 2.0, df_res))
     yh = float(x_row @ fit.params.values)
-    half = t_val * float(np.sqrt(fit.mse_resid * (1.0 / m + h)))
-    return yh, yh - half, yh + half, h
+    interval = regression_interval(
+        yh,
+        h,
+        float(fit.mse_resid),
+        float(fit.df_resid),
+        estimand="future_mean",
+        future_observations=m,
+        confidence=level,
+    )
+    return yh, interval["lower"], interval["upper"], h
 
 
 if __name__ == "__main__":

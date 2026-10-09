@@ -12,6 +12,7 @@ Implements Task 10 per fix.md:
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Dict, Any, List, Tuple
 import numpy as np
 import pandas as pd
@@ -24,6 +25,7 @@ import scipy.stats as stats
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pipeline import CONFIG, decode_factors
 from analysis import build_design_matrix, canonical_decomposition, predict_block_averaged
+from scientific_stats import pareto_front_2d_min
 
 # Publication matplotlib aesthetics
 plt.rcParams.update({
@@ -273,85 +275,206 @@ def plot_latency_vs_depth(df_runs: pd.DataFrame, save_path: str = "figures/respo
 
 
 def plot_pareto_front_and_desirability(df_runs: pd.DataFrame, save_path: str = "figures/desirability_pareto_front.png"):
-    """
-    Renders Multi-objective Pareto trade-off between Val RMSE and Latency,
-    marking the DOE recommended optimum x*_MO, confirmation mean, and baseline incumbents.
-    """
-    df_bm = pd.read_csv("results/benchmark.csv")
-    with open("results/confirmation.json", "r", encoding="utf-8") as f:
-        conf = json.load(f)
-
+    """Plot the historical DOE front from configuration-level block means only."""
+    grouped = (
+        df_runs.groupby(["point_id", "depth"], as_index=False)
+        .agg(
+            validation_rmse=("val_rmse", "mean"),
+            validation_rmse_sd=("val_rmse", "std"),
+            predict_latency_us=("latency_us_median", "mean"),
+            predict_latency_us_sd=("latency_us_median", "std"),
+        )
+    )
     fig, ax = plt.subplots(figsize=(9.5, 7), dpi=300)
-
-    # Scatter of all CCD runs
-    y1_all = df_runs["val_rmse"].values
-    y2_all = df_runs["latency_us_median"].values
-    depths = df_runs["depth"].values
-
-    sc = ax.scatter(y1_all, y2_all, c=depths, cmap="cividis", s=55, alpha=0.75,
-                    edgecolor="black", linewidth=0.5, label="CCD Design Points")
+    sc = ax.scatter(
+        grouped["validation_rmse"],
+        grouped["predict_latency_us"],
+        c=grouped["depth"],
+        cmap="cividis",
+        s=65,
+        edgecolor="black",
+        linewidth=0.5,
+        label="DOE configuration means",
+    )
+    ax.errorbar(
+        grouped["validation_rmse"],
+        grouped["predict_latency_us"],
+        xerr=grouped["validation_rmse_sd"],
+        yerr=grouped["predict_latency_us_sd"],
+        fmt="none",
+        ecolor="0.55",
+        alpha=0.45,
+        linewidth=0.7,
+    )
     cbar = fig.colorbar(sc, ax=ax, shrink=0.85)
-    cbar.set_label("Max Tree Depth (Integer)", fontsize=11)
-
-    # Identify Pareto frontier of CCD design
-    sorted_pts = sorted(zip(y1_all, y2_all), key=lambda p: p[0])
-    pareto_y1 = []
-    pareto_y2 = []
-    min_y2 = 1e9
-    for y1, y2 in sorted_pts:
-        if y2 < min_y2:
-            pareto_y1.append(y1)
-            pareto_y2.append(y2)
-            min_y2 = y2
-
-    ax.step(pareto_y1, pareto_y2, where="post", color="red", linestyle="--", linewidth=1.8, label="Empirical Pareto Frontier")
-    ax.scatter(pareto_y1, pareto_y2, color="red", marker="o", s=70, edgecolor="black", zorder=5)
-
-    # 1. Mark DOE recommended x*_MO (Depth 4)
-    doe_row = df_bm[df_bm["method"].str.contains("Multi-Objective") & df_bm["method"].str.contains("DOE")].iloc[0]
-    ax.scatter([doe_row["val_rmse_mean"]], [doe_row["predict_latency_us_median"]],
-               color="gold", marker="*", s=260, edgecolor="black", linewidth=1.5, zorder=8,
-               label=f"DOE Multi-Obj $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ (Depth 4, {doe_row['predict_latency_us_median']:.1f} $\\mu$s)")
-
-    # 2. Mark DOE Single-Objective (Depth 7)
-    doe_so = df_bm[df_bm["method"].str.contains("Single-Objective") & df_bm["method"].str.contains("DOE")].iloc[0]
-    ax.scatter([doe_so["val_rmse_mean"]], [doe_so["predict_latency_us_median"]],
-               color="cyan", marker="^", s=160, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"DOE Single-Obj $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ (Depth 7, {doe_so['predict_latency_us_median']:.1f} $\\mu$s)")
-
-    # 3. Mark Confirmation Point
-    conf_y1 = conf["Y1_Val_RMSE"]["empirical_mean"]
-    conf_y2 = conf["Y2_Latency"]["empirical_mean"]
-    ax.scatter([conf_y1], [conf_y2], color="lime", marker="D", s=110, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"Confirmation Mean ($n=10$, {conf_y2:.1f} $\\mu$s)")
-
-    # 4. Mark Baseline Incumbents
-    tpe_row = df_bm[df_bm["method"].str.contains("Single-Obj") & ~df_bm["method"].str.contains("DOE")].iloc[0]
-    ax.scatter([tpe_row["val_rmse_mean"]], [tpe_row["predict_latency_us_median"]],
-               color="magenta", marker="P", s=150, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"TPE Single-Obj (Depth {int(tpe_row['depth'])}, {tpe_row['predict_latency_us_median']:.1f} $\\mu$s)")
-
-    tpe_const = df_bm[df_bm["method"].str.contains("Constrained")].iloc[0]
-    ax.scatter([tpe_const["val_rmse_mean"]], [tpe_const["predict_latency_us_median"]],
-               color="darkorange", marker="X", s=140, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"Constrained TPE (Depth {int(tpe_const['depth'])}, {tpe_const['predict_latency_us_median']:.1f} $\\mu$s)")
-
-    tpe_mo = df_bm[df_bm["method"].str.contains("Multi-Objective TPE")].iloc[0]
-    ax.scatter([tpe_mo["val_rmse_mean"]], [tpe_mo["predict_latency_us_median"]],
-               color="blueviolet", marker="s", s=130, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"MO-TPE (Depth {int(tpe_mo['depth'])}, {tpe_mo['predict_latency_us_median']:.1f} $\\mu$s)")
-
-    ax.set_title("Multi-Objective Pareto Trade-off: Validation RMSE vs. Inference Latency", fontweight="bold")
+    cbar.set_label("Maximum tree depth (integer)", fontsize=11)
+    front = pareto_front_2d_min(
+        grouped[["validation_rmse", "predict_latency_us"]].to_numpy()
+    )
+    if front.points:
+        pareto = np.asarray(front.points)
+        ax.step(
+            pareto[:, 0],
+            pareto[:, 1],
+            where="post",
+            color="red",
+            linestyle="--",
+            label="DOE configuration-mean Pareto front",
+        )
+    ax.set_title(
+        "Historical DOE configuration means: validation RMSE and latency",
+        fontweight="bold",
+    )
     ax.set_xlabel(r"Validation RMSE ($Y_1$, Smaller is Better)")
-    ax.set_ylabel(r"Inference Latency ($\mu$s/sample, Smaller is Better)")
+    ax.set_ylabel(r"Historical-session predict latency ($\mu$s/sample)")
     ax.grid(True, linestyle=":", alpha=0.6)
-    ax.legend(loc="upper right", frameon=True, facecolor="white", framealpha=0.95, fontsize=9.0)
+    ax.legend(loc="best", frameon=True, facecolor="white", framealpha=0.95)
 
     os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.close()
-    print(f"[Plot] Saved Pareto Front Plot to: {save_path}")
+    print(f"[Plot] Saved configuration-mean historical Pareto plot to: {save_path}")
+
+
+def load_revision_pareto_data(run_dir: str | Path) -> Dict[str, pd.DataFrame]:
+    """Load and validate the two non-mixed estimands used by the revision plot."""
+    run_dir = Path(run_dir)
+    doe = pd.read_csv(run_dir / "doe_matched_candidate_front.csv")
+    trials = pd.read_csv(run_dir / "optimizer_trials.csv")
+    final = pd.read_csv(run_dir / "final_summary.csv")
+    development_protocols = set(doe["latency_protocol_id"].dropna())
+    trial_protocols = set(
+        trials.loc[
+            trials["optimizer"].eq("multi_objective_tpe")
+            & trials["trial_status"].eq("completed"),
+            "latency_protocol_id",
+        ].dropna()
+    )
+    if len(development_protocols) != 1 or development_protocols != trial_protocols:
+        raise ValueError(
+            "Development Pareto panel requires one matching latency protocol for DOE and MO-TPE"
+        )
+    if len(set(final["latency_protocol_id"].dropna())) != 1:
+        raise ValueError("Independent-evaluation panel requires one primary latency protocol")
+
+    parsed = final.copy()
+    parsed["validation_rmse_mean"] = parsed["validation_rmse"].map(
+        lambda value: float(json.loads(value)["mean"])
+    )
+    parsed["validation_rmse_ci_low"] = parsed["validation_rmse"].map(
+        lambda value: json.loads(value)["confidence_interval_95"][0]
+    )
+    parsed["validation_rmse_ci_high"] = parsed["validation_rmse"].map(
+        lambda value: json.loads(value)["confidence_interval_95"][1]
+    )
+    return {
+        "doe_development": doe,
+        "mo_tpe_development": trials[
+            trials["optimizer"].eq("multi_objective_tpe")
+            & trials["trial_status"].eq("completed")
+        ].copy(),
+        "independent_selected": parsed,
+    }
+
+
+def plot_revision_pareto_front(
+    run_dir: str | Path,
+    save_path: str = "figures/revision_v2_pareto_front.png",
+) -> None:
+    """Separate matched development fronts from frozen-selection evaluation."""
+    data = load_revision_pareto_data(run_dir)
+    doe = data["doe_development"]
+    mo_tpe = data["mo_tpe_development"]
+    independent = data["independent_selected"]
+    fig, axes = plt.subplots(1, 2, figsize=(13.5, 5.8), dpi=300)
+
+    axes[0].scatter(
+        doe["validation_rmse"],
+        doe["predict_latency_us"],
+        label="DOE evaluated candidates",
+        alpha=0.72,
+        edgecolor="black",
+        linewidth=0.4,
+    )
+    axes[0].scatter(
+        mo_tpe["validation_rmse"],
+        mo_tpe["predict_latency_us"],
+        label="MO-TPE trials",
+        marker="s",
+        alpha=0.72,
+        edgecolor="black",
+        linewidth=0.4,
+    )
+    doe_front = pareto_front_2d_min(
+        doe[["validation_rmse", "predict_latency_us"]].to_numpy()
+    )
+    if doe_front.points:
+        points = np.asarray(doe_front.points)
+        axes[0].step(
+            points[:, 0], points[:, 1], where="post", color="#1f77b4", label="DOE front"
+        )
+    for replicate_id, replicate in mo_tpe.groupby("replicate_id"):
+        front = pareto_front_2d_min(
+            replicate[["validation_rmse", "predict_latency_us"]].to_numpy()
+        )
+        if front.points:
+            points = np.asarray(front.points)
+            axes[0].step(
+                points[:, 0],
+                points[:, 1],
+                where="post",
+                alpha=0.75,
+                label=f"MO-TPE front, replicate {int(replicate_id)}",
+            )
+    development_protocol = doe["latency_protocol_id"].iloc[0]
+    axes[0].set_title("Development candidates on one matched split")
+    axes[0].set_xlabel("Search-time validation RMSE")
+    axes[0].set_ylabel(f"predict() latency (μs)\n{development_protocol}")
+    axes[0].legend(fontsize=8)
+    axes[0].grid(True, linestyle=":", alpha=0.5)
+
+    markers = {
+        "historical_preplanned_doe_desirability": "*",
+        "historical_preplanned_doe_single_objective": "^",
+        "multi_objective_tpe": "s",
+        "constrained_tpe": "X",
+        "single_objective_tpe": "P",
+        "random_search": "o",
+    }
+    for optimizer, group in independent.groupby("optimizer"):
+        x = group["validation_rmse_mean"].to_numpy(dtype=float)
+        y = group["predict_latency_us"].to_numpy(dtype=float)
+        low = group["validation_rmse_ci_low"].to_numpy(dtype=float)
+        high = group["validation_rmse_ci_high"].to_numpy(dtype=float)
+        xerr = np.vstack((x - low, high - x))
+        yerr = group["predict_latency_session_standard_deviation_us"].fillna(0).to_numpy(dtype=float)
+        axes[1].errorbar(
+            x,
+            y,
+            xerr=xerr,
+            yerr=yerr,
+            fmt=markers.get(optimizer, "o"),
+            linestyle="none",
+            capsize=2,
+            label=optimizer.replace("_", " "),
+        )
+    primary_protocol = independent["latency_protocol_id"].iloc[0]
+    axes[1].set_title("Frozen selections: independent validation means")
+    axes[1].set_xlabel("Independent validation RMSE mean (95% t interval)")
+    axes[1].set_ylabel(f"predict() latency (μs)\n{primary_protocol}")
+    axes[1].legend(fontsize=7)
+    axes[1].grid(True, linestyle=":", alpha=0.5)
+
+    destination = Path(save_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    fig.suptitle(
+        "Validation-domain Pareto evidence; panels use distinct, explicitly labelled estimands"
+    )
+    fig.tight_layout()
+    fig.savefig(destination, dpi=300)
+    plt.close(fig)
+    print(f"[Plot] Saved revision Pareto plot to: {destination}")
 
 
 def plot_efficiency_comparison(save_path: str = "figures/efficiency_comparison_curve.png"):
