@@ -24,6 +24,18 @@ def selected_configuration():
     }
 
 
+def frozen_protocol():
+    return {
+        "schema_version": 1,
+        "dataset": {"name": "synthetic_fixture"},
+        "external_test_split_seed": 42,
+        "external_test_fraction": 0.20,
+        "development_validation_fraction": 0.25,
+        "metric": "root_mean_squared_error",
+        "retraining_random_state": "evaluation_seed",
+    }
+
+
 def test_finalized_manifest_is_tamper_evident(tmp_path):
     from final_evaluation import create_finalized_selection, load_finalized_selection
 
@@ -33,6 +45,8 @@ def test_finalized_manifest_is_tamper_evident(tmp_path):
         configurations=[selected_configuration()],
         selection_policy="minimum validation RMSE",
         development_seeds=[42],
+        evaluation_seeds=[101],
+        evaluation_protocol=frozen_protocol(),
         source_artifact="results/revision_v2/trials.csv",
         git_revision="abc123",
         created_at_utc="2026-10-09T00:00:00+00:00",
@@ -73,19 +87,21 @@ def test_final_evaluator_uses_only_frozen_configuration(monkeypatch, tmp_path):
 
     monkeypatch.setattr(final_evaluation.xgb, "XGBRegressor", FakeRegressor)
     path = tmp_path / "selection.json"
+    X = np.arange(320, dtype=float).reshape(40, 8)
+    y = np.linspace(0.0, 1.0, 40)
+    evaluator = final_evaluation.FinalTestEvaluator(X=X, y=y)
     final_evaluation.create_finalized_selection(
         path,
         configurations=[selected_configuration()],
         selection_policy="minimum validation RMSE",
         development_seeds=[42],
+        evaluation_seeds=[101],
+        evaluation_protocol=evaluator.evaluation_protocol,
         source_artifact="results/revision_v2/trials.csv",
         git_revision="abc123",
         created_at_utc="2026-10-09T00:00:00+00:00",
     )
 
-    X = np.arange(320, dtype=float).reshape(40, 8)
-    y = np.linspace(0.0, 1.0, 40)
-    evaluator = final_evaluation.FinalTestEvaluator(X=X, y=y)
     result = evaluator.evaluate(path, "tpe-so-rep-0", evaluation_seeds=[101])
 
     assert seen == [{
@@ -99,6 +115,7 @@ def test_final_evaluator_uses_only_frozen_configuration(monkeypatch, tmp_path):
         "objective": "reg:squarederror",
     }]
     assert result["selection_id"] == "tpe-so-rep-0"
+    assert result["status"] == "completed"
     assert len(result["per_seed"]) == 1
     assert "test_rmse" in result["per_seed"][0]
 
@@ -107,17 +124,19 @@ def test_final_evaluator_rejects_unknown_selection(tmp_path):
     from final_evaluation import FinalTestEvaluator, create_finalized_selection
 
     path = tmp_path / "selection.json"
+    X = np.arange(320, dtype=float).reshape(40, 8)
+    y = np.linspace(0.0, 1.0, 40)
+    evaluator = FinalTestEvaluator(X=X, y=y)
     create_finalized_selection(
         path,
         configurations=[selected_configuration()],
         selection_policy="minimum validation RMSE",
         development_seeds=[42],
+        evaluation_seeds=[101],
+        evaluation_protocol=evaluator.evaluation_protocol,
         source_artifact="results/revision_v2/trials.csv",
         git_revision="abc123",
     )
-    X = np.arange(320, dtype=float).reshape(40, 8)
-    y = np.linspace(0.0, 1.0, 40)
-    evaluator = FinalTestEvaluator(X=X, y=y)
     with pytest.raises(KeyError, match="not frozen"):
         evaluator.evaluate(path, "ad-hoc-config", evaluation_seeds=[101])
 
@@ -128,26 +147,37 @@ def test_confirmation_entrypoint_requires_manifest_and_refuses_overwrite(tmp_pat
 
     manifest_path = tmp_path / "selection.json"
     output_path = tmp_path / "confirmation.json"
-    create_finalized_selection(
+    manifest = create_finalized_selection(
         manifest_path,
         configurations=[selected_configuration()],
         selection_policy="minimum validation RMSE",
         development_seeds=[42],
+        evaluation_seeds=[101, 102],
+        evaluation_protocol=frozen_protocol(),
         source_artifact="trials.csv",
         git_revision="abc123",
     )
 
     class FakeEvaluator:
+        evaluation_protocol = frozen_protocol()
+
         def evaluate(self, path, selection_id, *, evaluation_seeds):
             assert path == manifest_path
             assert selection_id == "tpe-so-rep-0"
             assert evaluation_seeds == [101, 102]
             return {
                 "selection_id": selection_id,
-                "config_sha256": "frozen-hash",
+                "config_sha256": manifest["configurations"][0]["config_sha256"],
                 "manifest_git_revision": "abc123",
+                "status": "completed",
                 "per_seed": [
-                    {"evaluation_seed": seed, "val_rmse": 0.5, "test_rmse": 0.51}
+                    {
+                        "evaluation_seed": seed,
+                        "status": "completed",
+                        "val_rmse": 0.5,
+                        "test_rmse": 0.51,
+                        "error": None,
+                    }
                     for seed in evaluation_seeds
                 ],
             }
@@ -159,6 +189,7 @@ def test_confirmation_entrypoint_requires_manifest_and_refuses_overwrite(tmp_pat
         evaluator=FakeEvaluator(),
     )
     assert result["classification"] == "gated_final_evaluation"
+    assert result["status"] == "completed"
     assert result["selection_ids"] == ["tpe-so-rep-0"]
     assert output_path.exists()
 
@@ -168,4 +199,69 @@ def test_confirmation_entrypoint_requires_manifest_and_refuses_overwrite(tmp_pat
             output_path,
             evaluation_seeds=[101, 102],
             evaluator=FakeEvaluator(),
+        )
+
+
+def test_confirmation_records_evaluator_payload_mismatch_as_failure(tmp_path):
+    from final_evaluation import create_finalized_selection
+    from scripts.run_confirmation import execute_confirmation
+
+    manifest_path = tmp_path / "selection.json"
+    output_path = tmp_path / "confirmation.json"
+    create_finalized_selection(
+        manifest_path,
+        configurations=[selected_configuration()],
+        selection_policy="minimum validation RMSE",
+        development_seeds=[42],
+        evaluation_seeds=[101],
+        evaluation_protocol=frozen_protocol(),
+        source_artifact="trials.csv",
+        git_revision="abc123",
+    )
+
+    class MismatchedEvaluator:
+        evaluation_protocol = frozen_protocol()
+
+        def evaluate(self, path, selection_id, *, evaluation_seeds):
+            del path, selection_id, evaluation_seeds
+            return {
+                "selection_id": "different-selection",
+                "config_sha256": "wrong",
+                "manifest_git_revision": "abc123",
+                "status": "completed",
+                "per_seed": [],
+            }
+
+    result = execute_confirmation(
+        manifest_path,
+        output_path,
+        evaluator=MismatchedEvaluator(),
+    )
+    assert result["status"] == "failed"
+    assert output_path.exists()
+    row = result["evaluations"][0]["per_seed"][0]
+    assert row["status"] == "failed"
+    assert "different selection_id" in row["error"]
+
+
+def test_confirmation_rejects_post_selection_seed_change(tmp_path):
+    from final_evaluation import create_finalized_selection
+    from scripts.run_confirmation import execute_confirmation
+
+    manifest_path = tmp_path / "selection.json"
+    create_finalized_selection(
+        manifest_path,
+        configurations=[selected_configuration()],
+        selection_policy="minimum validation RMSE",
+        development_seeds=[42],
+        evaluation_seeds=[101],
+        evaluation_protocol=frozen_protocol(),
+        source_artifact="trials.csv",
+        git_revision="abc123",
+    )
+    with pytest.raises(ValueError, match="frozen manifest"):
+        execute_confirmation(
+            manifest_path,
+            tmp_path / "confirmation.json",
+            evaluation_seeds=[999],
         )

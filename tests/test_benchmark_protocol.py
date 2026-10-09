@@ -400,6 +400,10 @@ def test_measured_latency_controls_constrained_selection(monkeypatch):
     selected = next(record for record in result.trial_records if record["selected"])
     assert selected["max_depth"] == 4
     assert selected["predict_latency_us"] == pytest.approx(100.0)
+    assert np.allclose(
+        result.selected_x,
+        [selected["x1"], selected["x2"], selected["x3"], selected["x4"]],
+    )
     assert selected["feasibility"] is True
 
 
@@ -429,3 +433,119 @@ def test_measured_latency_controls_multi_objective_selection(monkeypatch):
         result.selected_x,
         [selected["x1"], selected["x2"], selected["x3"], selected["x4"]],
     )
+
+
+def test_repeated_doe_selection_uses_development_blocks_and_predeclared_grid(monkeypatch):
+    _install_fast_model(monkeypatch)
+    monkeypatch.setattr(
+        benchmarks,
+        "measure_trial_latency",
+        lambda model, sample, **kwargs: 90.0 + 5.0 * model.max_depth,
+    )
+
+    result = benchmarks.run_repeated_doe_selection(
+        DevelopmentOnlyManager(),
+        replicate_count=1,
+        seeds_per_set=2,
+        seed_base=3001,
+        max_latency_us=145.0,
+    )
+
+    assert len(result["run_records"]) == 56
+    assert len(result["candidate_records"]) == 25
+    assert len(result["configurations"]) == 2
+    assert result["replicate_records"][0]["block_seeds"] == [3001, 3002]
+    assert result["replicate_records"][0]["design_runs"] == 56
+    assert result["grid"]["candidate_count"] == 1323
+    assert all("test_rmse" not in row for row in result["run_records"])
+    assert {item["selection_id"] for item in result["configurations"]} == {
+        "doe-mo-rep-0",
+        "doe-so-rep-0",
+    }
+    assert all(
+        item["source_grid_index"] < result["grid"]["candidate_count"]
+        for item in result["configurations"]
+    )
+    first_block_centers = [
+        row
+        for row in result["run_records"]
+        if row["block_index"] == 1 and row["point_id"] == 17
+    ]
+    assert {row["development_split_seed"] for row in first_block_centers} == {3001}
+    assert {row["model_seed"] for row in first_block_centers} == {
+        3001,
+        4001,
+        5001,
+        6001,
+    }
+
+
+def test_repeated_doe_records_failed_runs_and_does_not_freeze_partial_selection(monkeypatch):
+    class FailingRegressor(FakeRegressor):
+        def fit(self, X, y):
+            if self.max_depth == 9:
+                raise RuntimeError("planned fit failure")
+            return super().fit(X, y)
+
+    monkeypatch.setattr(benchmarks.xgb, "XGBRegressor", FailingRegressor)
+    monkeypatch.setattr(
+        benchmarks,
+        "measure_trial_latency",
+        lambda model, sample, **kwargs: 100.0,
+    )
+    result = benchmarks.run_repeated_doe_selection(
+        DevelopmentOnlyManager(),
+        replicate_count=1,
+        seeds_per_set=2,
+        seed_base=3001,
+        max_latency_us=145.0,
+    )
+    failed = [row for row in result["run_records"] if row["trial_status"] == "failed"]
+    assert failed
+    assert all("planned fit failure" in row["error"] for row in failed)
+    assert result["replicate_records"][0]["status"] == "failed"
+    assert result["configurations"] == []
+
+
+def test_repeated_doe_rejects_nonfinite_surrogate_predictions(monkeypatch):
+    _install_fast_model(monkeypatch)
+    monkeypatch.setattr(
+        benchmarks,
+        "measure_trial_latency",
+        lambda model, sample, **kwargs: 100.0,
+    )
+    monkeypatch.setattr(
+        benchmarks,
+        "_predict_block_averaged_generic",
+        lambda fit, coordinate, block_count: np.nan,
+    )
+    result = benchmarks.run_repeated_doe_selection(
+        DevelopmentOnlyManager(),
+        replicate_count=1,
+        seeds_per_set=2,
+        seed_base=3001,
+        max_latency_us=145.0,
+    )
+    assert result["configurations"] == []
+    replicate = result["replicate_records"][0]
+    assert replicate["status"] == "failed"
+    assert "predictions must be finite" in replicate["error"]
+
+
+def test_computational_budget_counts_every_latency_measurement():
+    settings = {
+        "optimizer_replicates": 2,
+        "trials_per_optimizer": 5,
+        "evaluation_seeds": [2001, 2002],
+        "doe_block_seed_sets": 2,
+        "doe_seeds_per_set": 2,
+        "latency_sessions": 2,
+    }
+    budget = benchmarks._computational_budget("smoke", settings)
+    assert budget["maximum_total_model_fits"] == 235
+    assert budget["online_latency_search_measurements_maximum"] == 40
+    assert budget["online_latency_repeated_doe_measurements_maximum"] == 112
+    assert budget["online_latency_historical_front_measurements_maximum"] == 27
+    assert budget["online_latency_measurements_maximum"] == 179
+    assert budget["latency_timed_prediction_calls_maximum"] == 61_370
+    assert budget["latency_warmup_prediction_calls_maximum"] == 4_590

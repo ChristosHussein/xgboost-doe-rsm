@@ -78,6 +78,7 @@ def test_synthetic_revision_workflow_writes_gated_versioned_artifacts(
             "evaluation_seeds": [101, 102],
         },
         include_historical_doe=False,
+        include_repeated_doe=False,
     )
 
     expected = {
@@ -85,6 +86,7 @@ def test_synthetic_revision_workflow_writes_gated_versioned_artifacts(
         "optimizer_trials.csv",
         "optimizer_replicates.csv",
         "optimizer_summary.json",
+        "doe_selection_summary.json",
         "finalized_selections.json",
         "latency_measurement.json",
         "latency_interface_overhead.json",
@@ -163,6 +165,7 @@ def test_synthetic_revision_workflow_writes_gated_versioned_artifacts(
     assert provenance["historical_baseline_revision"] == peeled_baseline
     assert "optimizer_trials.csv" in provenance["artifact_sha256"]
     assert "scripts/run_benchmarks.py" in provenance["runtime_source_sha256"]
+    assert "analysis.py" in provenance["runtime_source_sha256"]
 
     run_manifest = json.loads((destination / "run_manifest.json").read_text())
     assert run_manifest["classification"] == "new revision_v2 experiment"

@@ -1,24 +1,9 @@
-"""
-scripts/run_benchmarks.py - Task 7: Fair Empirical Benchmarks & Multi-Objective Comparison
-========================================================================================
-Implements:
-1. All methods optimize validation RMSE on the 80% development pool.
-2. Baselines (20 independent optimizer replicates, 140 trials each):
-   - Unguided Random Search
-   - Single-Objective TPE (optimizing Val RMSE)
-   - Constrained TPE (Val RMSE s.t. Latency <= 145 us, strictly enforced)
-   - Multi-Objective TPE (minimizing Val RMSE and Latency)
-3. Evaluates all candidates across 20 fresh evaluation seeds [2001..2020]:
-   - Validation RMSE (development fold)
-   - Generalization Test RMSE (fixed 20% holdout test set, completely untouched)
-4. Includes both Sequential DOE candidates:
-   - Sequential DOE (x*, Multi-Objective, Depth 4)
-   - Sequential DOE (Single-Objective Optimum, Depth 7)
-5. Pinned CPU affinity, interleaved latency measurement across all methods
-   (5 randomized blocks of 200 calls = 1000 calls total), reporting both predict() and inplace_predict().
-6. Computes Paired t-tests and Wilcoxon signed-rank tests across the 20 shared evaluation seeds.
-7. Computes Hypervolume (HV) indicator for multi-objective comparison.
-8. Desirability sensitivity grid over (L, U, w).
+"""Run the versioned revision benchmark and gated final evaluation.
+
+The workflow records development-only optimizer trials, independently repeated
+blocked DOE selections, matched timing protocols, frozen-selection evaluation,
+and complete provenance. Smoke mode validates the machinery; full mode requires
+an explicit computational-budget acknowledgement.
 """
 
 import json
@@ -1429,6 +1414,32 @@ def _metric_summary(values: List[float]) -> Dict[str, Any]:
     }
 
 
+def _conditional_difference_description(a, b) -> Dict[str, Any]:
+    """Describe matched retraining-seed differences without inferential tests."""
+    left = np.asarray(a, dtype=float)
+    right = np.asarray(b, dtype=float)
+    if left.ndim != 1 or right.ndim != 1 or len(left) == 0 or len(left) != len(right):
+        raise ValueError("conditional differences require equal non-empty vectors")
+    differences = left - right
+    if not np.all(np.isfinite(differences)):
+        raise ValueError("conditional differences must be finite")
+    return {
+        "difference": "anchor_minus_comparator",
+        "n_retraining_seed_pairs": int(len(differences)),
+        "mean_difference": float(np.mean(differences)),
+        "median_difference": float(np.median(differences)),
+        "standard_deviation": (
+            float(np.std(differences, ddof=1)) if len(differences) > 1 else None
+        ),
+        "per_seed_differences": differences.tolist(),
+        "inference_performed": False,
+        "reason": (
+            "Retraining seeds are conditional repeated fits on overlapping partitions and a "
+            "common fixed holdout; they are not independent method-level replicates."
+        ),
+    }
+
+
 def _aggregate_primary_latency_sessions(
     sessions: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
@@ -1605,6 +1616,386 @@ def _evaluate_historical_doe_front(
     return rows
 
 
+def _repeated_doe_grid() -> np.ndarray:
+    configured = CONFIG["revision_v2"]["repeated_doe_selection_grid"]
+    points = []
+    for x1 in np.linspace(
+        -1.0, 1.0, int(configured["learning_rate_coded_levels"])
+    ):
+        for depth in configured["integer_depths"]:
+            x2 = (int(depth) - 6.0) / 3.0
+            for x3 in configured["subsample_coded_levels"]:
+                for x4 in configured["reg_lambda_coded_levels"]:
+                    points.append((x1, x2, float(x3), float(x4)))
+    return np.asarray(points, dtype=float)
+
+
+def _predict_block_averaged_generic(fit, coordinate: np.ndarray, block_count: int) -> float:
+    x1, x2, x3, x4 = (float(value) for value in coordinate)
+    values = {
+        "const": 1.0,
+        "x1": x1,
+        "x2": x2,
+        "x3": x3,
+        "x4": x4,
+        "x1_sq": x1**2,
+        "x2_sq": x2**2,
+        "x3_sq": x3**2,
+        "x4_sq": x4**2,
+        "x1_x2": x1 * x2,
+        "x1_x3": x1 * x3,
+        "x1_x4": x1 * x4,
+        "x2_x3": x2 * x3,
+        "x2_x4": x2 * x4,
+        "x3_x4": x3 * x4,
+    }
+    for block_index in range(2, block_count + 1):
+        values[f"blk_{block_index}"] = 1.0 / block_count
+    return float(sum(fit.params[name] * values[name] for name in fit.params.index))
+
+
+def _repeated_doe_model() -> Dict[str, Any]:
+    configured = CONFIG["model"]
+    return {
+        "n_estimators": int(configured["n_estimators"]),
+        "objective": configured["objective"],
+        "n_jobs_train": int(configured["n_jobs_train"]),
+        "colsample_bytree": float(configured.get("colsample_bytree", 1.0)),
+        "min_child_weight": float(configured.get("min_child_weight", 1.0)),
+        "gamma": float(configured.get("gamma", 0.0)),
+        "tree_method": configured.get("tree_method", "auto"),
+    }
+
+
+def run_repeated_doe_selection(
+    data_mgr,
+    *,
+    replicate_count: int,
+    seeds_per_set: int,
+    seed_base: int,
+    max_latency_us: float,
+) -> Dict[str, Any]:
+    """Repeat the pre-planned 28-run-per-block design using development data only."""
+    if replicate_count <= 0 or seeds_per_set < 2:
+        raise ValueError("DOE selection requires positive replicates and at least two blocks")
+    historical = pd.read_csv(io.StringIO(_git_show_text("results/runs.csv")))
+    template = (
+        historical[historical["block"] == historical["block"].min()]
+        .sort_values("run_id")
+        [["phase", "point_id", "replicate", "x1", "x2", "x3", "x4"]]
+        .reset_index(drop=True)
+    )
+    if len(template) != 28 or template["point_id"].nunique() != 25:
+        raise RuntimeError("Frozen historical DOE template is not the expected 28-run/25-point design")
+
+    run_records = []
+    candidate_records = []
+    replicate_records = []
+    configurations = []
+    grid = _repeated_doe_grid()
+    desirability_cfg = CONFIG["desirability"]
+    L1 = float(desirability_cfg["Y1_RMSE"]["L"])
+    U1 = float(desirability_cfg["Y1_RMSE"]["U"])
+    L2 = float(desirability_cfg["Y2_Latency"]["L"])
+    U2 = float(desirability_cfg["Y2_Latency"]["U"])
+    w1 = float(desirability_cfg["Y1_RMSE"]["weight"])
+    w2 = float(desirability_cfg["Y2_Latency"]["weight"])
+    model_manifest = _repeated_doe_model()
+
+    for replicate_id in range(replicate_count):
+        block_seeds = [
+            int(seed_base + replicate_id * seeds_per_set + offset)
+            for offset in range(seeds_per_set)
+        ]
+        replicate_rows = []
+        started_replicate = time.perf_counter()
+        for block_index, seed in enumerate(block_seeds, start=1):
+            split = _development_split(data_mgr, seed)
+            random_generator = np.random.default_rng(seed)
+            order = random_generator.permutation(len(template))
+            for order_within_block, template_index in enumerate(order, start=1):
+                design_row = template.iloc[int(template_index)]
+                coordinate = np.asarray(
+                    [design_row.x1, design_row.x2, design_row.x3, design_row.x4],
+                    dtype=float,
+                )
+                eta, depth, subsample, reg_lambda = decode_factors(coordinate)
+                template_replicate = int(design_row.replicate)
+                model_seed = int(seed + 1000 * (template_replicate - 1))
+                model_config = _model_config(
+                    eta, depth, subsample, reg_lambda, model_seed
+                )
+                training_started = time.perf_counter()
+                session_id = (
+                    f"doe-selection-rep-{replicate_id}-block-{block_index}"
+                    f"-run-{order_within_block}"
+                )
+                record = {
+                    "doe_replicate_id": replicate_id,
+                    "block_index": block_index,
+                    "block_seed": seed,
+                    "order_within_block": order_within_block,
+                    "phase": design_row.phase,
+                    "point_id": int(design_row.point_id),
+                    "template_replicate": template_replicate,
+                    "x1": float(coordinate[0]),
+                    "x2": float(coordinate[1]),
+                    "x3": float(coordinate[2]),
+                    "x4": float(coordinate[3]),
+                    "learning_rate": eta,
+                    "max_depth": depth,
+                    "subsample": subsample,
+                    "reg_lambda": reg_lambda,
+                    "development_split_seed": seed,
+                    "model_seed": model_seed,
+                    "latency_protocol_id": ONLINE_SEARCH_V1.protocol_id,
+                    "latency_session_id": session_id,
+                    "model_config": model_config,
+                }
+                try:
+                    model = xgb.XGBRegressor(**model_config)
+                    model.fit(split.X_train, split.y_train)
+                    training_time = time.perf_counter() - training_started
+                    evaluation_started = time.perf_counter()
+                    prediction = model.predict(split.X_val)
+                    validation_rmse = float(
+                        np.sqrt(np.mean((split.y_val - prediction) ** 2))
+                    )
+                    latency = measure_trial_latency(
+                        model, split.X_val[:1], session_id=session_id
+                    )
+                    record.update({
+                        "validation_rmse": validation_rmse,
+                        "predict_latency_us": latency,
+                        "training_time_s": training_time,
+                        "evaluation_time_s": time.perf_counter() - evaluation_started,
+                        "trial_status": "completed",
+                        "error": None,
+                    })
+                except Exception as exc:
+                    record.update({
+                        "validation_rmse": None,
+                        "predict_latency_us": None,
+                        "training_time_s": time.perf_counter() - training_started,
+                        "evaluation_time_s": 0.0,
+                        "trial_status": "failed",
+                        "error": f"{type(exc).__name__}: {exc}",
+                    })
+                run_records.append(record)
+                replicate_rows.append(record)
+
+        frame = pd.DataFrame(replicate_rows)
+        failed_count = int((frame["trial_status"] != "completed").sum())
+        if failed_count:
+            replicate_records.append({
+                "doe_replicate_id": replicate_id,
+                "status": "failed",
+                "block_seeds": block_seeds,
+                "design_runs": len(frame),
+                "completed_design_runs": len(frame) - failed_count,
+                "failed_design_runs": failed_count,
+                "error": "At least one pre-planned DOE run failed; no surrogate selection was frozen.",
+                "replicate_wall_time_s": time.perf_counter() - started_replicate,
+            })
+            continue
+        grouped = (
+            frame.groupby(
+                [
+                    "point_id", "x1", "x2", "x3", "x4",
+                    "learning_rate", "max_depth", "subsample", "reg_lambda",
+                ],
+                as_index=False,
+            )
+            .agg(
+                evaluation_count=("validation_rmse", "size"),
+                validation_rmse_mean=("validation_rmse", "mean"),
+                validation_rmse_standard_deviation=("validation_rmse", "std"),
+                predict_latency_us_mean=("predict_latency_us", "mean"),
+                predict_latency_us_standard_deviation=("predict_latency_us", "std"),
+            )
+        )
+        for candidate in grouped.to_dict("records"):
+            candidate_records.append({
+                "doe_replicate_id": replicate_id,
+                "block_seeds": block_seeds,
+                "latency_protocol_id": ONLINE_SEARCH_V1.protocol_id,
+                **candidate,
+            })
+
+        try:
+            design = pd.DataFrame(index=frame.index)
+            for factor in ("x1", "x2", "x3", "x4"):
+                design[factor] = frame[factor]
+                design[f"{factor}_sq"] = frame[factor] ** 2
+            for left, right in (
+                ("x1", "x2"), ("x1", "x3"), ("x1", "x4"),
+                ("x2", "x3"), ("x2", "x4"), ("x3", "x4"),
+            ):
+                design[f"{left}_{right}"] = frame[left] * frame[right]
+            block_dummies = pd.get_dummies(
+                frame["block_index"], prefix="blk", drop_first=True
+            ).astype(float)
+            design = sm.add_constant(pd.concat([design, block_dummies], axis=1))
+            expected_rank = int(design.shape[1])
+            fit_rmse = sm.OLS(frame["validation_rmse"], design).fit()
+            fit_latency = sm.OLS(frame["predict_latency_us"], design).fit()
+            if int(fit_rmse.model.rank) != expected_rank:
+                raise RuntimeError(
+                    f"RMSE surrogate rank {fit_rmse.model.rank} is below {expected_rank}"
+                )
+            if int(fit_latency.model.rank) != expected_rank:
+                raise RuntimeError(
+                    f"latency surrogate rank {fit_latency.model.rank} is below {expected_rank}"
+                )
+            if fit_rmse.df_resid <= 0 or fit_latency.df_resid <= 0:
+                raise RuntimeError("surrogate residual degrees of freedom must be positive")
+            if not np.all(np.isfinite(fit_rmse.params)) or not np.all(
+                np.isfinite(fit_latency.params)
+            ):
+                raise RuntimeError("surrogate coefficients must be finite")
+            predicted_rmse = np.asarray([
+                _predict_block_averaged_generic(fit_rmse, coordinate, seeds_per_set)
+                for coordinate in grid
+            ])
+            predicted_latency = np.asarray([
+                _predict_block_averaged_generic(fit_latency, coordinate, seeds_per_set)
+                for coordinate in grid
+            ])
+            predicted_desirability = np.asarray([
+                derringer_suich_desirability(
+                    rmse, latency, L1, U1, L2, U2, w1=w1, w2=w2
+                )[2]
+                for rmse, latency in zip(predicted_rmse, predicted_latency)
+            ])
+            if not (
+                np.all(np.isfinite(predicted_rmse))
+                and np.all(np.isfinite(predicted_latency))
+                and np.all(np.isfinite(predicted_desirability))
+            ):
+                raise RuntimeError("surrogate grid predictions must be finite")
+            so_index = min(
+                range(len(grid)),
+                key=lambda index: (
+                    predicted_rmse[index], predicted_latency[index], tuple(grid[index])
+                ),
+            )
+            mo_index = min(
+                range(len(grid)),
+                key=lambda index: (
+                    -predicted_desirability[index],
+                    predicted_rmse[index],
+                    predicted_latency[index],
+                    tuple(grid[index]),
+                ),
+            )
+
+            selections = (
+                (
+                    "mo",
+                    mo_index,
+                    "maximum_predeclared_grid_desirability",
+                    {
+                        "name": "predicted_composite_desirability",
+                        "value": float(predicted_desirability[mo_index]),
+                    },
+                    "repeated_preplanned_doe_multi_objective",
+                ),
+                (
+                    "so",
+                    so_index,
+                    "minimum_predicted_validation_rmse_on_predeclared_grid",
+                    {
+                        "name": "predicted_validation_rmse",
+                        "value": float(predicted_rmse[so_index]),
+                    },
+                    "repeated_preplanned_doe_single_objective",
+                ),
+            )
+            selected_payload = {}
+            replicate_configurations = []
+            for suffix, grid_index, selection_rule, metric, optimizer in selections:
+                coordinate = grid[grid_index]
+                eta, depth, subsample, reg_lambda = decode_factors(coordinate)
+                selection_id = f"doe-{suffix}-rep-{replicate_id}"
+                configuration = {
+                    "selection_id": selection_id,
+                    "optimizer": optimizer,
+                    "optimizer_replicate_id": replicate_id,
+                    "source_trial_id": None,
+                    "source_grid_index": int(grid_index),
+                    "selection_rule": selection_rule,
+                    "selection_metric": metric,
+                    "predicted_validation_rmse": float(predicted_rmse[grid_index]),
+                    "search_time_predict_latency_us": float(
+                        predicted_latency[grid_index]
+                    ),
+                    "search_time_feasible": bool(
+                        predicted_latency[grid_index] <= max_latency_us
+                    ),
+                    "development_block_seeds": block_seeds,
+                    "hyperparameters": {
+                        "learning_rate": eta,
+                        "max_depth": depth,
+                        "subsample": subsample,
+                        "reg_lambda": reg_lambda,
+                    },
+                    "model": model_manifest,
+                }
+                replicate_configurations.append(configuration)
+                selected_payload[suffix] = {
+                    "selection_id": selection_id,
+                    "grid_index": int(grid_index),
+                    "coordinate": coordinate.tolist(),
+                    "predicted_validation_rmse": float(predicted_rmse[grid_index]),
+                    "predicted_latency_us": float(predicted_latency[grid_index]),
+                    "predicted_desirability": float(predicted_desirability[grid_index]),
+                }
+            configurations.extend(replicate_configurations)
+        except Exception as exc:
+            replicate_records.append({
+                "doe_replicate_id": replicate_id,
+                "status": "failed",
+                "block_seeds": block_seeds,
+                "design_runs": len(frame),
+                "completed_design_runs": len(frame),
+                "failed_design_runs": 0,
+                "error": f"SurrogateSelectionError: {type(exc).__name__}: {exc}",
+                "replicate_wall_time_s": time.perf_counter() - started_replicate,
+            })
+            continue
+        replicate_records.append({
+            "doe_replicate_id": replicate_id,
+            "status": "completed",
+            "block_seeds": block_seeds,
+            "design_runs": len(frame),
+            "completed_design_runs": len(frame),
+            "failed_design_runs": 0,
+            "unique_design_coordinates": int(grouped["point_id"].nunique()),
+            "surrogate_expected_rank": expected_rank,
+            "surrogate_rank_rmse": int(fit_rmse.model.rank),
+            "surrogate_rank_latency": int(fit_latency.model.rank),
+            "surrogate_residual_df_rmse": int(fit_rmse.df_resid),
+            "surrogate_residual_df_latency": int(fit_latency.df_resid),
+            "selection_grid_size": int(len(grid)),
+            "selected": selected_payload,
+            "replicate_wall_time_s": time.perf_counter() - started_replicate,
+        })
+
+    return {
+        "run_records": run_records,
+        "candidate_records": candidate_records,
+        "replicate_records": replicate_records,
+        "configurations": configurations,
+        "grid": {
+            "candidate_count": int(len(grid)),
+            "definition": CONFIG["revision_v2"]["repeated_doe_selection_grid"],
+            "tie_breaking": (
+                "desirability/RMSE objective, secondary objective, then coded coordinate"
+            ),
+        },
+    }
+
+
 def _hypervolume_payload(points, reference) -> Dict[str, Any]:
     result = hypervolume_2d_min(points, reference)
     return {
@@ -1619,11 +2010,15 @@ def _computational_budget(
     settings: Dict[str, Any],
     *,
     include_historical_doe: bool = True,
+    include_repeated_doe: bool = True,
 ) -> Dict[str, Any]:
     replicates = int(settings["optimizer_replicates"])
     trials = int(settings["trials_per_optimizer"])
     evaluation_seeds = len(settings["evaluation_seeds"])
-    frozen_max = 4 * replicates + 2
+    doe_replicates = int(settings["doe_block_seed_sets"]) if include_repeated_doe else 0
+    doe_seeds_per_set = int(settings["doe_seeds_per_set"]) if include_repeated_doe else 0
+    repeated_doe_fits = doe_replicates * doe_seeds_per_set * 28
+    frozen_max = 4 * replicates + 2 * doe_replicates + 2
     if not include_historical_doe:
         frozen_max -= 2
     latency_sessions = int(settings["latency_sessions"])
@@ -1631,12 +2026,43 @@ def _computational_budget(
     search_fits = 4 * replicates * trials
     primary_latency_refit_fits = frozen_max * latency_sessions
     final_retraining_fits = frozen_max * evaluation_seeds
+    online_search_measurements = search_fits
+    online_repeated_doe_measurements = repeated_doe_fits
+    online_historical_front_measurements = historical_candidates
+    online_measurements = (
+        online_search_measurements
+        + online_repeated_doe_measurements
+        + online_historical_front_measurements
+    )
+    online_timed_calls = (
+        online_measurements
+        * ONLINE_SEARCH_V1.timed_calls_per_interface
+        * len(ONLINE_SEARCH_V1.interfaces)
+    )
+    online_warmup_calls = (
+        online_measurements
+        * ONLINE_SEARCH_V1.warmup_calls_per_interface
+        * len(ONLINE_SEARCH_V1.interfaces)
+    )
+    primary_timed_calls = (
+        primary_latency_refit_fits
+        * PRIMARY_V1.timed_calls_per_interface
+        * len(PRIMARY_V1.interfaces)
+    )
+    primary_warmup_calls = (
+        primary_latency_refit_fits
+        * PRIMARY_V1.warmup_calls_per_interface
+        * len(PRIMARY_V1.interfaces)
+    )
     return {
         "mode": mode,
         "optimizer_methods": 4,
         "optimizer_replicates": replicates,
         "trials_per_optimizer": trials,
         "search_model_fits": search_fits,
+        "repeated_doe_selection_replicates": doe_replicates,
+        "repeated_doe_seeds_per_replicate": doe_seeds_per_set,
+        "repeated_doe_design_model_fits": repeated_doe_fits,
         "matched_historical_doe_candidate_fits": historical_candidates,
         "matched_historical_doe_coordinate_fits": 25 if include_historical_doe else 0,
         "matched_historical_doe_selected_point_fits": 2 if include_historical_doe else 0,
@@ -1646,16 +2072,30 @@ def _computational_budget(
         "final_retraining_fits": final_retraining_fits,
         "maximum_total_model_fits": (
             search_fits
+            + repeated_doe_fits
             + historical_candidates
             + primary_latency_refit_fits
             + final_retraining_fits
         ),
-        "online_latency_measured_search_trials_maximum": 2 * replicates * trials,
-        "online_latency_calls_per_search_trial": ONLINE_SEARCH_V1.timed_calls_per_interface,
-        "online_latency_warmups_per_search_trial": ONLINE_SEARCH_V1.warmup_calls_per_interface,
+        "online_latency_search_measurements_maximum": online_search_measurements,
+        "online_latency_repeated_doe_measurements_maximum": (
+            online_repeated_doe_measurements
+        ),
+        "online_latency_historical_front_measurements_maximum": (
+            online_historical_front_measurements
+        ),
+        "online_latency_measurements_maximum": online_measurements,
+        "online_latency_timed_calls_per_measurement": ONLINE_SEARCH_V1.timed_calls_per_interface,
+        "online_latency_warmups_per_measurement": ONLINE_SEARCH_V1.warmup_calls_per_interface,
+        "online_latency_timed_prediction_calls_maximum": online_timed_calls,
+        "online_latency_warmup_prediction_calls_maximum": online_warmup_calls,
         "primary_latency_calls_per_frozen_configuration_per_interface": PRIMARY_V1.timed_calls_per_interface,
         "primary_latency_warmups_per_frozen_configuration_per_interface": PRIMARY_V1.warmup_calls_per_interface,
         "primary_latency_interfaces": len(PRIMARY_V1.interfaces),
+        "primary_latency_timed_prediction_calls_maximum": primary_timed_calls,
+        "primary_latency_warmup_prediction_calls_maximum": primary_warmup_calls,
+        "latency_timed_prediction_calls_maximum": online_timed_calls + primary_timed_calls,
+        "latency_warmup_prediction_calls_maximum": online_warmup_calls + primary_warmup_calls,
         "note": "The total is an upper bound; failed or infeasible searches produce no frozen configuration.",
     }
 
@@ -1765,6 +2205,156 @@ def _optimizer_level_summary(
     }
 
 
+def _doe_level_summary(
+    mode: str,
+    repeated_doe: Optional[Dict[str, Any]],
+    summary_rows: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    if repeated_doe is None:
+        return {
+            "schema_version": 1,
+            "performed": False,
+            "reason": "repeated_doe_disabled",
+        }
+    final_by_id = {row["selection_id"]: row for row in summary_rows}
+    replicate_rows = repeated_doe["replicate_records"]
+    run_rows = repeated_doe["run_records"]
+    status_counts = {
+        status: sum(row["status"] == status for row in replicate_rows)
+        for status in sorted({row["status"] for row in replicate_rows})
+    }
+    best_observed_by_replicate = {}
+    for candidate in repeated_doe["candidate_records"]:
+        replicate_id = int(candidate["doe_replicate_id"])
+        value = float(candidate["validation_rmse_mean"])
+        best_observed_by_replicate[replicate_id] = min(
+            value, best_observed_by_replicate.get(replicate_id, value)
+        )
+    methods = {}
+    for optimizer in (
+        "repeated_preplanned_doe_multi_objective",
+        "repeated_preplanned_doe_single_objective",
+    ):
+        configs = [
+            item for item in repeated_doe["configurations"] if item["optimizer"] == optimizer
+        ]
+        independent_validation = [
+            float(final_by_id[item["selection_id"]]["validation_rmse"]["mean"])
+            for item in configs
+        ]
+        predicted_validation = [
+            float(item["predicted_validation_rmse"]) for item in configs
+        ]
+        best_observed_design = [
+            best_observed_by_replicate[int(item["optimizer_replicate_id"])]
+            for item in configs
+        ]
+        prediction_error = [
+            observed - predicted
+            for observed, predicted in zip(
+                independent_validation, predicted_validation
+            )
+        ]
+        final_test = [
+            float(final_by_id[item["selection_id"]]["test_rmse"]["mean"])
+            for item in configs
+        ]
+        methods[optimizer] = {
+            "selection_replicates": len(configs),
+            "surrogate_predicted_validation_rmse": _metric_summary(
+                predicted_validation
+            ),
+            "best_observed_design_validation_rmse": _metric_summary(
+                best_observed_design
+            ),
+            "independently_retrained_validation_rmse": _metric_summary(
+                independent_validation
+            ),
+            "selection_prediction_error_independent_minus_surrogate_rmse": (
+                _metric_summary(prediction_error)
+            ),
+            "final_test_rmse": _metric_summary(final_test),
+            "selected_hyperparameter_distributions": {
+                name: _metric_summary([
+                    float(item["hyperparameters"][name]) for item in configs
+                ])
+                for name in ("learning_rate", "max_depth", "subsample", "reg_lambda")
+            },
+            "conditional_retraining_variability": {
+                item["selection_id"]: {
+                    "validation_rmse": final_by_id[item["selection_id"]]["validation_rmse"],
+                    "test_rmse": final_by_id[item["selection_id"]]["test_rmse"],
+                }
+                for item in configs
+            },
+            "per_selection_replicate": [
+                {
+                    "doe_replicate_id": int(item["optimizer_replicate_id"]),
+                    "selection_id": item["selection_id"],
+                    "surrogate_predicted_validation_rmse": float(
+                        item["predicted_validation_rmse"]
+                    ),
+                    "best_observed_design_validation_rmse": (
+                        best_observed_by_replicate[
+                            int(item["optimizer_replicate_id"])
+                        ]
+                    ),
+                    "independently_retrained_validation_rmse": float(
+                        final_by_id[item["selection_id"]]["validation_rmse"]["mean"]
+                    ),
+                }
+                for item in configs
+            ],
+        }
+    replicate_count = len(replicate_rows)
+    completed_count = status_counts.get("completed", 0)
+    return {
+        "schema_version": 1,
+        "performed": True,
+        "mode": mode,
+        "inference_status": (
+            "smoke_underpowered" if mode == "smoke" else "full_protocol"
+        ),
+        "design": (
+            "Each replicate reruns the frozen 28-run-per-block factorial-plus-CCD template "
+            "on distinct seeded partitions of the same development pool, preserves distinct "
+            "model seeds for center replicates, fits RMSE and latency quadratics, and selects "
+            "from the predeclared integer-depth grid. Seeded partitions can overlap and are not "
+            "independent dataset samples."
+        ),
+        "selection_replicate_count": replicate_count,
+        "replicate_status_counts": status_counts,
+        "selection_success_rate": (
+            completed_count / replicate_count if replicate_count else None
+        ),
+        "selection_failure_rate": (
+            (replicate_count - completed_count) / replicate_count
+            if replicate_count
+            else None
+        ),
+        "model_fit_evaluations_attempted": len(run_rows),
+        "completed_design_fit_count": sum(
+            row["trial_status"] == "completed" for row in run_rows
+        ),
+        "failed_design_fit_count": sum(
+            row["trial_status"] != "completed" for row in run_rows
+        ),
+        "selection_replicate_wall_time_s": _metric_summary([
+            float(row["replicate_wall_time_s"]) for row in replicate_rows
+        ]),
+        "total_selection_wall_time_s": float(sum(
+            float(row["replicate_wall_time_s"]) for row in replicate_rows
+        )),
+        "variance_note": (
+            "Between-selection summaries use one independent-validation mean per completed "
+            "design replicate. Conditional retraining rows share one fixed external holdout and "
+            "do not estimate dataset-sampling uncertainty."
+        ),
+        "replicates": repeated_doe["replicate_records"],
+        "methods": methods,
+    }
+
+
 def _sha256_bytes(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
@@ -1794,6 +2384,7 @@ def _write_run_provenance(
     runtime_sources = (
         "config.yaml",
         "pipeline.py",
+        "analysis.py",
         "latency.py",
         "final_evaluation.py",
         "scientific_stats.py",
@@ -1884,6 +2475,7 @@ def run_revision_benchmark(
     final_evaluator=None,
     settings_override: Optional[Dict[str, Any]] = None,
     include_historical_doe: bool = True,
+    include_repeated_doe: bool = True,
 ) -> Path:
     """Run the versioned benchmark workflow without overwriting historical artifacts."""
     modes = CONFIG["revision_v2"]["modes"]
@@ -1898,7 +2490,10 @@ def run_revision_benchmark(
     destination.mkdir(parents=True, exist_ok=True)
 
     budget = _computational_budget(
-        mode, settings, include_historical_doe=include_historical_doe
+        mode,
+        settings,
+        include_historical_doe=include_historical_doe,
+        include_repeated_doe=include_repeated_doe,
     )
     (destination / "computational_budget.json").write_text(
         json.dumps(budget, indent=2) + "\n", encoding="utf-8"
@@ -1953,19 +2548,57 @@ def run_revision_benchmark(
             if selected is not None:
                 selection_id = f"{result.optimizer}-rep-{result.replicate_id}"
                 configurations.append(_manifest_configuration(selected, selection_id))
+    repeated_doe = None
+    if include_repeated_doe:
+        repeated_doe = run_repeated_doe_selection(
+            manager,
+            replicate_count=int(settings["doe_block_seed_sets"]),
+            seeds_per_set=int(settings["doe_seeds_per_set"]),
+            seed_base=int(settings["doe_seed_base"]),
+            max_latency_us=max_latency,
+        )
+        configurations.extend(repeated_doe["configurations"])
+        _write_csv(
+            repeated_doe["run_records"], destination / "doe_selection_runs.csv"
+        )
+        _write_csv(
+            repeated_doe["candidate_records"],
+            destination / "doe_selection_candidates.csv",
+        )
+        _write_csv(
+            repeated_doe["replicate_records"],
+            destination / "doe_selection_replicates.csv",
+        )
+        (destination / "doe_selection_protocol.json").write_text(
+            json.dumps(repeated_doe["grid"], indent=2) + "\n", encoding="utf-8"
+        )
     if include_historical_doe:
         configurations.extend(_historical_doe_configurations())
 
+    evaluator = final_evaluator or FinalTestEvaluator()
+    if not hasattr(evaluator, "evaluation_protocol"):
+        raise TypeError("final_evaluator must expose an auditable evaluation_protocol")
+    evaluation_seeds = [int(seed) for seed in settings["evaluation_seeds"]]
     manifest_path = destination / "finalized_selections.json"
+    finalized_development_seeds = [development_seed]
+    if repeated_doe is not None:
+        finalized_development_seeds.extend(
+            seed
+            for replicate in repeated_doe["replicate_records"]
+            for seed in replicate["block_seeds"]
+        )
     create_finalized_selection(
         manifest_path,
         configurations=configurations,
         selection_policy=(
             "Per-replicate actual winning trial selected on development data only; "
+            "repeated DOE configurations selected from a predeclared surrogate grid; "
             "historical DOE selections retain an explicit prior-exposure caveat."
         ),
-        development_seeds=[development_seed],
-        source_artifact=str(destination / "optimizer_trials.csv"),
+        development_seeds=sorted(set(finalized_development_seeds)),
+        evaluation_seeds=evaluation_seeds,
+        evaluation_protocol=evaluator.evaluation_protocol,
+        source_artifact=str(destination),
         git_revision=_git_head(),
     )
 
@@ -1988,8 +2621,6 @@ def run_revision_benchmark(
         json.dumps(latency_overhead, indent=2) + "\n", encoding="utf-8"
     )
 
-    evaluator = final_evaluator or FinalTestEvaluator()
-    evaluation_seeds = [int(seed) for seed in settings["evaluation_seeds"]]
     final_rows = []
     for configuration in configurations:
         result = evaluator.evaluate(
@@ -2006,6 +2637,16 @@ def run_revision_benchmark(
                 **row,
             })
     _write_csv(final_rows, destination / "final_evaluations.csv")
+    failed_final_rows = [row for row in final_rows if row.get("status") != "completed"]
+    if failed_final_rows:
+        (destination / "final_evaluation_failures.json").write_text(
+            json.dumps(failed_final_rows, indent=2, allow_nan=False) + "\n",
+            encoding="utf-8",
+        )
+        raise RuntimeError(
+            f"{len(failed_final_rows)} frozen-selection evaluations failed; "
+            "the failure ledger was retained and no aggregate claims were produced"
+        )
 
     config_by_id = {item["selection_id"]: item for item in configurations}
     summary_rows = []
@@ -2014,12 +2655,17 @@ def run_revision_benchmark(
         latency_summary = primary_measurement["summaries"][selection_id]
         configuration = config_by_id[selection_id]
         selection_metric = configuration.get("selection_metric", {})
-        search_validation_rmse = (
-            float(selection_metric["value"])
-            if selection_metric.get("name") == "validation_rmse"
+        if configuration.get("predicted_validation_rmse") is not None:
+            search_validation_rmse = float(
+                configuration["predicted_validation_rmse"]
+            )
+        elif (
+            selection_metric.get("name") == "validation_rmse"
             and selection_metric.get("value") is not None
-            else None
-        )
+        ):
+            search_validation_rmse = float(selection_metric["value"])
+        else:
+            search_validation_rmse = None
         independent_validation_mean = _metric_summary(group["val_rmse"].tolist())
         summary_rows.append({
             "selection_id": selection_id,
@@ -2047,6 +2693,10 @@ def run_revision_benchmark(
     (destination / "optimizer_summary.json").write_text(
         json.dumps(optimizer_summary, indent=2) + "\n", encoding="utf-8"
     )
+    doe_summary = _doe_level_summary(mode, repeated_doe, summary_rows)
+    (destination / "doe_selection_summary.json").write_text(
+        json.dumps(doe_summary, indent=2) + "\n", encoding="utf-8"
+    )
 
     paired = []
     pair_specs = [
@@ -2071,22 +2721,172 @@ def run_revision_benchmark(
                 for metric in ("val_rmse", "test_rmse"):
                     paired.append({
                         "comparison": label,
+                        "comparison_classification": (
+                            "historical_fixed_selection_conditional_descriptive"
+                        ),
                         "anchor_selection_id": anchor_id,
                         "comparator_selection_id": comparator["selection_id"],
                         "metric": metric,
-                        "inference_status": (
-                            "smoke_underpowered" if mode == "smoke" else "full_protocol"
+                        "replication_unit": "retraining_seed_pair",
+                        "scope": (
+                            "Conditional descriptive comparison of frozen selections; the common "
+                            "fixed holdout and overlapping development partitions are retained."
                         ),
-                        "scope": "conditional on frozen selections; common holdout dependence retained",
-                        "paired_difference": paired_difference_summary(
+                        "conditional_difference": _conditional_difference_description(
                             anchor[metric].to_numpy(), other[metric].to_numpy()
                         ),
-                        "equivalence": paired_tost(
-                            anchor[metric].to_numpy(),
-                            other[metric].to_numpy(),
-                            margin=equivalence_margin,
+                    })
+    if repeated_doe is not None:
+        repeated_pairs = (
+            ("doe-mo-rep-{replicate}", "multi_objective_tpe", "Repeated DOE MO minus MO-TPE"),
+            ("doe-mo-rep-{replicate}", "constrained_tpe", "Repeated DOE MO minus constrained TPE"),
+            ("doe-so-rep-{replicate}", "single_objective_tpe", "Repeated DOE SO minus SO-TPE"),
+            ("doe-so-rep-{replicate}", "random_search", "Repeated DOE SO minus random search"),
+        )
+        for anchor_template, comparator_optimizer, label in repeated_pairs:
+            for metric in ("val_rmse", "test_rmse"):
+                planned_replicates = list(
+                    range(int(settings["doe_block_seed_sets"]))
+                )
+                replicate_differences = []
+                omitted_replicates = []
+                anchor_means = []
+                comparator_means = []
+                for replicate_id in planned_replicates:
+                    anchor_id = anchor_template.format(replicate=replicate_id)
+                    anchor = final_frame[
+                        final_frame["selection_id"] == anchor_id
+                    ].sort_values("evaluation_seed")
+                    if anchor.empty:
+                        doe_record = next(
+                            (
+                                row
+                                for row in repeated_doe["replicate_records"]
+                                if int(row["doe_replicate_id"]) == replicate_id
+                            ),
+                            None,
+                        )
+                        omitted_replicates.append({
+                            "selection_replicate_id": replicate_id,
+                            "missing_method": "repeated_doe",
+                            "reason": (
+                                doe_record.get("error")
+                                if doe_record is not None
+                                else "no repeated DOE replicate record"
+                            ),
+                        })
+                        continue
+                    comparators = [
+                        item
+                        for item in configurations
+                        if item["optimizer"] == comparator_optimizer
+                        and item.get("optimizer_replicate_id") == replicate_id
+                    ]
+                    if not comparators:
+                        optimizer_record = next(
+                            (
+                                row
+                                for row in replicate_rows
+                                if row["optimizer"] == comparator_optimizer
+                                and int(row["replicate_id"]) == replicate_id
+                            ),
+                            None,
+                        )
+                        omitted_replicates.append({
+                            "selection_replicate_id": replicate_id,
+                            "missing_method": comparator_optimizer,
+                            "reason": (
+                                f"search status: {optimizer_record['status']}"
+                                if optimizer_record is not None
+                                else "no optimizer replicate record"
+                            ),
+                        })
+                        continue
+                    comparator = comparators[0]
+                    other = final_frame[
+                        final_frame["selection_id"] == comparator["selection_id"]
+                    ].sort_values("evaluation_seed")
+                    if anchor["evaluation_seed"].tolist() != other["evaluation_seed"].tolist():
+                        raise RuntimeError("paired comparisons require identical evaluation seeds")
+                    anchor_mean = float(anchor[metric].mean())
+                    comparator_mean = float(other[metric].mean())
+                    anchor_means.append(anchor_mean)
+                    comparator_means.append(comparator_mean)
+                    replicate_differences.append({
+                        "selection_replicate_id": replicate_id,
+                        "anchor_selection_id": anchor_id,
+                        "comparator_selection_id": comparator["selection_id"],
+                        "anchor_retraining_seed_mean": anchor_mean,
+                        "comparator_retraining_seed_mean": comparator_mean,
+                        "difference": anchor_mean - comparator_mean,
+                        "conditional_retraining_seed_description": (
+                            _conditional_difference_description(
+                                anchor[metric].to_numpy(), other[metric].to_numpy()
+                            )
                         ),
                     })
+                enough_replicates = len(anchor_means) >= 2
+                complete_pair_set = (
+                    len(replicate_differences) == len(planned_replicates)
+                )
+                if mode == "smoke":
+                    inference_status = (
+                        "smoke_underpowered"
+                        if complete_pair_set
+                        else "smoke_underpowered_available_case_conditional_on_success"
+                    )
+                else:
+                    inference_status = (
+                        "full_protocol"
+                        if complete_pair_set and enough_replicates
+                        else "available_case_conditional_on_success"
+                    )
+                paired.append({
+                    "comparison": label,
+                    "comparison_classification": (
+                        "new_end_to_end_selection_replicate_comparison"
+                    ),
+                    "metric": metric,
+                    "replication_unit": (
+                        "one retraining-seed mean per matched search/design replicate"
+                    ),
+                    "estimand": "conditional_on_both_selections_succeeding",
+                    "inference_status": inference_status,
+                    "scope": (
+                        "End-to-end selection variability across matched replicate IDs. Seeded "
+                        "development partitions overlap, and every test metric uses the same fixed "
+                        "external holdout, so dataset-sampling uncertainty is not estimated."
+                    ),
+                    "planned_selection_replicate_ids": planned_replicates,
+                    "included_selection_replicate_ids": [
+                        item["selection_replicate_id"]
+                        for item in replicate_differences
+                    ],
+                    "omitted_selection_replicates": omitted_replicates,
+                    "predeclared_pair_set_complete": complete_pair_set,
+                    "per_selection_replicate": replicate_differences,
+                    "paired_difference": (
+                        paired_difference_summary(anchor_means, comparator_means)
+                        if enough_replicates
+                        else {
+                            "performed": False,
+                            "reason": "fewer_than_two_completed_selection_replicates",
+                        }
+                    ),
+                    "equivalence": (
+                        paired_tost(
+                            anchor_means,
+                            comparator_means,
+                            margin=equivalence_margin,
+                        )
+                        if enough_replicates
+                        else {
+                            "performed": False,
+                            "equivalent": None,
+                            "reason": "fewer_than_two_completed_selection_replicates",
+                        }
+                    ),
+                })
     (destination / "paired_comparisons.json").write_text(
         json.dumps(paired, indent=2) + "\n", encoding="utf-8"
     )
@@ -2098,6 +2898,13 @@ def run_revision_benchmark(
         "development_domain": {
             "objective_definition": ["validation_rmse", "predict_latency_us"],
             "latency_protocol_id": ONLINE_SEARCH_V1.protocol_id,
+            "estimand_note": (
+                "Historical matched DOE coordinates and optimizer trials use the same single split. "
+                "Repeated DOE fronts average distinct seeded partitions of the same development "
+                "pool; those partitions can overlap and are not independent dataset samples. The "
+                "repeated-DOE and MO-TPE hypervolumes are reported separately because they use "
+                "different RMSE estimands."
+            ),
             "reference_points": {},
         },
         "external_test_domain": {
@@ -2110,7 +2917,9 @@ def run_revision_benchmark(
     doe_front_rows = []
     if include_historical_doe:
         historical_selections = [
-            item for item in configurations if item["selection_id"].startswith("doe-")
+            item
+            for item in configurations
+            if item["optimizer"].startswith("historical_preplanned_doe_")
         ]
         doe_front_rows = _evaluate_historical_doe_front(
             manager,
@@ -2125,7 +2934,10 @@ def run_revision_benchmark(
     ]
     for reference in references:
         key = json.dumps(reference)
-        development_entry = {"mo_tpe_by_replicate": {}}
+        development_entry = {
+            "mo_tpe_by_replicate": {},
+            "repeated_doe_by_replicate": {},
+        }
         doe_full_value = None
         if doe_front_rows:
             doe_coordinate_rows = [
@@ -2187,6 +2999,34 @@ def run_revision_benchmark(
         development_entry["mo_tpe_hypervolume_distribution"] = _metric_summary(
             mo_hypervolumes
         )
+        repeated_doe_hypervolumes = []
+        if repeated_doe is not None:
+            completed_doe_replicates = [
+                int(row["doe_replicate_id"])
+                for row in repeated_doe["replicate_records"]
+                if row["status"] == "completed"
+            ]
+            for replicate_id in completed_doe_replicates:
+                candidates = [
+                    row
+                    for row in repeated_doe["candidate_records"]
+                    if row["doe_replicate_id"] == replicate_id
+                ]
+                payload = _hypervolume_payload(
+                    [
+                        (
+                            row["validation_rmse_mean"],
+                            row["predict_latency_us_mean"],
+                        )
+                        for row in candidates
+                    ],
+                    reference,
+                )
+                development_entry["repeated_doe_by_replicate"][str(replicate_id)] = payload
+                repeated_doe_hypervolumes.append(float(payload["value"]))
+            development_entry["repeated_doe_hypervolume_distribution"] = _metric_summary(
+                repeated_doe_hypervolumes
+            )
         if doe_full_value is not None:
             differences = [doe_full_value - value for value in mo_hypervolumes]
             development_entry["full_doe_candidate_front_minus_mo_tpe_hypervolume"] = {
