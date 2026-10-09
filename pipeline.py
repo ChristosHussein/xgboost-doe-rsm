@@ -20,7 +20,7 @@ Ground rules & Architectural specifications:
 import os
 import sys
 import time
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, NamedTuple, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.datasets import fetch_california_housing
@@ -148,6 +148,125 @@ class CaliforniaHousingDataManager:
         split = (X_train, X_val, self.X_test, y_train, y_val, self.y_test)
         self._cache[split_seed] = split
         return split
+
+
+class DevelopmentSplit(NamedTuple):
+    """Data available to development-stage code; no external holdout fields exist."""
+
+    X_train: np.ndarray
+    X_val: np.ndarray
+    y_train: np.ndarray
+    y_val: np.ndarray
+
+
+class CaliforniaHousingDevelopmentDataManager:
+    """Expose only train/validation data from the California Housing development pool."""
+
+    def __init__(
+        self,
+        external_test_seed: int = 42,
+        X: np.ndarray = None,
+        y: np.ndarray = None,
+    ):
+        if X is None or y is None:
+            housing = fetch_california_housing()
+            raw_X = housing.data
+            raw_y = housing.target
+            self.feature_names = housing.feature_names
+        else:
+            raw_X = np.asarray(X)
+            raw_y = np.asarray(y)
+            self.feature_names = None
+
+        self._X_dev, _, self._y_dev, _ = train_test_split(
+            raw_X, raw_y, test_size=0.20, random_state=external_test_seed
+        )
+        self._cache = {}
+
+    def get_split(self, split_seed: int) -> DevelopmentSplit:
+        if split_seed not in self._cache:
+            X_train, X_val, y_train, y_val = train_test_split(
+                self._X_dev, self._y_dev, test_size=0.25, random_state=split_seed
+            )
+            self._cache[split_seed] = DevelopmentSplit(X_train, X_val, y_train, y_val)
+        return self._cache[split_seed]
+
+
+def evaluate_development_model(
+    eta: float,
+    depth: int,
+    subsample: float,
+    reg_lambda: float,
+    seed: int = 42,
+    data_mgr: CaliforniaHousingDevelopmentDataManager = None,
+    measure_latency_details: bool = True,
+    split_seed: int = None,
+    model_seed: int = None,
+) -> Dict[str, float]:
+    """Fit and evaluate a model using development data only."""
+    if data_mgr is None:
+        data_mgr = CaliforniaHousingDevelopmentDataManager()
+    if split_seed is None:
+        split_seed = seed
+    if model_seed is None:
+        model_seed = seed
+
+    split = data_mgr.get_split(split_seed)
+    t0_fit = time.perf_counter()
+    model = xgb.XGBRegressor(
+        n_estimators=CONFIG["model"]["n_estimators"],
+        learning_rate=eta,
+        max_depth=depth,
+        subsample=subsample,
+        reg_lambda=reg_lambda,
+        random_state=model_seed,
+        n_jobs=CONFIG["model"]["n_jobs_train"],
+        objective=CONFIG["model"]["objective"],
+    )
+    model.fit(split.X_train, split.y_train)
+    fit_duration = time.perf_counter() - t0_fit
+    val_pred = model.predict(split.X_val)
+    val_rmse = float(np.sqrt(mean_squared_error(split.y_val, val_pred)))
+
+    latency_median = latency_iqr = inplace_median = inplace_iqr = 0.0
+    if measure_latency_details:
+        pin_cpu_affinity()
+        model.set_params(n_jobs=1)
+        booster = model.get_booster()
+        booster.set_param({"nthread": 1})
+        single_sample = split.X_val[:1]
+        for _ in range(CONFIG["model"]["latency_warmup"]):
+            model.predict(single_sample)
+            booster.inplace_predict(single_sample)
+
+        reps = CONFIG["model"]["latency_reps"]
+        batch_size = CONFIG["model"]["latency_iters"] // reps
+        predict_batches = []
+        inplace_batches = []
+        for _ in range(reps):
+            t0 = time.perf_counter_ns()
+            for _ in range(batch_size):
+                model.predict(single_sample)
+            predict_batches.append((time.perf_counter_ns() - t0) / (batch_size * 1000.0))
+
+            t0 = time.perf_counter_ns()
+            for _ in range(batch_size):
+                booster.inplace_predict(single_sample)
+            inplace_batches.append((time.perf_counter_ns() - t0) / (batch_size * 1000.0))
+
+        latency_median = float(np.median(predict_batches))
+        latency_iqr = float(np.subtract(*np.percentile(predict_batches, [75, 25])))
+        inplace_median = float(np.median(inplace_batches))
+        inplace_iqr = float(np.subtract(*np.percentile(inplace_batches, [75, 25])))
+
+    return {
+        "val_rmse": val_rmse,
+        "latency_us_median": latency_median,
+        "latency_us_iqr": latency_iqr,
+        "inplace_latency_us_median": inplace_median,
+        "inplace_latency_us_iqr": inplace_iqr,
+        "fit_time_s": fit_duration,
+    }
 
 
 def evaluate_model(
@@ -344,15 +463,21 @@ def generate_design_plan() -> List[Dict[str, Any]]:
     return runs
 
 
-def execute_design_pipeline(output_csv: str = "results/runs.csv") -> pd.DataFrame:
-    """Executes the full 140 design runs in randomized execution order and saves results/runs.csv."""
+def execute_design_pipeline(
+    output_csv: str = "results/revision_v2/development_runs.csv",
+    runs_plan: List[Dict[str, Any]] = None,
+    data_mgr: CaliforniaHousingDevelopmentDataManager = None,
+) -> pd.DataFrame:
+    """Execute development-only DOE runs without accessing the external holdout."""
     os.makedirs(os.path.dirname(os.path.abspath(output_csv)), exist_ok=True)
-    runs_plan = generate_design_plan()
+    if runs_plan is None:
+        runs_plan = generate_design_plan()
 
     # Sort by randomized run_order for real execution sequence
     runs_sorted = sorted(runs_plan, key=lambda r: r["run_order"])
 
-    data_mgr = CaliforniaHousingDataManager()
+    if data_mgr is None:
+        data_mgr = CaliforniaHousingDevelopmentDataManager()
     executed_records = []
 
     print(f"Starting execution of {len(runs_sorted)} DOE design runs...")
@@ -362,7 +487,7 @@ def execute_design_pipeline(output_csv: str = "results/runs.csv") -> pd.DataFram
         x = np.array([run["x1"], run["x2"], run["x3"], run["x4"]])
         eta, depth, subsample, reg_lambda = decode_factors(x)
 
-        eval_res = evaluate_model(
+        eval_res = evaluate_development_model(
             eta=eta,
             depth=depth,
             subsample=subsample,
@@ -392,7 +517,6 @@ def execute_design_pipeline(output_csv: str = "results/runs.csv") -> pd.DataFram
             "subsample": subsample,
             "reg_lambda": reg_lambda,
             "val_rmse": eval_res["val_rmse"],
-            "test_rmse": eval_res["test_rmse"],
             "latency_us_median": eval_res["latency_us_median"],
             "latency_us_iqr": eval_res["latency_us_iqr"],
             "inplace_latency_us_median": eval_res["inplace_latency_us_median"],
@@ -413,4 +537,4 @@ def execute_design_pipeline(output_csv: str = "results/runs.csv") -> pd.DataFram
 
 
 if __name__ == "__main__":
-    execute_design_pipeline("results/runs.csv")
+    execute_design_pipeline()
