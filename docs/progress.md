@@ -121,7 +121,8 @@ All generated data structures were audited: no NaN or missing values in complete
 | **Package A** | Audit and Correctness | **Completed & Verified** | Holdout isolation, incumbent selection integrity, centralized latency. |
 | **Package B** | Benchmark and Statistical Redesign | **Completed & Verified** | Candidate Pareto fronts, hypervolume, CI workflow green on Ubuntu & Windows, atomic checkpointing. |
 | **Package C** | Full Scientific Experiments | **Completed & Verified** | Executed 17,077 model fits and 1,640,810 timed calls across 122 configurations with 0 errors. Audit script verified all 5 dimensions. |
-| **Package D** | Publication Revision | **Awaiting Review** | Blocked on user review of full results. Do NOT merge PR #2 or compile final manuscript until authorized. |
+| **Package C.1** | Scientific Audit & Evidence Verification | **Completed & Verified** | Qualified claim boundaries, audit script `audit_scientific_consistency.py`, 110/110 tests passing. |
+| **Package D** | Publication Revision & PDF Build | **Completed & Verified** | LaTeX source revised, 275 macros & tables generated, `report.pdf` compiled, documentation verified. Ready for user review. |
 
 ---
 
@@ -178,7 +179,7 @@ Evaluated on candidate Pareto fronts under two pre-declared reference points:
 
 3. **Latency Measurement & Interface Profiling:**
    - **Session Stability:** Thread pinning to Core 0 yielded a within-configuration between-session standard deviation of only $1.28\,\mu\text{s}$ across 5 sessions.
-   - **Historical Discrepancy Forensic Resolution:** Code inspection of `v1.0.0` proved that both confirmation and benchmark scripts evaluated both APIs and both published `predict()`. The historical $+22.5\,\mu\text{s}$ to $+23.3\,\mu\text{s}$ gap was caused by unpinned execution and environment drift rather than an interface mismatch (see `docs/c1_latency_forensics.md`).
+   - **Historical Discrepancy Status:** Code inspection of `v1.0.0` confirmed that both historical confirmation and benchmark scripts applied Win32 CPU pinning and evaluated both `predict()` and `inplace_predict()`. The historical $+22.5\,\mu\text{s}$ to $+23.3\,\mu\text{s}$ discrepancy cannot be conclusively attributed to unpinned execution or an identified environmental mechanism; it remains an unexplained historical discrepancy that Revision v2 resolves through standardized multi-session profiling.
 
 ---
 
@@ -200,5 +201,15 @@ Work Package C.1 (Independent Scientific Consistency Audit & Publication Evidenc
 3. **Constrained TPE Feasibility Qualified:** 9/20 benchmark feasibility verified; causal explanations qualified as hypotheses (sampling variability, protocol differences, selection effects).
 4. **Deliverables Completed:** `docs/c1_final_assessment.md`, `scripts/audit_scientific_consistency.py`, and `tests/test_scientific_consistency_audit.py` created and verified by 110/110 passing pytest tests.
 
-**READINESS STATEMENT:** Work Packages A, B, C, and C.1 are fully complete and verified. The repository is awaiting user authorization to proceed to Work Package D (Publication Revision & Manuscript Regeneration). PR #2 remains unmerged.
+---
+
+## 9. Work Package D Final Closeout Summary
+
+Work Package D (Final Scientific Manuscript Revision & Publication Build) is officially complete:
+1. **Manuscript Revised (`report.tex`):** Abstract, experimental architecture, response surface limitations, Phase 5 benchmarks, discussion, reproducibility, and conclusion revised to incorporate prospective Revision-v2 evidence ($17,077$ fits, $1,640,810$ predictions, 20 replicates) with qualified scientific claims.
+2. **Automated Artifact Pipeline:** `scripts/generate_report_artifacts.py` programmatically populates 275 macros in `results/macros.tex`, Table 5 (`tables/tab_benchmarks.tex`), and Table 6 (`tables/tab_hypervolume_comparison.tex`). Zero hardcoded numbers in `report.tex`, enforced by `tests/test_no_hardcoded_numbers.py`.
+3. **PDF Build (`report.pdf`):** Compiled successfully via Tectonic 0.17.0 (14 pages, 4.04 MB, exit code 0).
+4. **Validation Ledger:** Detailed documentation produced in `docs/d_final_validation.md`.
+
+**FINAL STATUS:** Work Packages A, B, C, C.1, and D are fully complete and verified. PR #2 remains unmerged on branch `codex/scientific-revision`. All changes are ready for final user review and CI verification.
 
