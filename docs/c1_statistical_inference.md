@@ -63,11 +63,12 @@ Evaluating the $N=20$ independent search replicates for each optimization strate
 | `constrained_tpe-rep-18` | 7 | 139.32 µs | 150.42 µs | +11.10 µs | 117.92 µs | **Violation** |
 | `constrained_tpe-rep-19` | 7 | 144.04 µs | 150.42 µs | +6.38 µs | 117.97 µs | **Violation** |
 
-### Mechanism of the Discrepancy:
-- **Optimization Boundary Exploitation:** In constrained Bayesian optimization, the surrogate actively favors points near the feasibility boundary to maximize the primary objective (lower RMSE).
-- **Sampling Noise Effect:** Because online search evaluated latency with only 30 calls, depth 7 models with true latency $\approx 150.5\,\mu\text{s}$ occasionally registered below $145\,\mu\text{s}$ ($138 - 144\,\mu\text{s}$) due to normal measurement variance. The optimizer capitalized on these downward fluctuations to select depth 7 models.
-- **Benchmark Exposure:** When subjected to the multi-session 1,000-call benchmark protocol, the true latency of these depth 7 models was revealed, resulting in a $55\%$ violation rate.
-- **Scientific Implication:** Constrained optimization with noisy constraints requires either conservative safety margins (e.g., constraining at $140\,\mu\text{s}$ instead of $145\,\mu\text{s}$) or larger online sampling sizes to prevent constraint-boundary boundary violations.
+### Possible Explanatory Factors for the Feasibility Discrepancy:
+The 9/20 (45%) benchmark feasibility outcome is directly verified by data, but the precise mechanism cannot be conclusively attributed to a single cause. Plausible contributing factors include:
+- **Measurement Protocol Differences:** Online search evaluated latency using 30 timed calls per trial in an unpinned process context, whereas benchmark evaluation utilized 5 independent thread-pinned sessions of 1,000 timed calls each.
+- **Online Sampling Variability:** Depth 7 configurations registered a mean of $140.94\,\mu\text{s}$ during search measurements, but averaged $150.54\,\mu\text{s}$ under the 1,000-call benchmark protocol.
+- **Selection Effects:** When an optimizer searches near a constraint boundary, configurations that fluctuate downward during evaluation are more likely to be accepted as feasible.
+These factors are possible explanations rather than conclusively established causes.
 
 ---
 
@@ -81,9 +82,9 @@ Every candidate claim considered for the revised manuscript is classified accord
 | **2** | *"Repeated DOE MO achieves lower Test RMSE than MO-TPE."* | **Descriptive Only** | Observed difference is only $0.00258$ ($p = 0.3826$ Welch, $p = 0.3463$ paired). Not statistically significant. |
 | **3** | *"Repeated DOE Single-Objective has zero predictive uncertainty."* | **Unsupported / Factually False** | Selection stability was deterministic across the 20 block sets, but conditional retraining standard deviation is $0.00304$. (See Audit D). |
 | **4** | *"Repeated DOE Single-Objective selection is perfectly stable across nuisance block sets."* | **Directly Verified** | All 20 independent searches selected the exact same hyperparameter configuration ($20/20$). |
-| **5** | *"MO-TPE achieves significantly higher hypervolume on development candidate fronts than DOE."* | **Directly Verified** | MO-TPE achieved mean HV $18.3834$ vs Full DOE $16.8585$ under matched single-split protocol ($p < 0.0001$). |
+| **5** | *"MO-TPE achieves higher observed candidate-front hypervolume on the evaluated development split."* | **Directly Verified with Limitations** | MO-TPE achieved mean HV $18.3834$ vs Full DOE $16.8585$ on the evaluated split ($p < 0.0001$). This supports higher observed hypervolume on this development split, but does not establish universal algorithmic superiority as complete search frontiers were not independently validated across unseen data splits. |
 | **6** | *"Candidate-level Pareto hypervolume comparisons between Repeated DOE and MO-TPE compare different estimands."* | **Directly Verified** | MO-TPE uses a single split per trial ($N=1$); Repeated DOE averages across 5 nuisance blocks ($N=5$). |
 | **7** | *"Single-Objective TPE discovers the lowest unconstrained Test RMSE in the study."* | **Directly Verified** | SO-TPE achieved Test RMSE $0.46691 \pm 0.00116$, but violates the latency constraint ($188.93\,\mu\text{s}$). |
-| **8** | *"Constrained TPE selections achieved 100% search-time feasibility but only 45% benchmark feasibility."* | **Directly Verified** | Depth 7 models exploited 30-call search noise ($140.9\,\mu\text{s}$ search mean), but exceed $145\,\mu\text{s}$ in 1,000-call benchmark ($150.5\,\mu\text{s}$). |
+| **8** | *"Constrained TPE selections achieved 100% search-time feasibility but only 45% benchmark feasibility."* | **Directly Verified** | Empirical result verified (20/20 vs 9/20). Potential causes (sampling noise, protocol differences, selection effects) remain hypotheses. |
 | **9** | *"The historical latency discrepancy between confirmation and benchmark was caused by predict vs inplace_predict confusion."* | **Unsupported** | Both historical scripts measured both APIs and both published `predict()`. Discrepancy was caused by session and environment drift. (See Audit C). |
 | **10**| *"Both Repeated DOE MO and MO-TPE contribute non-dominated configurations to the global holdout Pareto front."* | **Directly Verified** | 12 configurations form the global front: 3 from DOE MO ($118.7 - 126.2\,\mu\text{s}$), 3 from MO-TPE ($116.1 - 120.2\,\mu\text{s}$), 5 from Constrained TPE ($136.0 - 150.4\,\mu\text{s}$), and 1 from SO-TPE ($171.3\,\mu\text{s}$). |

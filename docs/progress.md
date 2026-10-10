@@ -167,28 +167,38 @@ Evaluated on candidate Pareto fronts under two pre-declared reference points:
 
 ## 6. Scientific Findings & Objective Methodological Trade-offs
 
-1. **Where TPE Outperforms DOE:**
-   - **Pareto Hypervolume:** MO-TPE achieves significantly higher hypervolume (+2.77 units at $[0.60, 250]$) because its 140 sequential evaluations navigate the entire 4-dimensional search space, discovering a dense set of non-dominated trade-offs across low-depth and high-depth regimes. In contrast, DOE's central composite design was positioned locally around a screening optimum, constraining its candidate frontier to 4 non-dominated points.
+1. **Observed Pareto Hypervolume on Evaluated Development Split:**
+   - **Candidate Hypervolume:** On the evaluated development split, MO-TPE achieves higher observed candidate-front hypervolume than the discrete DOE lattice (+2.77 units at $[0.60, 250]$) because its 140 sequential evaluations adaptively sample continuous configurations across the 4D domain ($[0.01, 0.30] \times [3, 9] \times [0.5, 1.0] \times [0.1, 10.0]$), discovering diverse non-dominated trade-offs. The face-centered CCD, while spanning the exact same factor domain, evaluates a discrete 25-point geometric lattice that yields 4 non-dominated candidate points on this split. This finding supports higher observed hypervolume on this development split; it does not establish universal algorithmic superiority across unseen data partitions.
    - **Single-Objective Absolute RMSE:** Single-Objective TPE attained the lowest overall Test RMSE ($0.46691 \pm 0.00116$), outperforming DOE Single-Objective ($0.46859 \pm 0.00000$). However, this required $188.93\,\mu\text{s}$ predict latency, which violates the latency constraint.
 
-2. **Where DOE Demonstrates Methodological Advantages:**
-   - **Sample Efficiency:** DOE fitted and optimized its quadratic response surface using only 28 model evaluations per block design, whereas TPE required 140 evaluations per replicate (a $5\times$ computational overhead).
-   - **Targeted Desirability Point Selection:** Under strict multi-objective desirability ($\le 145\,\mu\text{s}$), Repeated DOE MO identified an operating point with lower Test RMSE ($0.48997$ vs $0.49255$) and lower between-search variance ($0.00732$ vs $0.01080$) than MO-TPE at identical latency ($122.29\,\mu\text{s}$ vs $121.46\,\mu\text{s}$).
-   - **Between-Search Variance:** Repeated DOE Single-Objective demonstrated zero between-search variance ($\text{SD} = 0.00000$) due to the deterministic geometry of the central composite design, whereas random search ($\text{SD} = 0.00207$) and single-objective TPE ($\text{SD} = 0.00116$) exhibit stochastic variance across seeds.
+2. **DOE Methodological Characteristics under Equal 140-Fit Budget:**
+   - **Budget Allocation:** Under an equal evaluation budget of 140 model fits per replicate, Repeated DOE allocates fits to 25 unique geometric lattice points with 5-fold replication across nuisance blocks, enabling formal estimation of block effects, lack-of-fit, and second-order response surfaces. TPE allocates all 140 fits to unique configurations for exploratory coverage.
+   - **Targeted Desirability Point Selection:** Under strict multi-objective desirability ($\le 145\,\mu\text{s}$), Repeated DOE MO selected operating points with lower descriptive Test RMSE ($0.48997$ vs $0.49255$, $p = 0.38$, not statistically significant) and lower between-search variance ($0.00732$ vs $0.01080$) than MO-TPE at matched latency ($122.29\,\mu\text{s}$ vs $121.46\,\mu\text{s}$).
+   - **Selection Stability:** Repeated DOE Single-Objective demonstrated zero between-search variance ($\text{SD} = 0.00000$) due to deterministic boundary selection across all 20 nuisance block sets, while maintaining non-zero retraining uncertainty across holdout evaluation seeds ($\text{SD} = 0.00304$).
 
 3. **Latency Measurement & Interface Profiling:**
    - **Session Stability:** Thread pinning to Core 0 yielded a within-configuration between-session standard deviation of only $1.28\,\mu\text{s}$ across 5 sessions.
-   - **Interface Overhead Resolution:** Wrapper `predict` incurs $32.19\,\mu\text{s}$ ($\text{SD} = 1.46\,\mu\text{s}$) overhead compared to core `inplace_predict`. This resolves the historical discrepancy between confirmation runs (measured via direct DMatrix/inplace) and benchmark runs (measured via pandas DataFrame wrapper).
+   - **Historical Discrepancy Forensic Resolution:** Code inspection of `v1.0.0` proved that both confirmation and benchmark scripts evaluated both APIs and both published `predict()`. The historical $+22.5\,\mu\text{s}$ to $+23.3\,\mu\text{s}$ gap was caused by unpinned execution and environment drift rather than an interface mismatch (see `docs/c1_latency_forensics.md`).
 
 ---
 
 ## 7. Verification & Scientific Integrity Audit
 
-Automated verification script `scripts/audit_full_results.py` verified:
+Automated verification scripts (`scripts/audit_full_results.py` and `scripts/audit_scientific_consistency.py`) verified:
 - **Holdout Isolation:** All 11,200 optimizer trials in `optimizer_trials.csv` contain zero holdout columns (`test_rmse` absent).
 - **Cryptographic Gating:** All 122 frozen configurations in `finalized_selections.json` were hashed prior to holdout evaluation; zero hash mismatches occurred during evaluation.
-- **Trial Logging:** All 2,800 constrained TPE trials logged feasibility flags (1,590 feasible, 1,210 infeasible). No infeasible configurations were selected as winners.
+- **Trial Logging:** All 2,800 constrained TPE trials logged feasibility flags (1,590 feasible, 1,210 infeasible). No infeasible configurations were selected as search winners.
 - **Statistical Inference:** Pseudo-replicated t-tests over holdout retrainings are explicitly marked `inference_performed: false` in `paired_comparisons.json` to prevent invalid statistical claims.
 
-**READINESS STATEMENT:** Work Package C is complete. All raw results and artifacts are safely preserved in `results/revision_v2/full_run_001/`. The pipeline is awaiting user review before proceeding to Work Package D (updating `report.tex` and compiling `report.pdf`). PR #2 remains unmerged.
+---
+
+## 8. Work Package C.1 Final Closeout Summary
+
+Work Package C.1 (Independent Scientific Consistency Audit & Publication Evidence Verification) is officially closed:
+1. **Hypervolume Conclusions Qualified:** Observed higher candidate hypervolume for MO-TPE ($18.3834$ vs $16.8585$ Full DOE, $p < 0.0001$) on development split 42 supports higher observed performance on that split, not universal algorithmic superiority.
+2. **Factual Descriptions Corrected:** Face-centered CCD spans the complete 4D hypercube $[0.01, 0.30] \times [3, 9] \times [0.5, 1.0] \times [0.1, 10.0]$ across 25 lattice points; all depth ranges correctly noted as $3–9$ discrete integer (no depth 2 or 10).
+3. **Constrained TPE Feasibility Qualified:** 9/20 benchmark feasibility verified; causal explanations qualified as hypotheses (sampling variability, protocol differences, selection effects).
+4. **Deliverables Completed:** `docs/c1_final_assessment.md`, `scripts/audit_scientific_consistency.py`, and `tests/test_scientific_consistency_audit.py` created and verified by 110/110 passing pytest tests.
+
+**READINESS STATEMENT:** Work Packages A, B, C, and C.1 are fully complete and verified. The repository is awaiting user authorization to proceed to Work Package D (Publication Revision & Manuscript Regeneration). PR #2 remains unmerged.
 
