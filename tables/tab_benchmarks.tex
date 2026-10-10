@@ -1,12 +1,21 @@
 \begin{tabular}{lcccccc}
 \toprule
-\makecell{\textbf{Optimization}\\\textbf{Method}} & \makecell{\textbf{Val RMSE}\\\scriptsize\textbf{(95\% CI)}} & \makecell{\textbf{Test RMSE}\\\scriptsize\textbf{(95\% CI)}} & \makecell{\textbf{Pred Lat}\\\bm{$(\mu\text{s})$}} & \makecell{\textbf{Inplace}\\\bm{$(\mu\text{s})$}} & \textbf{Depth} & \makecell{\textbf{Search}\\\textbf{Basis}} \\
+\makecell{\textbf{Optimization Method}} & \makecell{\textbf{Search Basis}\\\scriptsize\textbf{($N$ Replicates)}} & \makecell{\textbf{Val RMSE}\\\scriptsize\textbf{Mean $\pm$ SD$_{\text{search}}$}} & \makecell{\textbf{Holdout Test RMSE}\\\scriptsize\textbf{Mean $\pm$ SD$_{\text{search}}$}} & \makecell{\textbf{Retrain}\\\bm{$\sigma_{\text{eval}}$}} & \makecell{\textbf{Predict Latency}\\\bm{$(\mu\text{s} \pm \text{SD})$}} & \makecell{\textbf{Benchmark}\\\textbf{Feasible}} \\
 \midrule
-\makecell[l]{DOE Multi-Obj ($\mathbf{x}^*_{\text{MO}}$)} & \makecell{$0.4821$\\\scriptsize$[0.4786, 0.4855]$} & \makecell{$0.4884$\\\scriptsize$[0.4869, 0.4899]$} & $119.8$ & $87.1$ & 4 & \makecell{Second-Order\\RSM} \\
-\makecell[l]{DOE Single-Obj ($\mathbf{x}^*_{\text{SO}}, d{=}7$)} & \makecell{$0.4687$\\\scriptsize$[0.4654, 0.4720]$} & \makecell{$0.4690$\\\scriptsize$[0.4678, 0.4702]$} & $147.8$ & $116.9$ & 7 & \makecell{Second-Order\\RSM} \\
-\makecell[l]{Random Search} & \makecell{$0.4696$\\\scriptsize$[0.4663, 0.4728]$} & \makecell{$0.4707$\\\scriptsize$[0.4695, 0.4718]$} & $198.1$ & $164.2$ & 9 & \makecell{Black-Box\\Oracle} \\
-\makecell[l]{Bayesian TPE (SO)} & \makecell{$0.4735$\\\scriptsize$[0.4699, 0.4770]$} & \makecell{$0.4726$\\\scriptsize$[0.4709, 0.4744]$} & $193.2$ & $160.9$ & 9 & \makecell{Black-Box\\Oracle} \\
-\makecell[l]{Constrained TPE} & \makecell{$0.4783$\\\scriptsize$[0.4747, 0.4819]$} & \makecell{$0.4823$\\\scriptsize$[0.4805, 0.4840]$} & $125.4$ & $94.1$ & 5 & \makecell{Black-Box\\Oracle} \\
-\makecell[l]{Multi-Obj TPE} & \makecell{$0.4812$\\\scriptsize$[0.4776, 0.4848]$} & \makecell{$0.4870$\\\scriptsize$[0.4849, 0.4892]$} & $118.8$ & $87.6$ & 4 & \makecell{Black-Box\\Oracle} \\
+\multicolumn{7}{l}{\textbf{Panel A: Prospective Revision-v2 Full Benchmark ($N=20$ Independent Search Replicates, 140 Fits/Rep)}} \\
+\makecell[l]{Repeated DOE Multi-Obj ($\mathbf{x}^*_{\text{MO}}$)} & RSM ($N{=}20$ reps) & $0.4853 \pm 0.0055$ & $0.4900 \pm 0.0073$ & $0.0033$ & $122.3 \pm 2.7$ & 20/20 \\
+\makecell[l]{Multi-Objective TPE (Desirability)} & Parzen ($N{=}20$ reps) & $0.4881 \pm 0.0093$ & $0.4926 \pm 0.0108$ & $0.0036$ & $121.5 \pm 3.8$ & 20/20 \\
+\makecell[l]{Constrained TPE ($\le 145\,\mu\text{s}$)} & Parzen ($N{=}20$ reps) & $0.4700 \pm 0.0022$ & $0.4704 \pm 0.0032$ & $0.0034$ & $144.3 \pm 7.1$ & 9/20 \\
+\makecell[l]{Repeated DOE Single-Obj ($\mathbf{x}^*_{\text{SO}}, d{=}7$)} & RSM ($N{=}20$ reps) & $0.4687 \pm 0.0000$ & $0.4686 \pm 0.0000$ & $0.0030$ & $150.7 \pm 0.7$ & 0/20 \\
+\makecell[l]{Single-Objective TPE} & Parzen ($N{=}20$ reps) & $0.4675 \pm 0.0008$ & $0.4669 \pm 0.0012$ & $0.0031$ & $188.9 \pm 12.1$ & 0/20 \\
+\makecell[l]{Unguided Random Search} & Uniform ($N{=}20$ reps) & $0.4687 \pm 0.0014$ & $0.4695 \pm 0.0021$ & $0.0030$ & $181.1 \pm 19.0$ & 0/20 \\
+\midrule
+\multicolumn{7}{l}{\textbf{Panel B: Historical Baseline Snapshot ($v1.0.0$, Single Search Replicate)}} \\
+\makecell[l]{Historical DOE Multi-Obj ($\mathbf{x}^*_{\text{MO}}$)} & RSM (Single rep) & $0.4821$ & $0.4884$ & --- & $119.8$ & Yes \\
+\makecell[l]{Historical Multi-Obj TPE} & Parzen (Single rep) & $0.4812$ & $0.4870$ & --- & $118.8$ & Yes \\
+\makecell[l]{Historical Constrained TPE} & Parzen (Single rep) & $0.4783$ & $0.4823$ & --- & $125.4$ & Yes \\
+\makecell[l]{Historical DOE Single-Obj ($d{=}7$)} & RSM (Single rep) & $0.4687$ & $0.4690$ & --- & $147.8$ & No \\
+\makecell[l]{Historical Bayesian TPE (SO)} & Parzen (Single rep) & $0.4735$ & $0.4726$ & --- & $193.2$ & No \\
+\makecell[l]{Historical Random Search} & Uniform (Single rep) & $0.4696$ & $0.4707$ & --- & $198.1$ & No \\
 \bottomrule
 \end{tabular}

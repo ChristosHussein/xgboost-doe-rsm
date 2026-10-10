@@ -28,6 +28,7 @@ def test_report_uses_macros_and_inputs():
         "tab_confirmation",
         "tab_benchmarks",
         "tab_depth_opt",
+        "tab_hypervolume_comparison",
     ]
     for tab in required_tables:
         pattern = rf"\\input{{tables/{tab}(\.tex)?}}"
@@ -36,3 +37,7 @@ def test_report_uses_macros_and_inputs():
     # 3. Must use \\num* macros in the body text
     macro_matches = re.findall(r"\\num[A-Z][a-zA-Z0-9]*", content)
     assert len(macro_matches) >= 25, f"Expected at least 25 macro usages in text, found {len(macro_matches)}"
+
+    # 4. Must use \\numRev* macros for prospective revision evidence
+    rev_macro_matches = re.findall(r"\\numRev[A-Z][a-zA-Z0-9]*", content)
+    assert len(rev_macro_matches) >= 10, f"Expected at least 10 revision macro usages in text, found {len(rev_macro_matches)}"

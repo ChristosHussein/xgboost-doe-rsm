@@ -316,57 +316,46 @@ $$\hat{y}_2(\mathbf{x}^*) = 117.99\ \mu s$$
 
 ---
 
-## 8. Phase 5: Empirical Confirmation & Benchmarking
+## 8. Phase 5: Empirical Confirmation & Prospective 20-Replicate Benchmarking
 
-### 8.1 Empirical Confirmation Trials
-To validate the model's predictive validity, 5 independent confirmation trials were run at $\mathbf{x}^*$ across all 5 seed blocks:
+### 8.1 Empirical Confirmation Trials at $\mathbf{x}^*_{\text{MO}}$ and $\mathbf{x}^*_{\text{SO}}$
+Surrogate predictions were validated via confirmation trials across fresh seeds ($\mathcal{S}_{\text{conf}} = \{505, \dots, 1414\}$):
+- **Multi-Objective Optimum $\mathbf{x}^*_{\text{MO}}$ (Depth 4):** Empirical validation RMSE of $0.4812 \pm 0.0051$ falls directly inside the Satterthwaite 95% prediction interval ($[0.4677, 0.4932]$). Inference latency was $138.1 \pm 6.8\,\mu\text{s}$ (within $[122.8, 153.4]\,\mu\text{s}$). External holdout test RMSE was $0.4884 \pm 0.0033$.
+- **Single-Objective Optimum $\mathbf{x}^*_{\text{SO}}$ (Depth 7):** Empirical validation RMSE ($0.4700 \pm 0.0093$) exceeded the Satterthwaite prediction interval ($[0.4354, 0.4612]$) due to structural surrogate optimism ($+0.0217$ RMSE bias), showing that quadratic interpolation across sampled depths $\{3, 6, 9\}$ fails to track the diminishing returns of deeper trees.
 
-| Trial | Block | Seed | Holdout Test RMSE ($Y_1$) | Inference Latency ($Y_2$, $\mu s$) | Training Time (s) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 1 | 42 | $0.4844$ | $134.21$ | $0.181$ |
-| 2 | 2 | 101 | $0.4883$ | $127.45$ | $0.174$ |
-| 3 | 3 | 202 | $0.4862$ | $126.89$ | $0.178$ |
-| 4 | 4 | 303 | $0.4939$ | $131.54$ | $0.179$ |
-| 5 | 5 | 404 | $0.4872$ | $134.78$ | $0.183$ |
-| **Mean** | — | — | **$0.4880 \pm 0.0036$** | **$130.97 \pm 4.63$** | **$0.179$** |
+### 8.2 Prospective Full Benchmark Campaign ($N=20$ Search Replicates, 140 Fits/Rep)
+We evaluated five optimization strategies under strictly equal evaluation budgets (140 model fits per search replicate) across $N = 20$ independent search replicates, executing exactly **$17,077$ total model fits** and **$1,640,810$ timed inferences**. Winning hyperparameter configurations ($122$ unique configurations) were frozen and evaluated across $20$ fresh retraining seeds on the external holdout test set ($N = 4,128$) under dedicated single-threaded latency profiling:
 
-**Confirmation Validation:** The empirical mean confirmation RMSE of $0.4880$ is within $0.0010$ of the upper limit of the model's predicted 95% confidence interval ($[0.4745, 0.4870]$), confirming that the response surface accurately estimated the performance frontier.
-
-### 8.2 Empirical Benchmark Comparison (Cumulative Budget = 140 Evaluations)
-We evaluated three optimization strategies under an identical cumulative evaluation budget ($N = 140$ genuine training runs):
-1. **Sequential DOE-CCD:** Phase 1 ($100$ runs) + Phase 2 ($40$ runs)
-2. **Unguided Random Search:** $140$ uniform draws from the hypercube
-3. **Bayesian Optimization (Optuna TPE):** $140$ trials using `TPESampler(seed=42)`
+| Optimization Method | Search Basis | Val RMSE Mean $\pm$ SD$_{\text{search}}$ | Holdout Test RMSE Mean $\pm$ SD$_{\text{search}}$ | Retrain $\sigma_{\text{eval}}$ | Predict Latency ($\mu\text{s} \pm \text{SD}$) | Benchmark Feasible ($\le 145\,\mu\text{s}$) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Repeated DOE Multi-Obj ($\mathbf{x}^*_{\text{MO}}$)** | RSM ($N=20$) | $0.4853 \pm 0.0055$ | $0.4900 \pm 0.0073$ | $0.0033$ | $122.3 \pm 2.7$ | **20/20 (100%)** |
+| **Multi-Objective TPE (Desirability)** | Parzen ($N=20$) | $0.4881 \pm 0.0093$ | $0.4926 \pm 0.0108$ | $0.0036$ | $121.5 \pm 3.8$ | **20/20 (100%)** |
+| **Constrained TPE ($\le 145\,\mu\text{s}$)** | Parzen ($N=20$) | $0.4700 \pm 0.0022$ | $0.4704 \pm 0.0032$ | $0.0034$ | $144.3 \pm 7.1$ | **9/20 (45%)** |
+| **Repeated DOE Single-Obj ($d=7$)** | RSM ($N=20$) | $0.4687 \pm 0.0000$ | $0.4686 \pm 0.0000$ | $0.0030$ | $150.7 \pm 0.7$ | **0/20 (0%)** |
+| **Single-Objective TPE** | Parzen ($N=20$) | $0.4675 \pm 0.0008$ | **$0.4669 \pm 0.0012$** | $0.0031$ | $188.9 \pm 12.1$ | **0/20 (0%)** |
+| **Unguided Random Search** | Uniform ($N=20$) | $0.4687 \pm 0.0014$ | $0.4695 \pm 0.0021$ | $0.0030$ | $181.1 \pm 19.0$ | **0/20 (0%)** |
 
 ```
-![Optimization Sample Efficiency Comparison](figures/efficiency_comparison_curve.png)
+![Pareto Trade-off and Holdout Frozen Evaluation](figures/revision_v2_pareto_front.png)
 ```
 
-### 8.3 Comparative Performance & Efficiency Summary
-| Evaluation Metric | Sequential DOE-CCD | Unguided Random Search | Bayesian Optimization (Optuna TPE) |
-| :--- | :--- | :--- | :--- |
-| **Evaluation Budget** | $140$ runs ($100$ Phase 1 + $40$ Phase 2) | $140$ runs | $140$ runs |
-| **Best Test RMSE Attained** | $0.4645$ | $0.4585$ | **$0.4548$** |
-| **Median Test RMSE Across Runs** | $0.5023$ | $0.5095$ | **$0.4645$** |
-| **Nuisance Variance Isolation** | **Yes (ICC = 21.60% isolated)** | No (Confounded) | No (Confounded) |
-| **Curvature Hypothesis Testing** | **Yes ($F = 57468, p < 10^{-15}$)** | Impossible | Impossible |
-| **Lack of Fit Test** | **Yes ($F = 122.6, F_{\text{lat}} = 0.45$)**| Impossible | Impossible |
-| **Interaction Quantified** | **Yes ($x_1 \cdot x_2, F = 1167.9$)** | Impossible | Impossible |
-| **Multi-Objective Pareto Model** | **Closed-form Desirability Surface** | Post-hoc Pareto filter only | Post-hoc scalarization only |
-| **Operational Guidance** | **Full quadratic surrogate equation**| Single discrete point | Single discrete point |
+### 8.3 Pareto Hypervolume Analysis
+- **Development Split 42 (Candidate Fronts):** Under the 30-call search protocol, MO-TPE candidate fronts attained a mean hypervolume of $18.3834 \pm 0.3301$ (reference $[0.60, 250.0]$), significantly exceeding the full evaluated DOE candidate frontier ($16.8585$, difference $-1.5249, p < 0.0001$). Under reference $[0.65, 275.0]$, MO-TPE achieved $30.0535 \pm 0.4123$ vs $28.1430$ for DOE ($p < 0.0001$). This evidence supports higher candidate hypervolume for MO-TPE on this development split without implying universal algorithmic superiority.
+- **Holdout Test Set (Evaluated Selections):** Evaluating the 122 frozen evaluated configurations across 20 fresh seeds yields a 12-point non-dominated set (hypervolume $17.6714$ at $[0.60, 250.0]$ and $28.9900$ at $[0.65, 275.0]$). This set is the non-dominated set *among the 122 frozen evaluated configurations*, formed by 3 Repeated DOE MO selections, 3 MO-TPE selections, 5 Constrained TPE selections, and 1 SO-TPE selection.
 
 ---
 
 ## 9. Engineering Takeaways and Practical Recommendations
 
-1. **Depth-4 Trees Provide the Optimal Production Compromise:**
-   While unconstrained RMSE minimization pushes tree depth to 9 (achieving RMSE $\approx 0.465$ at $160\ \mu s$), Derringer-Suich desirability proves that depth 4 yields RMSE $= 0.488$ at $130\ \mu s$. Practitioners save over $22\%$ in inference latency and $55\%$ in tree memory footprint for a negligible $0.023$ loss in test RMSE.
-2. **Learning Rate Requires Concomitant Depth Scaling:**
-   The massive positive interaction coefficient between learning rate and max depth ($+0.0318, p < 10^{-63}$) indicates that higher learning rates ($\eta \approx 0.24$) must be paired with shallow-to-moderate tree depths to avoid severe overfitting and maintain high generalization.
-3. **Stochastic Blocking is Indispensable for ML Tuning:**
-   The Intraclass Correlation Coefficient ($\text{ICC} = 21.60\%$) reveals that more than one-fifth of the total variance across test runs arises purely from random data splitting and subsampling noise. Without block designs, black-box optimizers frequently chase phantom improvements that are statistical noise.
-4. **DOE Delivers Structural Intelligence, Not Just Coordinates:**
-   While Optuna TPE achieved a marginally lower scalar RMSE ($0.4548$ vs. $0.4645$), it provided zero insight into parameter sensitivity, curvature, or interaction effects. Sequential DOE-CCD established a verified quadratic equation of the entire hyperparameter space, tested goodness-of-fit, isolated noise, and derived the entire continuous Pareto front.
+1. **Complementary Strengths of DOE and Bayesian Optimization:**
+   - **Classical DOE/RSM:** Excels at structured variance decomposition, formal curvature hypothesis testing ($F = 57,469$), lack-of-fit testing ($F = 8.13$), stochastic nuisance blocking ($\sigma_{\text{block}} \approx 0.0077$), and deterministic selection stability (between-search $\text{SD} = 0.00000$).
+   - **Adaptive TPE:** Excels at unconstrained objective exploration across complex non-convex response surfaces, discovering the numerically lowest observed mean Test RMSE ($0.46691$) without structural polynomial bias.
+2. **Multi-Objective Equivalence in Deployable Latency Regimes:**
+   When constrained to operational latency thresholds ($\le 145\,\mu\text{s}$), Repeated DOE MO ($\mathbf{x}^*_{\text{MO}}$) achieves Test RMSE of $0.48997$ at $122.3\,\mu\text{s}$, statistically indistinguishable ($p = 0.38$) from Multi-Objective TPE ($0.49255$ at $121.5\,\mu\text{s}$).
+3. **Response Surface Limitations and Local Guidance:**
+   Second-order polynomial surrogates are local approximations with structural lack of fit on boosting loss surfaces. While they reliably isolate dominant factor effects and identify robust operating regions, practitioners should validate intermediate-depth optima empirically to guard against surrogate optimism.
+4. **Latency Measurement Rigor:**
+   In single-sample inference profiling, wrapper overhead adds a fixed baseline ($32 - 47\,\mu\text{s}$), while core traversal scales with tree depth. Pinned CPU execution and multi-session replication are essential to prevent thermal drift and OS jitter from distorting latency-constrained search.
 
 ---
 
