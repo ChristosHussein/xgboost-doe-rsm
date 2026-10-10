@@ -55,8 +55,8 @@ The external holdout was evaluated and recorded during the original DOE executio
 
 - **Package A — Audit and correctness:** **Completed and verified.** Test set isolation, holdout gating, incumbent selection integrity, discrete depth parameterization, and centralized latency timing protocol are implemented and verified by 106 automated tests.
 - **Package B — Benchmark and statistical redesign:** **Completed and verified.** Multi-objective candidate front extraction, dual-reference hypervolume, block-aware variance decomposition, CI workflow (`.github/workflows/test.yml`), and atomic per-replicate checkpoint/resume mechanisms are fully implemented and verified via unit tests and smoke execution (`results/revision_v2/smoke_run_001`).
-- **Package C — New scientific experiments:** **Ready for execution.** Computational budget calculated (17,077 total model fits, ~51 min wall-clock time estimate). Atomic checkpointing in place (`destination/checkpoints/`). Guarded by `--confirm-full-budget` flag. Awaiting explicit user authorization.
-- **Package D — Publication revision:** **Pending Package C completion.** Manuscript generation, dynamic macro updates, and PDF compilation will be performed once full experimental data is produced and audited.
+- **Package C — New scientific experiments:** **Completed and verified.** Executed full benchmark protocol (`results/revision_v2/full_run_001/`) with 17,077 model fits and 1,640,810 timed prediction calls across 122 frozen configurations. Completed all 20 replicates for each optimizer and repeated DOE. All 5 audit dimensions verified by `scripts/audit_full_results.py` (0 test leaks, 0 hash mismatches, 0 failed retrainings).
+- **Package D — Publication revision:** **Awaiting user review of full results.** PR #2 remains unmerged and `report.tex`/`report.pdf` remain untouched until experimental results are reviewed and authorized.
 
 Software tests alone establish implementation behavior, not statistical validity or generalization. Those evidence levels remain separate throughout this ledger.
 

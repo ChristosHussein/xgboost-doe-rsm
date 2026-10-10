@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "producer": "scripts/run_benchmarks.py",
+  "classification": "new revision_v2 experiment",
+  "mode": "full",
+  "created_at_utc": "2026-10-10T01:03:56.620649+00:00",
+  "git_revision": "421cf24229f1f5fba26cdb3103ec989f9a427c96",
+  "git_worktree_status_short": [
+    "?? results/revision_v2/"
+  ],
+  "historical_baseline_ref": "v1.0.0",
+  "historical_baseline_tag_object": "0e5439ecbb40ca9d968db8870d369544032dda91",
+  "historical_baseline_revision": "cd63135d2b70a0ee324555c11b67a541b32b98a4",
+  "settings": {
+    "optimizer_replicates": 20,
+    "trials_per_optimizer": 140,
+    "evaluation_seeds": [
+      2001,
+      2002,
+      2003,
+      2004,
+      2005,
+      2006,
+      2007,
+      2008,
+      2009,
+      2010,
+      2011,
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020
+    ],
+    "doe_block_seed_sets": 20,
+    "doe_seeds_per_set": 5,
+    "doe_seed_base": 3001,
+    "latency_sessions": 5
+  },
+  "baseline_input_sha256": {
+    "v1.0.0:results/runs.csv": "87486cb5691c92d3861379f6b45026ecbd1a20897e6bd57ddda5b423e26efeac",
+    "v1.0.0:results/confirmation.json": "d8f6b88627a1cc6e3a925ad7af5e0dec6272a44c0df843a8982073ab48139b03",
+    "v1.0.0:results/phase3.json": "0a7d01b228c84d381721497d144120a4d3792205910c50e8f9c489ce8b3e303b"
+  },
+  "runtime_source_sha256": {
+    "config.yaml": "72bbd8809d134e02222acca2feb3c59d982f3cc67bb8c0420faaec245a83687a",
+    "pipeline.py": "8661ac3bee973f1befe0fd56a200161abf661e6c9bd40cba40ab5a502fbe4dec",
+    "analysis.py": "ba9909bc02c235fd204b4f4d2754c6ae4b826c8ca55468ec0cf36c42fe9aa51a",
+    "latency.py": "6154e1cfb4fc3b4cd67b1219c2a521e93dcaec6aea85fb3f843f3c42c7b77672",
+    "final_evaluation.py": "d6232b9d66f08dc87423bb3fb156debdb6992f95c8dbf528dc9b512104b1cd63",
+    "scientific_stats.py": "970c655df660be562e197db7b6abdf079753568ef5446d37c89ae264a6010b70",
+    "scripts/run_benchmarks.py": "1447d2ad4035a68adee6438aea7585be3f1de970931d2cc94fa3ca04ae831821"
+  },
+  "dataset": {
+    "name": "scikit-learn California housing",
+    "loader": "sklearn.datasets.fetch_california_housing",
+    "external_holdout_split_seed": 42,
+    "development_split_seed": 42
+  },
+  "environment": {
+    "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26300-SP0",
+    "machine": "AMD64",
+    "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+    "logical_cpu_count": 12,
+    "packages": {
+      "numpy": "2.4.4",
+      "pandas": "3.0.2",
+      "scipy": "1.17.1",
+      "scikit_learn": "1.8.0",
+      "statsmodels": "0.15.0",
+      "xgboost": "3.2.0",
+      "optuna": "5.0.0"
+    }
+  },
+  "artifact_sha256": {
+    "computational_budget.json": "8e9c60e104918d825eddcfc3d912b950c58d0d19ec004e1dcf8ad560781718e4",
+    "doe_matched_candidate_front.csv": "44ca6a903b17181590223fb09ab7144dc822e815c03b5e084ffb8005f99c0aaa",
+    "doe_selection_candidates.csv": "8775c1c2bf546afc20355c78ddb9fbd3ebd4f89bf2448861b38371992050f74f",
+    "doe_selection_protocol.json": "ca63a936fec3b510705bd199d98e8a72d426329fffecc6fd3cd897db29bf33e9",
+    "doe_selection_replicates.csv": "e05ce211610a06aea3806e6bfbca31b31742811e9b2ae793600b4deb3e16f1cc",
+    "doe_selection_runs.csv": "83c1e9f604b081c51c7271e3b15c68d4a29d0a18ce8fdf854ac1eaa8bd1de54b",
+    "doe_selection_summary.json": "d6efb38c808fb8d587b9ea648be19da442f99b211bae553fcbba1720f0626832",
+    "final_evaluations.csv": "bae360166c588599499852878c3374a033918d3a62d6abc3ce67fc0a6966de2e",
+    "final_summary.csv": "db5cfe8b23c149d437fe0ba628460603613473b27fbddd6a91e9d4ecb8b903a8",
+    "finalized_selections.json": "0701218416440f1d873cf62958ad21f757119fd634f5de95e712e6fc82fce339",
+    "hypervolume.json": "aab8964d433eed91a3d5e68b29b74e49ca1dcb5ebd793544105a63ca9d1f5f98",
+    "latency_interface_overhead.json": "6f7d46da8901f0e8ac3c3a3900e86d74c445cddf048ab3637f96d1da9ded3613",
+    "latency_measurement.json": "9a38a95f366b186553553835d21a710d3d4534ef4f6be104227f326380c9dd54",
+    "optimizer_replicates.csv": "cbcf1aac63d1a91713db1225d8cdf2d6b63cf7b4f12a74b389a13c4b38a796eb",
+    "optimizer_summary.json": "ac8dc329ec4a161ba62fbfbfef75c649e29915076ab31c591aff19eb80992680",
+    "optimizer_trials.csv": "137f8fff826174cb647455b3360eb9c340ed4d992310dd072e29d6df89a76d19",
+    "paired_comparisons.json": "cad03aa3ecff9ab7b00eed6173e0f8e565ed633e55f2475b1c9e16b7cf376d6f",
+    "run_manifest.json": "2b70ce5bd347f9cf6fe02976f604af854ee2a016fb07053913b44a85136df114"
+  }
+}
