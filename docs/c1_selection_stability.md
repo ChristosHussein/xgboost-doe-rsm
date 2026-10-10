@@ -43,10 +43,10 @@ Total Empirical Performance Variation
 |---|---:|---:|---|---|
 | **Repeated DOE Single-Objective** | 20 | **1** (100% identical) | Perfectly stable ($20/20$ replicate coincidence) | $100\%$ Depth 7 |
 | **Repeated DOE Multi-Objective** | 20 | **12** ($60\%$ unique) | Moderate stability ($15/20$ select Depth 4, $5/20$ Depth 5) | $75\%$ Depth 4, $25\%$ Depth 5 |
-| **Single-Objective TPE** | 20 | **20** ($100\%$ unique)| Stochastic exploration | $85\%$ Depth 8–10, $15\%$ Depth 7 |
-| **Constrained TPE ($\le 145\,\mu\text{s}$)** | 20 | **20** ($100\%$ unique)| Stochastic exploration | $60\%$ Depth 5, $40\%$ Depth 4 |
+| **Single-Objective TPE** | 20 | **20** ($100\%$ unique)| Stochastic exploration | $70\%$ Depth 9, $30\%$ Depth 8 |
+| **Constrained TPE ($\le 145\,\mu\text{s}$)** | 20 | **20** ($100\%$ unique)| Stochastic exploration | $55\%$ Depth 7, $45\%$ Depth 6 |
 | **Multi-Objective TPE** | 20 | **20** ($100\%$ unique)| Stochastic exploration | $50\%$ Depth 4, $25\%$ Depth 5, $25\%$ Depth 3 |
-| **Random Search** | 20 | **20** ($100\%$ unique)| Purely stochastic | $50\%$ Depth 7–9, $50\%$ Depth 3–6 |
+| **Random Search** | 20 | **20** ($100\%$ unique)| Purely stochastic | $45\%$ Depth 9, $40\%$ Depth 8, $15\%$ Depth 7 |
 
 **Insight:** Because the central composite design enforces a fixed, rigid geometric grid, the single-objective quadratic response surface consistently estimated its unconstrained gradient pointing toward the upper-bound boundary point ($\text{max\_depth} = 7$, $\lambda = 10.0$, $\text{subsample} = 1.0$), resulting in identical analytical grid optima across all 20 nuisance block sets. In contrast, multi-objective desirability balancing RMSE and latency introduces subtle curvature sensitivity in the trade-off knee, producing 12 unique configurations across the 20 block sets.
 

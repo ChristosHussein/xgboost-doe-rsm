@@ -74,8 +74,8 @@ Comparing a single complete replicate of each optimization strategy under the eq
 ### Key Analytical Insights:
 1. **Wall-Clock Optimization Efficiency:**
    - Multi-Objective TPE ran in **$26.24\,\text{s}$**, compared to Repeated DOE's **$36.49\,\text{s}$** (TPE was $28\%$ faster in wall-clock time).
-   - This occurs because TPE evaluates smaller depths on average during multi-objective exploration ($174.2\,\text{ms}$ per fit vs $238.6\,\text{ms}$ for DOE's fixed factorial combinations that include depth 10 models).
-   - Single-Objective TPE took **$54.03\,\text{s}$** because it quickly converged toward deeper trees (`max_depth = 8..10`), increasing individual training times ($370.2\,\text{ms}$ per fit).
+   - This occurs because TPE evaluates smaller depths on average during multi-objective exploration ($174.2\,\text{ms}$ per fit vs $238.6\,\text{ms}$ for DOE's fixed factorial combinations that include depth 9 models at the upper bound).
+   - Single-Objective TPE took **$54.03\,\text{s}$** because it quickly converged toward deeper trees (`max_depth = 8..9`), increasing individual training times ($370.2\,\text{ms}$ per fit).
 2. **Surrogate Fitting Overhead:**
    - Fitting the OLS second-order response surface and searching a fine resolution grid ($10,000$ points) took only **$1.48\,\text{s}$** per DOE replicate.
    - Parzen window density estimation in Optuna took **$0.41 - 0.43\,\text{s}$** per 140-trial replicate.
