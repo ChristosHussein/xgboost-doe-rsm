@@ -6,6 +6,7 @@
 
 ## Executive Summary
 
+<!-- BEGIN AUTO-GENERATED: EXEC_SUMMARY -->
 This report presents a comprehensive Design of Experiments (DOE) and Response Surface Methodology (RSM) study applied to the multi-objective hyperparameter optimization of an **XGBoost Regressor** on the **California Housing** benchmark dataset ($N = 20,640$ observations, $8$ continuous features). Following the methodology of Douglas C. Montgomery's *Design and Analysis of Experiments* (9th ed., 2017, Chapters 5, 9, 10, and 14), we treat stochastic machine learning variability—arising from random train/validation partitioning and row subsampling—as a **nuisance factor** controlled via a **Randomized Complete Block Design (RCBD)** across $b = 5$ seed blocks ($\mathcal{S} = \{42, 101, 202, 303, 404\}$).
 
 All primary DOE phases consist of **150 genuine model training and evaluation runs** (100 in Phase 1, 40 axial augmentations in Phase 2, and 10 confirmation trials in Phase 5 for $\mathbf{x}^*_{\text{MO}}$, supplemented by 10 confirmation trials for $\mathbf{x}^*_{\text{SO}}$), alongside a prospective 20-replicate benchmark campaign comprising **17,077 XGBoost model fits** and **1,640,810 timed single-sample inferences**:
@@ -16,11 +17,13 @@ All primary DOE phases consist of **150 genuine model training and evaluation ru
 4. **Phase 3 (Canonical & Ridge Analysis)**: Spectral decomposition of $\hat{\mathbf{B}}$ yields three positive eigenvalues and one near-zero eigenvalue ($\lambda = \{0.000057, 0.000873, 0.022759, 0.110196\}$; wild bootstrap 95% CI for $\lambda_1$: $[-0.0039, +0.0022]$, with $68.2\%$ of resamples $\le 0$), characterizing a **stationary/rising ridge system**. The unconstrained stationary point ($\|\mathbf{x}_0\| = 17.16$) lies outside $[-1, +1]^4$; constrained optimization over valid integer depths identifies the single-objective candidate $\mathbf{x}^*_{\text{SO}}$ at depth $7$ ($x_1 = 0.5983, x_2 = 0.3333, x_3 = 1.0000, x_4 = 1.0000$, i.e., $\eta = 0.1515, \text{depth} = 7, \text{subsample} = 1.0000, \lambda = 10.0000$) with predicted validation RMSE $\hat{y} = 0.4483$.
 5. **Phase 4 (Derringer-Suich Multi-Objective Desirability)**: Balancing Validation RMSE ($Y_1 \in [0.450, 0.700]$) and Single-Sample Inference Latency ($Y_2 \in [100.0, 180.0]\,\mu\text{s}$) yields an interior compromise coordinate $\mathbf{x}^*_{\text{MO}} = [0.8500, -0.6667, 1.0000, -0.0812]^T$ ($\eta = 0.2324, \text{depth} = 4, \text{subsample} = 1.0000, \lambda = 0.8295$), achieving composite desirability **$D = 0.6782$** ($d_1 = 0.8783, d_2 = 0.5236$) with predicted validation RMSE $\hat{Y}_1 = 0.4804$ and predicted latency $\hat{Y}_2 = 138.11\,\mu\text{s}$.
 6. **Phase 5 (Confirmation & Comparative Benchmarks)**: Across **10 confirmation trials** ($m = 10$ fresh seeds $\mathcal{S}_{\text{conf}} = \{505, 606, 707, 808, 909, 1010, 1111, 1212, 1313, 1414\}$), $\mathbf{x}^*_{\text{MO}}$ achieves empirical validation RMSE $0.4853 \pm 0.0115$ (falling inside the Satterthwaite 95% prediction interval $[0.4677, 0.4932]$), empirical latency $142.33 \pm 7.79\,\mu\text{s}$ ($142.3 \pm 7.8\,\mu\text{s}$, inside $[122.82, 153.40]\,\mu\text{s}$), and external holdout test RMSE $0.4888 \pm 0.0032$. At the single-objective depth-7 candidate $\mathbf{x}^*_{\text{SO}}$, empirical validation RMSE is $0.4700 \pm 0.0093$—lying $0.0088$ above the Satterthwaite 95% PI $[0.4354, 0.4612]$ due to $+0.0217$ polynomial optimism bias—while achieving external holdout test RMSE $0.4691 \pm 0.0034$ and borderline latency $171.1 \pm 10.9\,\mu\text{s}$ (at the lower bound of $[171.1, 202.9]\,\mu\text{s}$). In the 20-replicate prospective benchmark campaign, Single-Objective TPE achieves the lowest observed test RMSE ($0.46691 \pm 0.00116$) at high latency ($188.93 \pm 12.07\,\mu\text{s}$), whereas Repeated DOE Single-Objective yields deterministic selection ($0.46859 \pm 0.00000$, retraining $\sigma_{\text{eval}} = 0.00304$) at $20.2\%$ lower latency ($150.74 \pm 0.72\,\mu\text{s}$). In multi-objective optimization, Repeated DOE ($\mathbf{x}^*_{\text{MO}}$) and Multi-Objective TPE show no statistically significant difference in holdout test RMSE ($0.48997 \pm 0.00732$ vs. $0.49255 \pm 0.01080$, difference $-0.00258, p = 0.3826$) at comparable latency ($122.29 \pm 2.70\,\mu\text{s}$ vs. $121.46 \pm 3.75\,\mu\text{s}$) and $100\%$ ($20/20$) constraint feasibility.
+<!-- END AUTO-GENERATED: EXEC_SUMMARY -->
 
 ---
 
 ## 1. Experimental Factors, Coding, and Blocking Architecture
 
+<!-- BEGIN AUTO-GENERATED: SECTION_1_FACTORS_AND_BLOCKS -->
 ### 1.1 Hyperparameter Space & Natural-to-Coded Transformations
 
 We investigate $k = 4$ hyperparameters of an XGBoost Regressor (`n_estimators = 100`, `objective = 'reg:squarederror'`, `n_jobs = 1` for inference). Factors spanning orders of magnitude ($x_1$ and $x_4$) are mapped via natural logarithmic transformations prior to linear coding into $[-1, +1]$:
@@ -42,11 +45,13 @@ Each of the $b = 5$ blocks ($\mathcal{S} = \{42, 101, 202, 303, 404\}$) defines 
 Two response variables are recorded per run:
 - **Response $Y_1$ (Development Validation RMSE)**: Root Mean Squared Error on the 25% validation partition ($N_{\text{val}} = 4,128$). Unlike the historical `v1.0.0` pipeline, which logged holdout test metrics during development, the revised pipeline prevented access to the 20% external holdout test partition ($N_{\text{test}} = 4,128$) until candidate configurations were frozen in `finalized_selections.json`.
 - **Response $Y_2$ (Single-Sample Inference Latency, $\mu\text{s}$)**: Mean execution time in microseconds per single-row prediction on CPU Core 0 (`SetProcessAffinityMask = 1`, `n_jobs = 1`), timed over 1,000 single-sample calls after 100 untimed warmup calls (50 per prediction interface: `predict` and `inplace_predict`) using `time.perf_counter_ns()`.
+<!-- END AUTO-GENERATED: SECTION_1_FACTORS_AND_BLOCKS -->
 
 ---
 
 ## 2. Phase 1: $2^4$ Factorial Screening and Curvature Test
 
+<!-- BEGIN AUTO-GENERATED: SECTION_2_PHASE1 -->
 ### 2.1 Phase 1 ANOVA (Type III Sum of Squares)
 
 Phase 1 evaluates $2^4 = 16$ factorial corners plus $n_C = 4$ center replicates across $b = 5$ blocks ($N_1 = 100$ runs). Fitting the first-order model with two-factor interactions yields:
@@ -78,11 +83,13 @@ To test $H_0: \sum_{i=1}^4 \beta_{ii} = 0$, we compare the mean validation RMSE 
 - **Curvature $F$-Statistic**:
 $$F_{\text{Curv}} = \frac{\text{SS}_{\text{Curv}}}{\text{MS}_{\text{PE, center}}} = \frac{0.288786}{2.74 \times 10^{-6}} = 105,432.31 \quad (p < 10^{-15})$$
 *(Note: If evaluated against overall pure error pooled across all replicated design coordinates, $\text{df} = 83, \text{MS}_{\text{PE, All}} = 6.98 \times 10^{-5}$, the $F$-statistic is $F \approx 4,140, p < 10^{-15}$. Both confirm severe quadratic curvature requiring Phase 2 CCD augmentation.)*
+<!-- END AUTO-GENERATED: SECTION_2_PHASE1 -->
 
 ---
 
 ## 3. Phase 2: Face-Centered Central Composite Design (FCCD) and Model Adequacy
 
+<!-- BEGIN AUTO-GENERATED: SECTION_3_PHASE2 -->
 ### 3.1 Second-Order Response Surface ANOVA ($Y_1$: Validation RMSE and $Y_2$: Inference Latency)
 
 Augmenting Phase 1 with $2k = 8$ axial points ($\alpha = 1.0$) across 5 blocks yields $N = 140$ runs ($28$ runs/block). The fitted second-order validation RMSE model achieves $R^2 = 0.9951$ and $\text{Adjusted } R^2 = 0.9944$:
@@ -140,11 +147,13 @@ Residual adequacy diagnostics for $Y_1$:
 - **Normality**: Shapiro-Wilk $W = 0.9971, p = 0.9947$ (normal residuals).
 - **Homoscedasticity**: Levene across blocks $W = 0.1754, p = 0.9507$; Brown-Forsythe across design groups $W = 0.6872, p = 0.8552$; Breusch-Pagan against fitted values $\text{LM} = 70.10, p < 0.0001$ (reflecting multi-scale variance across the factor domain, addressed via HC3 robust standard errors).
 - **Independence & Influence**: Durbin-Watson $DW = 1.9918$, Ljung-Box $Q = 4.01, p = 0.5486$, Runs test $p = 0.8576$, maximum Cook's distance $D_{\max} = 0.097 < 1.0$.
+<!-- END AUTO-GENERATED: SECTION_3_PHASE2 -->
 
 ---
 
 ## 4. Phase 3: Canonical Spectral Analysis and Ridge Optimization
 
+<!-- BEGIN AUTO-GENERATED: SECTION_4_PHASE3 -->
 Writing the second-order validation RMSE surface as $\hat{y}(\mathbf{x}) = b_0 + \mathbf{x}^T \mathbf{b} + \mathbf{x}^T \hat{\mathbf{B}} \mathbf{x}$ gives $b_0 = 0.4994$ and linear gradient $\mathbf{b} = [-0.1242, -0.0336, -0.0047, -0.0007]^T$. Solving $\mathbf{x}_0 = -\frac{1}{2}\hat{\mathbf{B}}^{-1}\mathbf{b}$ yields an unconstrained stationary point at $\mathbf{x}_0 = [0.4171, 1.3524, 15.6944, -6.8009]^T$ ($\|\mathbf{x}_0\|_2 = 17.16$, $\hat{y}_0 = 0.4161$), which lies far outside $[-1, +1]^4$ due to flat regularization and subsampling curvature.
 
 Spectral decomposition $\hat{\mathbf{B}} = \mathbf{V}\bm{\Lambda}\mathbf{V}^T$ yields eigenvalues:
@@ -164,22 +173,26 @@ Constrained optimization within $\mathcal{D} = [-1, +1]^4$ restricted to valid i
 | $9$ | $0.4923$ | $+1.0000$ | $1.00$ | $1.00$ | $0.1265$ | $0.4582$ | $0.0034$ |
 
 The **Single-Objective RSM Candidate ($\mathbf{x}^*_{\text{SO}}$)** occurs at **depth $d = 7$** ($[0.5983, 0.3333, 1.0000, 1.0000]^T \implies \eta = 0.1515, d = 7, s = 1.0000, \lambda = 10.0000$), with predicted validation RMSE $\hat{y}(\mathbf{x}^*_{\text{SO}}) = 0.4483$ and Satterthwaite 95% PI $[0.4354, 0.4612]$.
+<!-- END AUTO-GENERATED: SECTION_4_PHASE3 -->
 
 ---
 
 ## 5. Phase 4: Multi-Objective Derringer-Suich Desirability
 
+<!-- BEGIN AUTO-GENERATED: SECTION_5_PHASE4 -->
 To simultaneously minimize **Validation RMSE ($Y_1$)** and **Single-Sample Inference Latency ($Y_2$)**, we apply one-sided Derringer-Suich transformations ($s_1 = s_2 = 1.0$, equal weights $w_1 = w_2 = 1.0$) with operational specification bounds $Y_1 \in [L_1, U_1] = [0.450, 0.700]$ and $Y_2 \in [L_2, U_2] = [100.0, 180.0]\,\mu\text{s}$, maximizing $D(\mathbf{x}) = \sqrt{d_1(\hat{Y}_1(\mathbf{x})) \cdot d_2(\hat{Y}_2(\mathbf{x}))}$ over valid integer depths:
 
 - **Coded Compromise Coordinate ($\mathbf{x}^*_{\text{MO}}$)**: $[0.8500, \ -0.6667, \ 1.0000, \ -0.0812]^T$
 - **Natural Hyperparameters**: `learning_rate` $\eta = 0.2324$, `max_depth` $d = 4$, `subsample` $s = 1.0000$, `reg_lambda` $\lambda = 0.8295$
 - **Surrogate Predictions**: $\hat{Y}_1 = 0.4804$ Validation RMSE, $\hat{Y}_2 = 138.11\,\mu\text{s}$ latency
 - **Individual & Composite Desirabilities**: $d_1 = 0.8783$, $d_2 = 0.5236$, **$D = 0.6782$**
+<!-- END AUTO-GENERATED: SECTION_5_PHASE4 -->
 
 ---
 
 ## 6. Phase 5: Empirical Confirmation Trials ($m = 10$ Fresh Seeds)
 
+<!-- BEGIN AUTO-GENERATED: SECTION_6_PHASE5 -->
 Both DOE candidate coordinates ($\mathbf{x}^*_{\text{MO}}$ at depth 4 and $\mathbf{x}^*_{\text{SO}}$ at depth 7) were evaluated across **$m = 10$ fresh random seeds** ($\mathcal{S}_{\text{conf}} = \{505, 606, 707, 808, 909, 1010, 1111, 1212, 1313, 1414\}$, matching `config.yaml` and `results/confirmation_runs.csv`) against Satterthwaite-adjusted 95% prediction intervals ($\nu_{\text{eff}} = 14.0$ for $\mathbf{x}^*_{\text{MO}}$ at $h_0 = 0.1043$; $\nu_{\text{eff}} = 15.1$ for $\mathbf{x}^*_{\text{SO}}$ at $h_0 = 0.1210$):
 
 | Configuration / Response Metric | Surrogate Pred ($\hat{y}$) | 95% Pred Interval (PI) | Empirical Mean $\pm$ SD ($m = 10$) | Confirmation Status |
@@ -194,11 +207,13 @@ Both DOE candidate coordinates ($\mathbf{x}^*_{\text{MO}}$ at depth 4 and $\math
 | Inference Latency ($\mu\text{s}$) | $187.0$ ($187.00$) | $[171.1, 202.9]$ ($[171.10, 202.90]$) | $171.1 \pm 10.9$ ($171.12 \pm 10.95$) | **Borderline** (At Lower PI) |
 
 At $\mathbf{x}^*_{\text{MO}}$ (depth 4), both validation RMSE ($0.4853 \pm 0.0115$) and single-sample inference latency ($142.33 \pm 7.79\,\mu\text{s}$) fall directly inside their Satterthwaite 95% prediction intervals. At $\mathbf{x}^*_{\text{SO}}$ (depth 7), empirical validation RMSE ($0.4700 \pm 0.0093$) lies $0.0088$ above the upper prediction interval bound ($0.4612$), confirming that quadratic interpolation across depths $\{3, 6, 9\}$ overestimates accuracy gains at depth 7 by $+0.0217$ RMSE ($6.8\times \text{SE}(\hat{y})$), while empirical latency ($171.1 \pm 10.9\,\mu\text{s}$) sits on the lower bound of its 95% prediction interval ($[171.1, 202.9]\,\mu\text{s}$).
+<!-- END AUTO-GENERATED: SECTION_6_PHASE5 -->
 
 ---
 
 ## 7. Prospective Multi-Replicate Benchmark Campaign (`Revision-v2`)
 
+<!-- BEGIN AUTO-GENERATED: SECTION_7_BENCHMARKS -->
 To evaluate the DOE + RSM methodology against modern heuristic and Bayesian optimizers under strictly equal evaluation budgets (140 model evaluations per search), we executed a prospective benchmark campaign (`results/revision_v2/full_run_001/`) comprising **17,077 XGBoost model fits** and **1,640,810 timed single-sample inferences** across $N = 20$ independent search replicates per optimizer.
 
 All **122 winning selection records** (representing **95 distinct hyperparameter configurations** by SHA-256 hash and yielding **2,440 final evaluation rows** in `final_evaluations.csv`) were cryptographically frozen in `finalized_selections.json` prior to generalization testing across 20 fresh retraining seeds ($\mathcal{S}_{\text{eval}} = \{2001, 2002, \dots, 2020\}$) on the external holdout test set ($N = 4,128$). Whereas the historical `v1.0.0` baseline logged holdout test metrics during exploratory development, the `Revision-v2` pipeline programmatically prevented access to holdout test labels until `finalized_selections.json` was frozen (enforcing pipeline isolation during the revised search, while recognizing that the same dataset was previously evaluated in the historical baseline).
@@ -217,7 +232,7 @@ All **122 winning selection records** (representing **95 distinct hyperparameter
 | **Panel B: Historical Baseline Snapshot (`v1.0.0`, Single Search Replicate)** | | | | | | | | |
 | **Historical DOE MO ($\mathbf{x}^*_{\text{MO}}$)** | RSM (Single) | $0.4821$ | $0.4884$ | — | — | $119.8$ | $87.1$ | Yes |
 | **Historical Multi-Obj TPE** | Parzen (Single) | $0.4812$ | $0.4870$ | — | — | $118.8$ | $87.6$ | Yes |
-| **Historical Constrained TPE** | Parzen (Single) | $0.4783$ | $0.4823$ | — | — | $125.4$ | — | Yes |
+| **Historical Constrained TPE** | Parzen (Single) | $0.4783$ | $0.4823$ | — | — | $125.4$ | $94.1$ | Yes |
 | **Historical DOE SO ($d = 7$)** | RSM (Single) | $0.4687$ | $0.4690$ | — | — | $147.8$ | $116.9$ | No |
 | **Historical Bayesian TPE** | Parzen (Single) | $0.4735$ | $0.4726$ | — | — | $193.2$ | $160.9$ | No |
 | **Historical Random Search** | Uniform (Single) | $0.4696$ | $0.4707$ | — | — | $198.1$ | $164.2$ | No |
@@ -246,11 +261,13 @@ All **122 winning selection records** (representing **95 distinct hyperparameter
 3. **Development Hypervolume vs. Holdout Non-Dominated Set**: On development split 42 under the online 30-call timing protocol, MO-TPE candidate fronts achieve a mean hypervolume of $18.3834 \pm 0.3301$ at reference $[0.60, 250.0]$ ($30.0535 \pm 0.4123$ at $[0.65, 275.0]$), exceeding the fixed 27-point DOE candidate frontier ($16.8585$, difference $-1.5249, p < 0.0001$; at $[0.65, 275.0]$, $28.1430$, difference $-1.9105, p < 0.0001$), while Repeated DOE 5-block means achieve $15.6128 \pm 0.7268$ ($26.6847 \pm 0.8786$ at $[0.65, 275.0]$). This demonstrates a higher observed candidate hypervolume on the evaluated development split under 30-call search timing, without implying universal algorithmic superiority across unconstrained domains or unseen splits. When the 122 frozen selection records (95 distinct configurations) are evaluated on the external holdout test set across 20 retraining seeds, the empirical non-dominated set among the evaluated frozen configurations consists of **12 distinct configurations** ($\text{HV} = 17.6714$ at $[0.60, 250.0]$ and $28.9900$ at $[0.65, 275.0]$) spanning both paradigms: **3 Repeated DOE MO, 3 MO-TPE, 5 Constrained TPE, and 1 SO-TPE**.
 4. **Constrained TPE Feasibility Degradation**: While Constrained TPE satisfies $\le 145\,\mu\text{s}$ on $20/20$ searches during online 30-call search timing, only **$9/20$ ($45\%$)** remain feasible under 1,000-call benchmark verification ($9/9$ depth-6 selections feasible at $136.70 \pm 0.82\,\mu\text{s}$; $0/11$ depth-7 selections feasible at $150.45 \pm 0.67\,\mu\text{s}$). Plausible factors include noisy 30-call search measurements near the boundary, protocol differences (30 calls without warmup vs. 1,000 calls with warmup), and selection bias, rather than a single conclusively isolated cause.
 5. **Historical Latency Comparison Caveat**: Both historical `v1.0.0` scripts (`phase5_confirmation.py` and `phase5_benchmarks.py`) applied Win32 CPU core 0 affinity pinning. Consequently, the shift between historical single-run latency snapshots and the prospective benchmark session cannot be conclusively attributed to unpinned execution or a single identified environmental factor.
+<!-- END AUTO-GENERATED: SECTION_7_BENCHMARKS -->
 
 ---
 
 ## 8. Discussion and Methodological Limitations
 
+<!-- BEGIN AUTO-GENERATED: SECTION_8_9_DISCUSSION_AND_ARTIFACTS -->
 1. **Parametric Attribution vs. Adaptive Search**: DOE + RSM decomposes variance across main effects, interactions, quadratic terms, and seed blocks, and provides formal hypothesis tests for curvature ($F = 105,432.31$) and lack of fit ($F = 62.21$). Conversely, Bayesian optimization (TPE) adapts dynamically to non-polynomial basins without parametric assumptions.
 2. **Value of Stochastic Nuisance Blocking**: Blocking across 5 data-partition seeds absorbed $\text{ICC} = 40.69\%$ of residual variance ($\sigma_{\text{block}} \approx 0.0077$ RMSE), preventing seed noise from confounding hyperparameter comparisons.
 3. **Structural Lack of Fit and Surrogate Optimism**: Because decision tree ensembles exhibit diminishing returns at deeper levels ($d \ge 6$), a second-order polynomial interpolated across $d \in \{3, 6, 9\}$ under-predicts validation RMSE at depth 7 by $+0.0217$ RMSE. Satterthwaite prediction intervals widen for variance heterogeneity across degrees of freedom but cannot correct deterministic polynomial bias.
@@ -262,5 +279,7 @@ All **122 winning selection records** (representing **95 distinct hyperparameter
 
 - **LaTeX Manuscript & Compiled PDF**: `report.tex` and `report.pdf` (22 pages, compiled via Tectonic with zero unresolved references or layout overflows).
 - **Auto-Generated Statistical Macros & Tables**: `results/macros.tex` (283 macros) and `tables/*.tex`, generated deterministically via `python scripts/generate_report_artifacts.py`.
+- **Single-Source-of-Truth Reporting & Manifest**: `scripts/reporting_data.py`, `scripts/generate_research_reporting.py`, and `docs/generated/scientific_results_manifest.json`.
 - **Prospective Benchmark Evidence**: `results/revision_v2/full_run_001/` (`finalized_selections.json`, `final_evaluations.csv`, `final_summary.csv`, `optimizer_summary.json`, `hypervolume.json`, `paired_comparisons.json`, `computational_budget.json`, `run_manifest.json`).
-- **Verification & Audit Suite**: `python scripts/audit_scientific_consistency.py` and `pytest` (automated integrity, statistical, and numerical table consistency checks).
+- **Verification & Audit Suite**: `python scripts/audit_scientific_consistency.py`, `python scripts/generate_research_reporting.py --check`, `python scripts/generate_report_artifacts.py --check`, and `pytest` (automated integrity, statistical, and numerical table consistency checks).
+<!-- END AUTO-GENERATED: SECTION_8_9_DISCUSSION_AND_ARTIFACTS -->

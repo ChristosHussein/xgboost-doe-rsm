@@ -1,0 +1,1145 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_experiment_dir": "results/revision_v2/full_run_001",
+  "historical_baseline_tag": "v1.0.0",
+  "summary_counts": {
+    "total_metrics_tracked": 58,
+    "reconstructed_count": 57,
+    "source_traced_count": 1
+  },
+  "metrics": [
+    {
+      "metric_id": "protocol.block_seeds",
+      "value": [
+        42,
+        101,
+        202,
+        303,
+        404
+      ],
+      "formatted_value": "42, 101, 202, 303, 404",
+      "precision": "exact_integer_list",
+      "input_artifact_path": "config.yaml",
+      "source_field_or_reconstruction": "block_seeds (verified against results/runs.csv)",
+      "evaluation_domain": "development_split_blocks",
+      "protocol": "RCBD_5_blocks_75_25_split",
+      "n_independent_units": 5,
+      "uncertainty_definition": "fixed_nuisance_blocks",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "protocol.confirmation_seeds",
+      "value": [
+        505,
+        606,
+        707,
+        808,
+        909,
+        1010,
+        1111,
+        1212,
+        1313,
+        1414
+      ],
+      "formatted_value": "505, 606, 707, 808, 909, 1010, 1111, 1212, 1313, 1414",
+      "precision": "exact_integer_list",
+      "input_artifact_path": "config.yaml",
+      "source_field_or_reconstruction": "confirmation_seeds (verified against results/confirmation_runs.csv and results/confirmation_runs_single_obj.csv)",
+      "evaluation_domain": "confirmation_splits_and_holdout",
+      "protocol": "10_fresh_confirmation_seeds",
+      "n_independent_units": 10,
+      "uncertainty_definition": "sample_sd_across_10_confirmation_seeds",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_confirmation.tex"
+      ]
+    },
+    {
+      "metric_id": "protocol.fresh_evaluation_seeds",
+      "value": [
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "formatted_value": "2001..2020",
+      "precision": "exact_integer_list",
+      "input_artifact_path": "config.yaml",
+      "source_field_or_reconstruction": "revision_v2.fresh_evaluation_seeds (verified against results/revision_v2/full_run_001/final_evaluations.csv)",
+      "evaluation_domain": "external_holdout_test_and_dev_validation",
+      "protocol": "20_fresh_retraining_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "within_selection_retraining_sd_ddof1",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "protocol.hypervolume_reference_primary",
+      "value": [
+        0.6,
+        250.0
+      ],
+      "formatted_value": "[0.60, 250.0]",
+      "precision": "[2dp, 1dp]",
+      "input_artifact_path": "config.yaml",
+      "source_field_or_reconstruction": "revision_v2.hypervolume_reference_point (verified against hypervolume.json)",
+      "evaluation_domain": "multi_objective_rmse_latency",
+      "protocol": "2d_minimization_hypervolume",
+      "n_independent_units": 1,
+      "uncertainty_definition": "fixed_reference_point",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_hypervolume_comparison.tex"
+      ]
+    },
+    {
+      "metric_id": "protocol.hypervolume_reference_secondary",
+      "value": [
+        0.65,
+        275.0
+      ],
+      "formatted_value": "[0.65, 275.0]",
+      "precision": "[2dp, 1dp]",
+      "input_artifact_path": "config.yaml",
+      "source_field_or_reconstruction": "revision_v2.hypervolume_secondary_reference_point (verified against hypervolume.json)",
+      "evaluation_domain": "multi_objective_rmse_latency",
+      "protocol": "2d_minimization_hypervolume",
+      "n_independent_units": 1,
+      "uncertainty_definition": "fixed_reference_point",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_hypervolume_comparison.tex"
+      ]
+    },
+    {
+      "metric_id": "phase1.curvature_f_stat",
+      "value": 105432.31230101374,
+      "formatted_value": "105,432.31",
+      "precision": "2dp",
+      "input_artifact_path": "results/runs.csv",
+      "source_field_or_reconstruction": "SS_curv / MS_pe_center reconstructed from 80 factorial and 20 center runs (verified against results/phase1.json:f_curvature)",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "1df_curvature_F_test_vs_within_block_center_PE_15df",
+      "n_independent_units": 100,
+      "uncertainty_definition": "F_distribution_1_15_df",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "phase1.factorial_mean_rmse",
+      "value": 0.6332819659204028,
+      "formatted_value": "0.6333",
+      "precision": "4dp",
+      "input_artifact_path": "results/runs.csv",
+      "source_field_or_reconstruction": "mean(val_rmse) for Phase1_Factorial (n=80)",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "RCBD_phase1",
+      "n_independent_units": 80,
+      "uncertainty_definition": "mean_across_80_factorial_runs",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "phase1.center_mean_rmse",
+      "value": 0.49893489841649624,
+      "formatted_value": "0.4989",
+      "precision": "4dp",
+      "input_artifact_path": "results/runs.csv",
+      "source_field_or_reconstruction": "mean(val_rmse) for Phase1_Center (n=20)",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "RCBD_phase1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "mean_across_20_center_runs",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "phase2.ccd_rsquared",
+      "value": 0.9951021740673103,
+      "formatted_value": "0.9951",
+      "precision": "4dp",
+      "input_artifact_path": "results/runs.csv",
+      "source_field_or_reconstruction": "OLS second-order response surface R^2 on N=140 runs",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "FCCD_second_order_OLS",
+      "n_independent_units": 140,
+      "uncertainty_definition": "goodness_of_fit_R2",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "phase2.block_icc_anova",
+      "value": 0.4068516665405714,
+      "formatted_value": "0.4069",
+      "precision": "4dp",
+      "input_artifact_path": "results/icc.json",
+      "source_field_or_reconstruction": "Y1.icc_anova (verified via Phase 2 ANOVA MS_block and MS_E from results/runs.csv)",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "RCBD_variance_components",
+      "n_independent_units": 5,
+      "uncertainty_definition": "intraclass_correlation_ratio",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "phase2.lof_f_vs_additive",
+      "value": 62.2139164077348,
+      "formatted_value": "62.21",
+      "precision": "2dp",
+      "input_artifact_path": "results/lof.json",
+      "source_field_or_reconstruction": "Y1.F_LoF (10 df structural LoF vs 111 df additive residual)",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "FCCD_lack_of_fit_test",
+      "n_independent_units": 140,
+      "uncertainty_definition": "F_distribution_10_111_df",
+      "verification_status": "SOURCE-TRACED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_lof.tex"
+      ]
+    },
+    {
+      "metric_id": "phase2.lof_f_vs_center_pe",
+      "value": 323.1028300766081,
+      "formatted_value": "323.10",
+      "precision": "2dp",
+      "input_artifact_path": "results/runs.csv",
+      "source_field_or_reconstruction": "MS_LoF / MS_PE_center (10 df structural LoF vs 15 df within-block center pure error)",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "FCCD_lack_of_fit_test_center_pe",
+      "n_independent_units": 140,
+      "uncertainty_definition": "F_distribution_10_15_df",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_lof.tex"
+      ]
+    },
+    {
+      "metric_id": "phase4.composite_desirability",
+      "value": 0.6781678509393265,
+      "formatted_value": "0.6782",
+      "precision": "4dp",
+      "input_artifact_path": "results/confirmation.json",
+      "source_field_or_reconstruction": "sqrt(d1 * d2) reconstructed from Y1_Val_RMSE.predicted_mean and Y2_Latency.predicted_mean",
+      "evaluation_domain": "development_surrogate_predictions",
+      "protocol": "Derringer_Suich_desirability",
+      "n_independent_units": 1,
+      "uncertainty_definition": "deterministic_surrogate_optimum",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "phase5.mo_emp_val_rmse_mean",
+      "value": 0.485286343413258,
+      "formatted_value": "0.4853",
+      "precision": "4dp",
+      "input_artifact_path": "results/confirmation_runs.csv",
+      "source_field_or_reconstruction": "mean(val_rmse) across 10 confirmation seeds (verified against results/confirmation.json)",
+      "evaluation_domain": "development_validation_rmse_fresh_seeds",
+      "protocol": "confirmation_10_seeds",
+      "n_independent_units": 10,
+      "uncertainty_definition": "mean +/- SD (0.0115) across 10 seeds",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_confirmation.tex"
+      ]
+    },
+    {
+      "metric_id": "phase5.mo_emp_test_rmse_mean",
+      "value": 0.4887737967416993,
+      "formatted_value": "0.4888",
+      "precision": "4dp",
+      "input_artifact_path": "results/confirmation_runs.csv",
+      "source_field_or_reconstruction": "mean(test_rmse) across 10 confirmation seeds (verified against results/confirmation.json)",
+      "evaluation_domain": "external_holdout_test_rmse",
+      "protocol": "confirmation_10_seeds",
+      "n_independent_units": 10,
+      "uncertainty_definition": "mean +/- SD (0.0032) across 10 seeds",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_confirmation.tex"
+      ]
+    },
+    {
+      "metric_id": "phase5.mo_emp_latency_mean",
+      "value": 142.33135000000001,
+      "formatted_value": "142.33",
+      "precision": "2dp (1dp in compact table)",
+      "input_artifact_path": "results/confirmation_runs.csv",
+      "source_field_or_reconstruction": "mean(latency_us_median) across 10 confirmation seeds (verified against results/confirmation.json)",
+      "evaluation_domain": "single_sample_inference_latency_us",
+      "protocol": "confirmation_10_seeds_1000_calls",
+      "n_independent_units": 10,
+      "uncertainty_definition": "mean +/- SD (7.79) across 10 seeds",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_confirmation.tex"
+      ]
+    },
+    {
+      "metric_id": "phase5.so_emp_val_rmse_mean",
+      "value": 0.4700001392267918,
+      "formatted_value": "0.4700",
+      "precision": "4dp",
+      "input_artifact_path": "results/confirmation_runs_single_obj.csv",
+      "source_field_or_reconstruction": "mean(val_rmse) across 10 confirmation seeds (verified against results/confirmation.json)",
+      "evaluation_domain": "development_validation_rmse_fresh_seeds",
+      "protocol": "confirmation_10_seeds",
+      "n_independent_units": 10,
+      "uncertainty_definition": "mean +/- SD (0.0093) across 10 seeds",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_confirmation.tex"
+      ]
+    },
+    {
+      "metric_id": "phase5.so_emp_test_rmse_mean",
+      "value": 0.4691237634152463,
+      "formatted_value": "0.4691",
+      "precision": "4dp",
+      "input_artifact_path": "results/confirmation_runs_single_obj.csv",
+      "source_field_or_reconstruction": "mean(test_rmse) across 10 confirmation seeds (verified against results/confirmation.json)",
+      "evaluation_domain": "external_holdout_test_rmse",
+      "protocol": "confirmation_10_seeds",
+      "n_independent_units": 10,
+      "uncertainty_definition": "mean +/- SD (0.0034) across 10 seeds",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_confirmation.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.total_model_fits",
+      "value": 17077,
+      "formatted_value": "17,077",
+      "precision": "exact_integer",
+      "input_artifact_path": "results/revision_v2/full_run_001/computational_budget.json",
+      "source_field_or_reconstruction": "11200 + 2800 + 27 + 2440 + 610 reconstructed from CSV/JSON row counts",
+      "evaluation_domain": "campaign_computational_budget",
+      "protocol": "full_run_001",
+      "n_independent_units": 17077,
+      "uncertainty_definition": "exact_count",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.total_timed_inferences",
+      "value": 1640810,
+      "formatted_value": "1,640,810",
+      "precision": "exact_integer",
+      "input_artifact_path": "results/revision_v2/full_run_001/computational_budget.json",
+      "source_field_or_reconstruction": "(11200 + 2800 + 27)*30 + 610*2000 reconstructed from trial and latency session records",
+      "evaluation_domain": "campaign_computational_budget",
+      "protocol": "full_run_001",
+      "n_independent_units": 1640810,
+      "uncertainty_definition": "exact_count",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.total_selection_records",
+      "value": 122,
+      "formatted_value": "122",
+      "precision": "exact_integer",
+      "input_artifact_path": "results/revision_v2/full_run_001/finalized_selections.json",
+      "source_field_or_reconstruction": "len(configurations) == 122 (6 optimizers * 20 reps + 2 historical anchors)",
+      "evaluation_domain": "frozen_selection_records",
+      "protocol": "finalized_selections_freeze",
+      "n_independent_units": 122,
+      "uncertainty_definition": "exact_count",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.distinct_config_hashes",
+      "value": 95,
+      "formatted_value": "95",
+      "precision": "exact_integer",
+      "input_artifact_path": "results/revision_v2/full_run_001/finalized_selections.json",
+      "source_field_or_reconstruction": "len(set(config_sha256)) == 95 distinct hyperparameter configurations",
+      "evaluation_domain": "frozen_selection_records",
+      "protocol": "sha256_deduplicated_configs",
+      "n_independent_units": 95,
+      "uncertainty_definition": "exact_count",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.total_evaluation_rows",
+      "value": 2440,
+      "formatted_value": "2,440",
+      "precision": "exact_integer",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "len(final_evaluations.csv) == 122 selections * 20 fresh seeds = 2,440",
+      "evaluation_domain": "external_holdout_evaluation",
+      "protocol": "20_fresh_seeds_per_selection",
+      "n_independent_units": 2440,
+      "uncertainty_definition": "exact_count",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.repeated_preplanned_doe_multi_objective.val_rmse_mean",
+      "value": 0.48528326445817055,
+      "formatted_value": "0.48528",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/doe_selection_summary.json",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00554 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.repeated_preplanned_doe_multi_objective.test_rmse_mean",
+      "value": 0.4899685870204262,
+      "formatted_value": "0.48997",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/doe_selection_summary.json",
+      "evaluation_domain": "external_holdout_test_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00732, 95% t-CI=[0.48654, 0.49339], conditional retrain sigma_eval=0.00330",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.repeated_preplanned_doe_multi_objective.predict_latency_mean",
+      "value": 122.28652500000001,
+      "formatted_value": "122.29",
+      "precision": "2dp (1dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/doe_selection_summary.json",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=2.70 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.repeated_preplanned_doe_multi_objective.inplace_latency_mean",
+      "value": 89.73482500000001,
+      "formatted_value": "89.73",
+      "precision": "2dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/doe_selection_summary.json",
+      "evaluation_domain": "single_sample_inplace_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=2.73 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.repeated_preplanned_doe_multi_objective.benchmark_feasible_count",
+      "value": 20,
+      "formatted_value": "20/20",
+      "precision": "exact_ratio",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_summary.csv",
+      "source_field_or_reconstruction": "sum(predict_latency_us <= 145.0) across N=20 replicates",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "latency_constraint_145us_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "100% benchmark feasibility (search-time: 20/20)",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.multi_objective_tpe.val_rmse_mean",
+      "value": 0.4881452313404395,
+      "formatted_value": "0.48815",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00934 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.multi_objective_tpe.test_rmse_mean",
+      "value": 0.49255060443348164,
+      "formatted_value": "0.49255",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "external_holdout_test_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.01080, 95% t-CI=[0.48749, 0.49761], conditional retrain sigma_eval=0.00358",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.multi_objective_tpe.predict_latency_mean",
+      "value": 121.45837499999998,
+      "formatted_value": "121.46",
+      "precision": "2dp (1dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=3.75 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.multi_objective_tpe.inplace_latency_mean",
+      "value": 88.83672500000002,
+      "formatted_value": "88.84",
+      "precision": "2dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "single_sample_inplace_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=3.76 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.multi_objective_tpe.benchmark_feasible_count",
+      "value": 20,
+      "formatted_value": "20/20",
+      "precision": "exact_ratio",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_summary.csv",
+      "source_field_or_reconstruction": "sum(predict_latency_us <= 145.0) across N=20 replicates",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "latency_constraint_145us_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "100% benchmark feasibility (search-time: 0/20)",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.constrained_tpe.val_rmse_mean",
+      "value": 0.46996212415554134,
+      "formatted_value": "0.46996",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00222 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.constrained_tpe.test_rmse_mean",
+      "value": 0.4703616673631309,
+      "formatted_value": "0.47036",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "external_holdout_test_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00324, 95% t-CI=[0.46885, 0.47188], conditional retrain sigma_eval=0.00341",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.constrained_tpe.predict_latency_mean",
+      "value": 144.267225,
+      "formatted_value": "144.27",
+      "precision": "2dp (1dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=7.06 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.constrained_tpe.inplace_latency_mean",
+      "value": 112.06902500000001,
+      "formatted_value": "112.07",
+      "precision": "2dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "single_sample_inplace_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=7.24 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.constrained_tpe.benchmark_feasible_count",
+      "value": 9,
+      "formatted_value": "9/20",
+      "precision": "exact_ratio",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_summary.csv",
+      "source_field_or_reconstruction": "sum(predict_latency_us <= 145.0) across N=20 replicates",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "latency_constraint_145us_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "45% benchmark feasibility (search-time: 20/20)",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.repeated_preplanned_doe_single_objective.val_rmse_mean",
+      "value": 0.4687228150842292,
+      "formatted_value": "0.46872",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/doe_selection_summary.json",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00000 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.repeated_preplanned_doe_single_objective.test_rmse_mean",
+      "value": 0.4685906357355905,
+      "formatted_value": "0.46859",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/doe_selection_summary.json",
+      "evaluation_domain": "external_holdout_test_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00000, 95% t-CI=[0.46859, 0.46859], conditional retrain sigma_eval=0.00304",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.repeated_preplanned_doe_single_objective.predict_latency_mean",
+      "value": 150.744575,
+      "formatted_value": "150.74",
+      "precision": "2dp (1dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/doe_selection_summary.json",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.72 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.repeated_preplanned_doe_single_objective.inplace_latency_mean",
+      "value": 118.783925,
+      "formatted_value": "118.78",
+      "precision": "2dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/doe_selection_summary.json",
+      "evaluation_domain": "single_sample_inplace_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.59 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.repeated_preplanned_doe_single_objective.benchmark_feasible_count",
+      "value": 0,
+      "formatted_value": "0/20",
+      "precision": "exact_ratio",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_summary.csv",
+      "source_field_or_reconstruction": "sum(predict_latency_us <= 145.0) across N=20 replicates",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "latency_constraint_145us_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "0% benchmark feasibility (search-time: 4/20)",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.single_objective_tpe.val_rmse_mean",
+      "value": 0.4674998493247863,
+      "formatted_value": "0.46750",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00082 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.single_objective_tpe.test_rmse_mean",
+      "value": 0.46691342801161284,
+      "formatted_value": "0.46691",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "external_holdout_test_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00116, 95% t-CI=[0.46637, 0.46746], conditional retrain sigma_eval=0.00314",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.single_objective_tpe.predict_latency_mean",
+      "value": 188.92567499999998,
+      "formatted_value": "188.93",
+      "precision": "2dp (1dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=12.07 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.single_objective_tpe.inplace_latency_mean",
+      "value": 157.1372,
+      "formatted_value": "157.14",
+      "precision": "2dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "single_sample_inplace_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=12.11 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.single_objective_tpe.benchmark_feasible_count",
+      "value": 0,
+      "formatted_value": "0/20",
+      "precision": "exact_ratio",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_summary.csv",
+      "source_field_or_reconstruction": "sum(predict_latency_us <= 145.0) across N=20 replicates",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "latency_constraint_145us_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "0% benchmark feasibility (search-time: 0/20)",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.random_search.val_rmse_mean",
+      "value": 0.4686859044562741,
+      "formatted_value": "0.46869",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00143 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.random_search.test_rmse_mean",
+      "value": 0.4695321039992114,
+      "formatted_value": "0.46953",
+      "precision": "5dp (4dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Reconstructed from 20 selections x 20 seeds and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "external_holdout_test_rmse",
+      "protocol": "20_search_replicates_x_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=0.00207, 95% t-CI=[0.46856, 0.47050], conditional retrain sigma_eval=0.00297",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.random_search.predict_latency_mean",
+      "value": 181.11767500000002,
+      "formatted_value": "181.12",
+      "precision": "2dp (1dp in compact table)",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=19.02 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.random_search.inplace_latency_mean",
+      "value": 149.05272499999998,
+      "formatted_value": "149.05",
+      "precision": "2dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
+      "source_field_or_reconstruction": "Reconstructed from 5 sessions x 1,000 calls per selection and cross-checked with results/revision_v2/full_run_001/optimizer_summary.json",
+      "evaluation_domain": "single_sample_inplace_predict_latency_us",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "between-search SD=18.81 across N=20 replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.random_search.benchmark_feasible_count",
+      "value": 0,
+      "formatted_value": "0/20",
+      "precision": "exact_ratio",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_summary.csv",
+      "source_field_or_reconstruction": "sum(predict_latency_us <= 145.0) across N=20 replicates",
+      "evaluation_domain": "single_sample_predict_latency_us",
+      "protocol": "latency_constraint_145us_primary_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "0% benchmark feasibility (search-time: 0/20)",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_benchmarks.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.comparison.doe_mo_vs_motpe_test_rmse_diff",
+      "value": -0.0025820174130553597,
+      "formatted_value": "-0.00258",
+      "precision": "5dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/paired_comparisons.json",
+      "source_field_or_reconstruction": "mean(doe_mo_test_rmse) - mean(mo_tpe_test_rmse) reconstructed from final_summary.csv",
+      "evaluation_domain": "external_holdout_test_rmse",
+      "protocol": "Welch_and_paired_t_tests_N20",
+      "n_independent_units": 20,
+      "uncertainty_definition": "Welch t=-0.8849 (p=0.3826), paired t=-0.9658 (p=0.3463)",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.hv.motpe_dev_060_mean",
+      "value": 18.383424576020012,
+      "formatted_value": "18.3834",
+      "precision": "4dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/optimizer_trials.csv",
+      "source_field_or_reconstruction": "2D hypervolume at [0.60, 250.0] across 20 MO-TPE replicates (140 trials each) on split 42, verified against hypervolume.json",
+      "evaluation_domain": "development_split_42_online_30call",
+      "protocol": "single_sample_latency_online_search_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "mean +/- SD (0.3301) across 20 search replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_hypervolume_comparison.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.hv.rdoe_dev_060_mean",
+      "value": 15.612770809055679,
+      "formatted_value": "15.6128",
+      "precision": "4dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/doe_selection_runs.csv",
+      "source_field_or_reconstruction": "2D hypervolume at [0.60, 250.0] across 20 Repeated DOE 5-block-mean candidate fronts, verified against hypervolume.json",
+      "evaluation_domain": "development_5block_means_online_30call",
+      "protocol": "single_sample_latency_online_search_v1",
+      "n_independent_units": 20,
+      "uncertainty_definition": "mean +/- SD (0.7268) across 20 search replicates",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_hypervolume_comparison.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.hv.full_doe_dev_060",
+      "value": 16.858506433880063,
+      "formatted_value": "16.8585",
+      "precision": "4dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/doe_matched_candidate_front.csv",
+      "source_field_or_reconstruction": "2D hypervolume at [0.60, 250.0] of 27 fixed DOE candidates on split 42, verified against hypervolume.json",
+      "evaluation_domain": "development_split_42_online_30call",
+      "protocol": "single_sample_latency_online_search_v1",
+      "n_independent_units": 1,
+      "uncertainty_definition": "fixed_27_point_candidate_set",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_hypervolume_comparison.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.hv.holdout_frozen_060",
+      "value": 17.6713582379725,
+      "formatted_value": "17.6714",
+      "precision": "4dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_summary.csv",
+      "source_field_or_reconstruction": "2D hypervolume at [0.60, 250.0] across 122 frozen selections on external holdout test set, verified against hypervolume.json",
+      "evaluation_domain": "external_holdout_test_domain",
+      "protocol": "single_sample_latency_primary_v1",
+      "n_independent_units": 122,
+      "uncertainty_definition": "12 non-dominated points (DOE MO=3, MO-TPE=3, cTPE=5, SO-TPE=1)",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_hypervolume_comparison.tex"
+      ]
+    }
+  ]
+}
