@@ -1,0 +1,615 @@
+{
+  "schema_version": 1,
+  "snapshot_kind": "historical_release_baseline",
+  "revision_requested": "v1.0.0",
+  "commit": "cd63135d2b70a0ee324555c11b67a541b32b98a4",
+  "captured_at_utc": "2026-10-09T12:30:50.557368+00:00",
+  "working_branch": "codex/scientific-revision",
+  "working_tree_status": [
+    "M pipeline.py",
+    " M results/benchmark.csv",
+    " M results/benchmark_evals_trajectories.csv",
+    " M results/benchmark_optimizer_incumbents.csv",
+    " M results/benchmark_summary.json",
+    " M scripts/generate_report_artifacts.py",
+    " M scripts/run_benchmarks.py",
+    "?? docs/",
+    "?? graphify-out/",
+    "?? output/",
+    "?? scripts/capture_provenance.py"
+  ],
+  "environment": {
+    "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+    "executable": "C:\\Users\\chris\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\python.exe",
+    "platform": "Windows-10-10.0.26300-SP0",
+    "machine": "AMD64",
+    "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+    "cpu_count": 12,
+    "libraries": {
+      "numpy": "2.4.4",
+      "pandas": "3.0.2",
+      "scipy": "1.17.1",
+      "scikit-learn": "1.8.0",
+      "statsmodels": "0.15.0",
+      "xgboost": "3.2.0",
+      "optuna": "5.0.0",
+      "PyYAML": "6.0.3",
+      "pytest": "9.1.1"
+    }
+  },
+  "configuration": {
+    "sha256": "ab8c99fb17dcc5a32763e8f8d7bdbc3c16c50eb14c24fb784c93079c4ace3af9",
+    "seeds": {
+      "block_seeds": [
+        42,
+        101,
+        202,
+        303,
+        404
+      ],
+      "center_replicate_seeds": {
+        "1": [
+          42,
+          1042,
+          2042,
+          3042
+        ],
+        "2": [
+          101,
+          1101,
+          2101,
+          3101
+        ],
+        "3": [
+          202,
+          1202,
+          2202,
+          3202
+        ],
+        "4": [
+          303,
+          1303,
+          2303,
+          3303
+        ],
+        "5": [
+          404,
+          1404,
+          2404,
+          3404
+        ]
+      },
+      "run_order_seed": 20261005,
+      "confirmation_seeds": [
+        505,
+        606,
+        707,
+        808,
+        909,
+        1010,
+        1111,
+        1212,
+        1313,
+        1414
+      ],
+      "fresh_eval_seeds": [
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "optimizer_sampler_seeds": [
+        10001,
+        10002,
+        10003,
+        10004,
+        10005,
+        10006,
+        10007,
+        10008,
+        10009,
+        10010,
+        10011,
+        10012,
+        10013,
+        10014,
+        10015,
+        10016,
+        10017,
+        10018,
+        10019,
+        10020
+      ]
+    },
+    "factors": {
+      "x1": {
+        "name": "learning_rate",
+        "natural_symbol": "eta",
+        "transform": "log",
+        "min": 0.01,
+        "max": 0.3
+      },
+      "x2": {
+        "name": "max_depth",
+        "natural_symbol": "depth",
+        "transform": "linear",
+        "min": 3,
+        "max": 9,
+        "is_integer": true
+      },
+      "x3": {
+        "name": "subsample",
+        "natural_symbol": "subsample",
+        "transform": "linear",
+        "min": 0.5,
+        "max": 1.0
+      },
+      "x4": {
+        "name": "reg_lambda",
+        "natural_symbol": "lambda",
+        "transform": "log",
+        "min": 0.1,
+        "max": 10.0
+      }
+    },
+    "model": {
+      "n_estimators": 100,
+      "objective": "reg:squarederror",
+      "n_jobs_train": 4,
+      "n_jobs_latency": 1,
+      "latency_warmup": 50,
+      "latency_iters": 1000,
+      "latency_reps": 5
+    },
+    "budget": {
+      "phase1_runs": 100,
+      "phase2_star_runs": 40,
+      "total_ccd_runs": 140,
+      "benchmark_evals_A": 140,
+      "benchmark_unique_configs_B": 25
+    }
+  },
+  "artifact_producers": {
+    "results/runs.csv": {
+      "producer": "pipeline.py:execute_design_pipeline",
+      "inputs": [
+        "config.yaml",
+        "sklearn California Housing dataset"
+      ],
+      "classification": "historical pre-planned DOE raw log"
+    },
+    "results/phase1.json|phase3.json|lof.json|diagnostics.json|icc.json|depth_opt_table.csv|ridge_table.csv": {
+      "producer": "analysis.py",
+      "inputs": [
+        "results/runs.csv",
+        "config.yaml"
+      ],
+      "classification": "historical reanalysis"
+    },
+    "results/confirmation*.csv|confirmation.json": {
+      "producer": "scripts/run_confirmation.py",
+      "inputs": [
+        "results/runs.csv",
+        "results/phase3.json",
+        "config.yaml"
+      ],
+      "classification": "historical confirmation experiment"
+    },
+    "results/latency_*|anova_ccd_latency.csv": {
+      "producer": "scripts/measure_latency.py and scripts/fit_latency_models.py",
+      "inputs": [
+        "results/runs.csv",
+        "config.yaml"
+      ],
+      "classification": "historical latency reanalysis"
+    },
+    "results/benchmark*|desirability_sensitivity.csv": {
+      "producer": "scripts/run_benchmarks.py",
+      "inputs": [
+        "results/phase3.json",
+        "results/runs.csv",
+        "config.yaml"
+      ],
+      "classification": "historical optimizer benchmark"
+    },
+    "results/macros.tex|tables/tab_*.tex": {
+      "producer": "scripts/generate_report_artifacts.py",
+      "inputs": [
+        "versioned results artifacts"
+      ],
+      "classification": "generated manuscript input"
+    },
+    "figures/*.png": {
+      "producer": "plots.py",
+      "inputs": [
+        "versioned results artifacts"
+      ],
+      "classification": "generated manuscript figure"
+    },
+    "report.pdf": {
+      "producer": "LaTeX compilation of report.tex",
+      "inputs": [
+        "report.tex",
+        "results/macros.tex",
+        "tables/",
+        "figures/"
+      ],
+      "classification": "published manuscript artifact"
+    },
+    "data/*|results_summary.json": {
+      "producer": "legacy run_pipeline.py workflow",
+      "inputs": [
+        "config.yaml and legacy pipeline interfaces"
+      ],
+      "classification": "legacy historical output; not authoritative for report.tex"
+    }
+  },
+  "files": [
+    {
+      "path": "REPORT.md",
+      "bytes": 29452,
+      "sha256": "09471873f8b41d442343caa062692ef1f441b4f590d20bc9082b44cdd42dd755",
+      "working_tree_sha256": "09471873f8b41d442343caa062692ef1f441b4f590d20bc9082b44cdd42dd755",
+      "working_tree_matches_snapshot": true
+    },
+    {
+      "path": "config.yaml",
+      "bytes": 2232,
+      "sha256": "ab8c99fb17dcc5a32763e8f8d7bdbc3c16c50eb14c24fb784c93079c4ace3af9",
+      "working_tree_sha256": "ab8c99fb17dcc5a32763e8f8d7bdbc3c16c50eb14c24fb784c93079c4ace3af9",
+      "working_tree_matches_snapshot": true
+    },
+    {
+      "path": "data/benchmark_optuna.csv",
+      "bytes": 30933,
+      "sha256": "512d701c908826760316533749a85a82032f083d33079f6f73a75485decd07e7",
+      "working_tree_sha256": "fa6b473538777f023292afc5805a8238954a62f6c8f830ca58705cfa849e0ff8",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "data/benchmark_random.csv",
+      "bytes": 31971,
+      "sha256": "951d8b86358b9e416c55970e29d9751a39b3e09590ae601742de398f62fb4792",
+      "working_tree_sha256": "afac002aa648d566d2760e2b326a23e4ed8dc839565b9ec057e21fc7655adc5f",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "data/ccd_runs.csv",
+      "bytes": 20890,
+      "sha256": "815e5310024f013bb27f4d3b3132b97ce9462bd2472207d98332bba1edc63fa3",
+      "working_tree_sha256": "99bacc90f62ec18a38f615af9a2b22ab1052c07f2c65d21142268615c7175da0",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "data/confirmation_runs.csv",
+      "bytes": 516,
+      "sha256": "fb1af91c7fcd4224498de810e92a19ec3122f9bec234c7c36cbae0b00a68d743",
+      "working_tree_sha256": "377bcbe35da6694b392740a732c34cb9381ad86d2d110f5b17f692c104a5ad71",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "data/phase1_runs.csv",
+      "bytes": 14812,
+      "sha256": "80bf7f97d1719b0c29163e6980047b5d78811bc5f4c3d60f66f11376299c1052",
+      "working_tree_sha256": "155ff02c2f9e01933f0c4fd764b05caa80eefd41cdb93129cf05332957048e20",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "figures/desirability_pareto_front.png",
+      "bytes": 444873,
+      "sha256": "aa4f2218b43e910c5a8fcba0ab4489d99ba80dac35dbc4f2f42f575e06995e83",
+      "working_tree_sha256": "aa4f2218b43e910c5a8fcba0ab4489d99ba80dac35dbc4f2f42f575e06995e83",
+      "working_tree_matches_snapshot": true
+    },
+    {
+      "path": "figures/diagnostics_panel_4in1.png",
+      "bytes": 920052,
+      "sha256": "154fc6d35370a14f0e9b3c724fd41f41dbdc393c33684765ea6b24249cc99993",
+      "working_tree_sha256": "154fc6d35370a14f0e9b3c724fd41f41dbdc393c33684765ea6b24249cc99993",
+      "working_tree_matches_snapshot": true
+    },
+    {
+      "path": "figures/efficiency_comparison_curve.png",
+      "bytes": 381862,
+      "sha256": "dc89e4bda7e9b438c75c3daf16bbc3ad198c7f48732d6195c539707f1c92d74a",
+      "working_tree_sha256": "dc89e4bda7e9b438c75c3daf16bbc3ad198c7f48732d6195c539707f1c92d74a",
+      "working_tree_matches_snapshot": true
+    },
+    {
+      "path": "figures/response_surface_latency_2d_3d.png",
+      "bytes": 341510,
+      "sha256": "221e3f6cda01b3ee98c1fc76e55cd7c6e7fcc4a4a46acab86b064a2da472162f",
+      "working_tree_sha256": "221e3f6cda01b3ee98c1fc76e55cd7c6e7fcc4a4a46acab86b064a2da472162f",
+      "working_tree_matches_snapshot": true
+    },
+    {
+      "path": "figures/response_surface_rmse_2d_3d.png",
+      "bytes": 1373561,
+      "sha256": "fc961f7e09239e89fa1b311bec3276204ad384ba30b18b01dc10d3ef4bbfc109",
+      "working_tree_sha256": "fc961f7e09239e89fa1b311bec3276204ad384ba30b18b01dc10d3ef4bbfc109",
+      "working_tree_matches_snapshot": true
+    },
+    {
+      "path": "report.pdf",
+      "bytes": 3510695,
+      "sha256": "559af83d3ec5e6b0384d0690c72e15a5c10547ad92c7d38707b803717ce8c02c",
+      "working_tree_sha256": "559af83d3ec5e6b0384d0690c72e15a5c10547ad92c7d38707b803717ce8c02c",
+      "working_tree_matches_snapshot": true
+    },
+    {
+      "path": "report.tex",
+      "bytes": 58125,
+      "sha256": "cb04f347718018ed642140d6a43c0083c85e4bd4bba2479a8ca58aba184b6fb7",
+      "working_tree_sha256": "cb04f347718018ed642140d6a43c0083c85e4bd4bba2479a8ca58aba184b6fb7",
+      "working_tree_matches_snapshot": true
+    },
+    {
+      "path": "results/anova_ccd_latency.csv",
+      "bytes": 1125,
+      "sha256": "94988845e974e9731fc1b15001f33b321ddf34da6c64f4b188aa013cdf7d1363",
+      "working_tree_sha256": "7b0fbcffeabbbd9ad6dbe56fc0e5f46e60912da61c1f07713142d997944fa68b",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/benchmark.csv",
+      "bytes": 2095,
+      "sha256": "688293629c22378a1d8e196840db986ade0ecb90c71d7a877f299df3b719f978",
+      "working_tree_sha256": "50d7e3a325e403a5fb4ccb1f339d684aee96662f8b9e595b1adc1e3fe7ed6835",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/benchmark_evals_trajectories.csv",
+      "bytes": 16866,
+      "sha256": "6079327e67227f4cb9f52f5afed4227a88a9df9d112f9ab5a5af64783f2f0b83",
+      "working_tree_sha256": "b98fcda08afd4c3150bfe2d3754fb3fb41dab630008cebae4703de6052119020",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/benchmark_optimizer_incumbents.csv",
+      "bytes": 6644,
+      "sha256": "0862ce271650d44a5503c66376abc8cbc2956bc1968202fdab79ff308d8cbecd",
+      "working_tree_sha256": "236b63d523c990e9351bbe691fe3f6627ab7cabbd59a37180049e8bf9313a724",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/benchmark_summary.json",
+      "bytes": 1718,
+      "sha256": "46684ccc22acbfa8c5c87b85d69a9108d9558d622791c600f199650d7a754c2a",
+      "working_tree_sha256": "f4a8ad4e9c9585f0ccc0c3edf359096075a9454c52e253e6f05c95785ccc7ac0",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/confirmation.json",
+      "bytes": 1982,
+      "sha256": "d8f6b88627a1cc6e3a925ad7af5e0dec6272a44c0df843a8982073ab48139b03",
+      "working_tree_sha256": "11f99f9e527dd971dfbfd8a5814bdfbb7d491d1618c77b97d6ffff73afbd7c92",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/confirmation_runs.csv",
+      "bytes": 1072,
+      "sha256": "ee148833ce2706f7d9c41278814242b1a4b10cca6e6ce3b6c15a99f3454545fd",
+      "working_tree_sha256": "9d9ddb2f470a3f9f50821389fc6f432cb718a2a557bc4664fc8b64938d8a7c4a",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/confirmation_runs_single_obj.csv",
+      "bytes": 1046,
+      "sha256": "11e81023aa3b1c3424e5f611bf9e53ddaf2b29d90055a024348e4b8b23c9c790",
+      "working_tree_sha256": "1babfcb3fd0aa98f6bad5943facf6eed1de99845cb28d4195aa7d92720ffeb59",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/depth_opt_table.csv",
+      "bytes": 613,
+      "sha256": "3459057cf26140d7793d90c1874d8fd23331a5f96666a7aaba84cdad4b1b7e13",
+      "working_tree_sha256": "ad56d27557372ba2de24f1b66b75c9c2cca53fe86beeebc7952ade9426fcddc7",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/desirability_sensitivity.csv",
+      "bytes": 363,
+      "sha256": "2fbef32f610e08820c222f72b1a1a29168ef1cc5418f77da0152b92beb2dc15b",
+      "working_tree_sha256": "bda4cb4e0c49a729858899ce5fdcec78f5171c7fad7ac447b3b9a7a3f561e357",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/diagnostics.json",
+      "bytes": 4535,
+      "sha256": "d3dd29d140af85ae117ad8d8c5860cefefc2c96db662e4c397fc62e4bd26a52b",
+      "working_tree_sha256": "d7588075f28c8b1f40650de6cb81c0d9cae2bb91438c1a277a42fd404ee50cbc",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/env.json",
+      "bytes": 392,
+      "sha256": "77186264be0ae86523a81d6d6a674cfe16d58fcacc848a013ecec17bb59d6658",
+      "working_tree_sha256": "d61b16b25bcc0797bf49fade33bb177a3de42ad04aeecd8a0ecf0a8ba77af566",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/icc.json",
+      "bytes": 685,
+      "sha256": "39daff0651273fbcbe6c1d02906fadc8b5fbf6dc2ddc0f0a5730b665ed09430f",
+      "working_tree_sha256": "fc5f8558f4eee7e52f2edead3f4fb9843832fe26b2246e3f2697b4d3b6b51786",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/latency_modeling.json",
+      "bytes": 1732,
+      "sha256": "b8bdd3d508604701d0525aee43d843f207cc850b5c8f700a291d15a8dd13f9f9",
+      "working_tree_sha256": "15eea8fa0710d41bd779b9e398c57f36d15299aa7b02ae725e4595804e8a86ee",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/latency_models_comparison.csv",
+      "bytes": 830,
+      "sha256": "d2a3db8dfc389b7c496561ba706863e59074f0b647233b2208801c6a70833529",
+      "working_tree_sha256": "b6edb172da839e17f68b64df7e024c98fcd85c8c78d476d3d1c4dcf53ce107f4",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/lof.json",
+      "bytes": 1323,
+      "sha256": "126a39b0bc0771e9ebb116e49b954cbbae5cdcf35b6073942de62a893ff0d037",
+      "working_tree_sha256": "191bf66f8cfc9b44ae9d2927040a7e966c2de0a9e200048d057f8fd825f61c88",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/macros.tex",
+      "bytes": 7921,
+      "sha256": "ac7332d95cacee452a06b36a292184d236d42c63cf45af9b1cdfa263f9b4077b",
+      "working_tree_sha256": "7ab1a0985e26eb36ffd80001b728860078271c52f32b2e1a6c1caec2aeed7a15",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/phase1.json",
+      "bytes": 342,
+      "sha256": "7434774b16f6d5ad953890cb2dfb34959fea6f3c049296a1f09784dee253df25",
+      "working_tree_sha256": "ea643cc3704f1a9facb4909b7cf140cf515c3a227e1fcbfc4040e709c2a19180",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/phase3.json",
+      "bytes": 2666,
+      "sha256": "0a7d01b228c84d381721497d144120a4d3792205910c50e8f9c489ce8b3e303b",
+      "working_tree_sha256": "9303df52e1dc0b031d16db0000f51cd91d0b4d9a3537e6181dc51cec407b1b61",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/ridge_table.csv",
+      "bytes": 2636,
+      "sha256": "478701c5f5a0e7a59955f544557eb88cf005435ba4172b22fa0ef6a121265e74",
+      "working_tree_sha256": "ac90d16d0ef832851856e8063f910763533b9279cf038eb42cabd914cf08ea49",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results/runs.csv",
+      "bytes": 30091,
+      "sha256": "87486cb5691c92d3861379f6b45026ecbd1a20897e6bd57ddda5b423e26efeac",
+      "working_tree_sha256": "b90bf1cfb29d239f604515cd6b3549ce80395e5bb1f00faadc61427c5cf8d76e",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "results_summary.json",
+      "bytes": 3732,
+      "sha256": "66af38ee51bfea1aba73cd6ef00de7bbd1e062bd9e9f68ca8c9c2c4c62394fe2",
+      "working_tree_sha256": "58a93ccb29bd68f7e674707f59b23f7ec248243d91e0439f1b8540c1b6fef963",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/anova_ccd_second_order_latency.csv",
+      "bytes": 1823,
+      "sha256": "4764ebf111d39d5e0a9c443da2b839cd370fa4151c8d71fd8db78cae500580f6",
+      "working_tree_sha256": "4d2e0772d768e6aa68b59fb7cfb36f55d5b8895ec5c570326645b9fa876ca106",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/anova_ccd_second_order_rmse.csv",
+      "bytes": 1904,
+      "sha256": "7bcd61da73bc75d8a92901a88eafebb8dca314f7a1da905bec5cda4ce713ade6",
+      "working_tree_sha256": "36508969721c9a9a0e13ba39df78038f6368080685c41eb8cbafe98867a6ee20",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/anova_phase1_latency.csv",
+      "bytes": 1366,
+      "sha256": "4ca5185fdf3c921f292d48c4ba5031a03e6470f9cb4e9a9961fff5c4e74f3186",
+      "working_tree_sha256": "87cb05a86caba5ade5128f46086ba21d0892df2c07f0c679888a8915645047f3",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/anova_phase1_rmse.csv",
+      "bytes": 1428,
+      "sha256": "8505f00b5c74a5970fb04d82340dbcff2ad2fc25561e4e613fc6dc057ddc2cf7",
+      "working_tree_sha256": "d0656f1647a18e6e26e994b894224e8e3fe93ad5205c043a433cdd2758b84498",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/tab_anova_ccd_latency.tex",
+      "bytes": 1520,
+      "sha256": "d5c57f7f65d083c6b06c00e11ebe963cf55affd3c69ad87f5c2760adf03c8520",
+      "working_tree_sha256": "3991df5cf978073fd7391ad35a9d39698ecf3b6f16eac6f7ec0e55c5fe957f9c",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/tab_anova_ccd_rmse.tex",
+      "bytes": 2071,
+      "sha256": "166c4d8ab646d162ee4b12af58c7ff4682836af77de4f7cc468dfb27093ff3c2",
+      "working_tree_sha256": "56ced67aa6568efb27a635c2f2d3fbb4319284b6f1c8d1a7c1d157e6c53c0b5e",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/tab_anova_phase1.tex",
+      "bytes": 1466,
+      "sha256": "4c8e2c1fea4411d38a622799bbc7d97ddef997f4571027f20f7966f5b757d278",
+      "working_tree_sha256": "8bd276abb6922c0631a3153b510b5d64557de13dbee7c06ea8cdfaca51c7f189",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/tab_benchmarks.tex",
+      "bytes": 1635,
+      "sha256": "d7f3e4de88d2b66afcfe8cc76d63586891af06d194da058bb0babf1992688ef0",
+      "working_tree_sha256": "b38f0b1fcdc52f9a8e621ab41798078e5e9fa5c2d30eb0ffb126dd2fef067d68",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/tab_confirmation.tex",
+      "bytes": 1227,
+      "sha256": "5235b09dec662d5bbd2e43b5b2756764c8a01159a119fa564ec39e211ec5212c",
+      "working_tree_sha256": "d31fc57483226d5ffcd474a9f65cd87dc7d1d58997b95ef733fddcf885337924",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/tab_depth_opt.tex",
+      "bytes": 934,
+      "sha256": "f90897392d420247230ffa96dbf7e9be103982161f7c4020d25678ac37e752dc",
+      "working_tree_sha256": "fa6d336eed03334763a7dba554b0bc8302d3e6fa15d08ba4680021a03424c061",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/tab_design_block_seeds.tex",
+      "bytes": 697,
+      "sha256": "af282dfbb657f3b265999ff8746230b87f963141237c76b86566362b2a302526",
+      "working_tree_sha256": "be8f994a67fda36517abf7ba6b72c17b93d1131e163897a2abe90554037f41f0",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/tab_desirability_sensitivity.tex",
+      "bytes": 689,
+      "sha256": "a5b712f85e468d2c52069756ef7337342cf96c7630d62d10dece0a0217cfd2d4",
+      "working_tree_sha256": "896c92b9bd6e78cfa7b8e172a427a0e80b89bfe6d5e71f82441bb9300fae8909",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/tab_latency_models.tex",
+      "bytes": 743,
+      "sha256": "feb41ff7950c1f255721e4b6aa69e2fd2640e36eeaab6521fd22ba15541b1c27",
+      "working_tree_sha256": "7ca0d84363b6d78624a915e3e44708056c74192ea540dbfeb27e7332ec2f6ca8",
+      "working_tree_matches_snapshot": false
+    },
+    {
+      "path": "tables/tab_lof.tex",
+      "bytes": 1919,
+      "sha256": "fd77373a007a58542554a6fdbb0f23ccc23bbd5fea002df6070e1f83194fa116",
+      "working_tree_sha256": "768502bff248afa3c744595a16e1173eb0dbef5491b0b1b6687cbec34342c7d6",
+      "working_tree_matches_snapshot": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# Core scientific dependencies for xgboost-doe-rsm
+numpy>=2.0.0
+pandas>=2.2.0
+scipy>=1.13.0
+scikit-learn>=1.5.0
+statsmodels>=0.14.0
+xgboost>=2.0.0
+optuna>=4.0.0
+matplotlib>=3.8.0
+pyyaml>=6.0.0
+pytest>=8.0.0
+pypdf>=4.0.0

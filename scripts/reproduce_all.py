@@ -1,82 +1,107 @@
-"""
-scripts/reproduce_all.py - Master Pipeline Reproduction Script
-==============================================================
-Regenerates everything end-to-end with one command:
-  1. scripts/generate_env.py -> results/env.json
-  2. pipeline.py -> results/runs.csv (140 genuine runs)
-  3. analysis.py -> results/{phase1, phase3, lof, diagnostics, icc}.json, results/{depth_opt_table, ridge_table}.csv
-  4. scripts/run_confirmation.py -> results/confirmation.json
-  5. scripts/run_benchmarks.py -> results/benchmark.csv, results/benchmark_summary.json, results/desirability_sensitivity.csv
-  6. scripts/fit_latency_models.py -> results/latency_models_comparison.csv
-  7. plots.py -> figures/*.png (all 5 publication figures)
-  8. scripts/generate_report_artifacts.py -> results/macros.tex, tables/*.tex
-  9. Compiles report.tex via tectonic -> report.pdf
-  10. Runs pytest tests/
+"""Reproduce the guarded revision-v2 workflow without touching v1 artifacts.
+
+The historical all-in-place pipeline is preserved at tag ``v1.0.0``. It is not
+run from this revision because it overwrites the publication snapshot and makes
+the holdout available during design evaluation. Every new experiment instead
+writes a fresh directory under ``results/revision_v2`` (or ``--output-dir``).
 """
 
-import os
+from __future__ import annotations
+
+import argparse
 import subprocess
 import sys
 import time
+from pathlib import Path
+from typing import Sequence
 
-def run_step(cmd, desc):
-    print(f"\n[Step] {desc}...")
-    t0 = time.time()
-    res = subprocess.run(cmd, shell=True, text=True)
-    if res.returncode != 0:
-        print(f"[Error] Failed: {desc}")
-        sys.exit(res.returncode)
-    print(f"[Done] {desc} in {time.time()-t0:.1f}s.")
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
-def main():
-    t_start = time.time()
-    print("="*70)
-    print("REPRODUCING FULL RSM/CCD HPO PIPELINE END-TO-END")
-    print("="*70)
 
-    # 1. Environment
-    run_step("python scripts/generate_env.py", "Generate environment metadata")
+def run_step(command: Sequence[str], description: str) -> None:
+    """Run one argv-safe reproduction step and fail on its first error."""
+    print(f"\n[Step] {description}...")
+    started = time.perf_counter()
+    subprocess.run(list(command), check=True, cwd=REPOSITORY_ROOT)
+    print(f"[Done] {description} in {time.perf_counter() - started:.1f}s.")
 
-    # 2. Check if runs.csv exists or regenerate
-    if not os.path.exists("results/runs.csv"):
-        run_step("python pipeline.py", "Execute 140 genuine DOE design runs")
-    else:
-        print("\n[Notice] results/runs.csv exists. To re-run raw training, delete results/runs.csv first.")
 
-    # 3. Statistical Analysis
-    run_step("python analysis.py", "Run full statistical analysis (canonical, ridge, LoF, diagnostics, ICC)")
+def build_commands(
+    *,
+    mode: str,
+    output_dir: str | None,
+    confirm_full_budget: bool,
+    skip_tests: bool,
+    resume: bool = False,
+) -> list[tuple[list[str], str]]:
+    if mode == "full" and not confirm_full_budget:
+        raise ValueError("full reproduction requires --confirm-full-budget")
+    commands: list[tuple[list[str], str]] = []
+    if not skip_tests:
+        commands.append(
+            ([sys.executable, "-m", "pytest", "-q"], "software verification suite")
+        )
+    benchmark = [
+        sys.executable,
+        str(REPOSITORY_ROOT / "scripts" / "run_benchmarks.py"),
+        "--mode",
+        mode,
+    ]
+    if output_dir is not None:
+        destination = Path(output_dir)
+        if not destination.is_absolute():
+            destination = REPOSITORY_ROOT / destination
+        benchmark.extend(["--output-dir", str(destination.resolve())])
+    if mode == "full":
+        benchmark.append("--confirm-full-budget")
+    if resume:
+        benchmark.append("--resume")
+    commands.append((benchmark, f"revision-v2 {mode} experiment"))
+    return commands
 
-    # 4. Confirmation
-    run_step("python scripts/run_confirmation.py", "Run 10 confirmation trials at x*")
 
-    # 5. Benchmarks
-    if not os.path.exists("results/benchmark.csv"):
-        run_step("python scripts/run_benchmarks.py", "Execute empirical benchmarks (Random Search, Optuna TPE)")
-    else:
-        print("\n[Notice] results/benchmark.csv exists. Preserving empirical benchmark trials.")
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Run tests and a fresh, versioned revision-v2 experiment."
+    )
+    parser.add_argument("--mode", choices=("smoke", "full"), default="smoke")
+    parser.add_argument("--output-dir")
+    parser.add_argument("--skip-tests", action="store_true")
+    parser.add_argument(
+        "--confirm-full-budget",
+        action="store_true",
+        help="Required for the expensive full protocol.",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an interrupted run from existing checkpoints in the output directory.",
+    )
+    args = parser.parse_args()
+    destination = Path(args.output_dir) if args.output_dir else None
+    if destination is not None and not destination.is_absolute():
+        destination = REPOSITORY_ROOT / destination
+    if destination is not None and destination.exists() and any(destination.iterdir()) and not args.resume:
+        raise SystemExit(
+            f"Refusing to overwrite non-empty directory: {destination}. Pass --resume to continue from checkpoints."
+        )
+    try:
+        commands = build_commands(
+            mode=args.mode,
+            output_dir=args.output_dir,
+            confirm_full_budget=args.confirm_full_budget,
+            skip_tests=args.skip_tests,
+            resume=args.resume,
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    for command, description in commands:
+        run_step(command, description)
+    print(
+        "\nRevision artifacts are complete for this run. Publication tables and PDF remain "
+        "separate until a full protocol has completed and passed numerical-consistency review."
+    )
 
-    # 6. Latency models
-    run_step("python scripts/fit_latency_models.py", "Fit candidate latency models")
-
-    # 7. Render figures
-    run_step("python plots.py", "Render all 5 publication-grade figures")
-
-    # 8. Generate tables & macros
-    run_step("python scripts/generate_report_artifacts.py", "Export LaTeX tables and macros")
-
-    # 9. Run tests
-    run_step("python -m pytest tests/", "Run full test suite")
-
-    # 10. Compile PDF
-    tectonic_path = r"C:\Users\chris\bin\tectonic.exe"
-    if os.path.exists(tectonic_path):
-        run_step(f'"{tectonic_path}" report.tex', "Compile report.tex into report.pdf via Tectonic")
-    else:
-        run_step("tectonic report.tex", "Compile report.tex via Tectonic")
-
-    print("\n" + "="*70)
-    print(f"REPRODUCTION COMPLETE IN {time.time()-t_start:.1f}s! ALL ARTIFACTS VERIFIED.")
-    print("="*70)
 
 if __name__ == "__main__":
     main()

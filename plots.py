@@ -1,17 +1,10 @@
-"""
-plots.py - Publication-Quality Visualizations for Sequential RSM/CCD HPO
-========================================================================
-Implements Task 10 per fix.md:
-  1. 4-in-1 Residual Diagnostics Panel (Studentized, Q-Q, Execution Order Drift, Cook's D).
-  2. 2D Contour and 3D Wireframe Surface for RMSE passing through Constrained Optimum.
-  3. Latency vs. Depth with 95% CI band and mechanistic curve comparison (replacing inert subsample slice).
-  4. Multi-objective Pareto Front with DOE x*, Confirmation point, and baseline incumbents.
-  5. Optimization Efficiency Convergence with 20-replicate median and IQR bands.
-"""
+"""Historical diagnostics and versioned revision-v2 comparison plots."""
 
+import argparse
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Dict, Any, List, Tuple
 import numpy as np
 import pandas as pd
@@ -24,6 +17,7 @@ import scipy.stats as stats
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pipeline import CONFIG, decode_factors
 from analysis import build_design_matrix, canonical_decomposition, predict_block_averaged
+from scientific_stats import pareto_front_2d_min
 
 # Publication matplotlib aesthetics
 plt.rcParams.update({
@@ -273,92 +267,356 @@ def plot_latency_vs_depth(df_runs: pd.DataFrame, save_path: str = "figures/respo
 
 
 def plot_pareto_front_and_desirability(df_runs: pd.DataFrame, save_path: str = "figures/desirability_pareto_front.png"):
+    """Plot the historical DOE development front from configuration-level block means,
+    with individual block run realizations rendered as background observations.
     """
-    Renders Multi-objective Pareto trade-off between Val RMSE and Latency,
-    marking the DOE recommended optimum x*_MO, confirmation mean, and baseline incumbents.
-    """
-    df_bm = pd.read_csv("results/benchmark.csv")
-    with open("results/confirmation.json", "r", encoding="utf-8") as f:
-        conf = json.load(f)
-
     fig, ax = plt.subplots(figsize=(9.5, 7), dpi=300)
 
-    # Scatter of all CCD runs
-    y1_all = df_runs["val_rmse"].values
-    y2_all = df_runs["latency_us_median"].values
-    depths = df_runs["depth"].values
+    # 1. Background individual run observations across the 5 seed blocks
+    ax.scatter(
+        df_runs["val_rmse"],
+        df_runs["latency_us_median"],
+        c="0.75",
+        s=20,
+        alpha=0.35,
+        edgecolor="none",
+        label="Individual block observations (140 runs, 5 blocks)",
+        zorder=1,
+    )
 
-    sc = ax.scatter(y1_all, y2_all, c=depths, cmap="cividis", s=55, alpha=0.75,
-                    edgecolor="black", linewidth=0.5, label="CCD Design Points")
+    # 2. Configuration-level block means across the 25 unique design coordinates
+    grouped = (
+        df_runs.groupby(["point_id", "depth"], as_index=False)
+        .agg(
+            validation_rmse=("val_rmse", "mean"),
+            validation_rmse_sd=("val_rmse", "std"),
+            predict_latency_us=("latency_us_median", "mean"),
+            predict_latency_us_sd=("latency_us_median", "std"),
+        )
+    )
+    sc = ax.scatter(
+        grouped["validation_rmse"],
+        grouped["predict_latency_us"],
+        c=grouped["depth"],
+        cmap="cividis",
+        s=70,
+        edgecolor="black",
+        linewidth=0.6,
+        label="DOE configuration means (N=25)",
+        zorder=3,
+    )
+    ax.errorbar(
+        grouped["validation_rmse"],
+        grouped["predict_latency_us"],
+        xerr=grouped["validation_rmse_sd"],
+        yerr=grouped["predict_latency_us_sd"],
+        fmt="none",
+        ecolor="0.50",
+        alpha=0.50,
+        linewidth=0.8,
+        zorder=2,
+    )
     cbar = fig.colorbar(sc, ax=ax, shrink=0.85)
-    cbar.set_label("Max Tree Depth (Integer)", fontsize=11)
+    cbar.set_label("Maximum tree depth (integer)", fontsize=11)
 
-    # Identify Pareto frontier of CCD design
-    sorted_pts = sorted(zip(y1_all, y2_all), key=lambda p: p[0])
-    pareto_y1 = []
-    pareto_y2 = []
-    min_y2 = 1e9
-    for y1, y2 in sorted_pts:
-        if y2 < min_y2:
-            pareto_y1.append(y1)
-            pareto_y2.append(y2)
-            min_y2 = y2
+    # 3. Tracing configuration-mean Pareto front
+    front = pareto_front_2d_min(
+        grouped[["validation_rmse", "predict_latency_us"]].to_numpy()
+    )
+    if front.points:
+        pareto = np.asarray(front.points)
+        ax.step(
+            pareto[:, 0],
+            pareto[:, 1],
+            where="post",
+            color="red",
+            linestyle="--",
+            linewidth=1.5,
+            label="Configuration-mean Pareto front",
+            zorder=4,
+        )
 
-    ax.step(pareto_y1, pareto_y2, where="post", color="red", linestyle="--", linewidth=1.8, label="Empirical Pareto Frontier")
-    ax.scatter(pareto_y1, pareto_y2, color="red", marker="o", s=70, edgecolor="black", zorder=5)
+    # 4. Highlight operating points from confirmation
+    conf_path = Path("results/confirmation.json")
+    if conf_path.exists():
+        with open(conf_path, "r", encoding="utf-8") as f:
+            conf = json.load(f)
+        mo_val = conf["Y1_Val_RMSE"]["empirical_mean"]
+        mo_lat = conf["Y2_Latency"]["empirical_mean"]
+        ax.scatter(
+            [mo_val], [mo_lat],
+            marker="*", s=220, color="crimson", edgecolor="black", linewidth=0.8,
+            label=r"Selected compromise $\mathbf{x}^*_{\text{MO}}$ (depth 4)",
+            zorder=5,
+        )
+        so_val = conf["Single_Objective_Optimum"]["empirical_val_rmse"]
+        so_lat = conf["Single_Objective_Optimum"]["empirical_latency"]
+        ax.scatter(
+            [so_val], [so_lat],
+            marker="D", s=100, color="forestgreen", edgecolor="black", linewidth=0.8,
+            label=r"Single-objective candidate $\mathbf{x}^*_{\text{SO}}$ (depth 7)",
+            zorder=5,
+        )
 
-    # 1. Mark DOE recommended x*_MO (Depth 4)
-    doe_row = df_bm[df_bm["method"].str.contains("Multi-Objective") & df_bm["method"].str.contains("DOE")].iloc[0]
-    ax.scatter([doe_row["val_rmse_mean"]], [doe_row["predict_latency_us_median"]],
-               color="gold", marker="*", s=260, edgecolor="black", linewidth=1.5, zorder=8,
-               label=f"DOE Multi-Obj $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ (Depth 4, {doe_row['predict_latency_us_median']:.1f} $\\mu$s)")
-
-    # 2. Mark DOE Single-Objective (Depth 7)
-    doe_so = df_bm[df_bm["method"].str.contains("Single-Objective") & df_bm["method"].str.contains("DOE")].iloc[0]
-    ax.scatter([doe_so["val_rmse_mean"]], [doe_so["predict_latency_us_median"]],
-               color="cyan", marker="^", s=160, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"DOE Single-Obj $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ (Depth 7, {doe_so['predict_latency_us_median']:.1f} $\\mu$s)")
-
-    # 3. Mark Confirmation Point
-    conf_y1 = conf["Y1_Val_RMSE"]["empirical_mean"]
-    conf_y2 = conf["Y2_Latency"]["empirical_mean"]
-    ax.scatter([conf_y1], [conf_y2], color="lime", marker="D", s=110, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"Confirmation Mean ($n=10$, {conf_y2:.1f} $\\mu$s)")
-
-    # 4. Mark Baseline Incumbents
-    tpe_row = df_bm[df_bm["method"].str.contains("Single-Obj") & ~df_bm["method"].str.contains("DOE")].iloc[0]
-    ax.scatter([tpe_row["val_rmse_mean"]], [tpe_row["predict_latency_us_median"]],
-               color="magenta", marker="P", s=150, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"TPE Single-Obj (Depth {int(tpe_row['depth'])}, {tpe_row['predict_latency_us_median']:.1f} $\\mu$s)")
-
-    tpe_const = df_bm[df_bm["method"].str.contains("Constrained")].iloc[0]
-    ax.scatter([tpe_const["val_rmse_mean"]], [tpe_const["predict_latency_us_median"]],
-               color="darkorange", marker="X", s=140, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"Constrained TPE (Depth {int(tpe_const['depth'])}, {tpe_const['predict_latency_us_median']:.1f} $\\mu$s)")
-
-    tpe_mo = df_bm[df_bm["method"].str.contains("Multi-Objective TPE")].iloc[0]
-    ax.scatter([tpe_mo["val_rmse_mean"]], [tpe_mo["predict_latency_us_median"]],
-               color="blueviolet", marker="s", s=130, edgecolor="black", linewidth=1.2, zorder=8,
-               label=f"MO-TPE (Depth {int(tpe_mo['depth'])}, {tpe_mo['predict_latency_us_median']:.1f} $\\mu$s)")
-
-    ax.set_title("Multi-Objective Pareto Trade-off: Validation RMSE vs. Inference Latency", fontweight="bold")
-    ax.set_xlabel(r"Validation RMSE ($Y_1$, Smaller is Better)")
-    ax.set_ylabel(r"Inference Latency ($\mu$s/sample, Smaller is Better)")
+    ax.set_title(
+        "Historical DOE Development: Configuration Means and Pareto Trade-off",
+        fontweight="bold",
+        fontsize=12,
+    )
+    ax.set_xlabel(r"Validation RMSE ($Y_1$, 5-block mean; smaller is better)", fontsize=11)
+    ax.set_ylabel(r"Inference latency ($\mu$s/sample; 5-block mean)", fontsize=11)
     ax.grid(True, linestyle=":", alpha=0.6)
-    ax.legend(loc="upper right", frameon=True, facecolor="white", framealpha=0.95, fontsize=9.0)
+    ax.legend(loc="upper right", frameon=True, facecolor="white", framealpha=0.95, fontsize=8.5)
 
     os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300)
     plt.close()
-    print(f"[Plot] Saved Pareto Front Plot to: {save_path}")
+    print(f"[Plot] Saved configuration-mean historical Pareto plot to: {save_path}")
+
+
+def load_revision_pareto_data(run_dir: str | Path) -> Dict[str, pd.DataFrame]:
+    """Load and validate the two non-mixed estimands used by the revision plot."""
+    run_dir = Path(run_dir)
+    doe = pd.read_csv(run_dir / "doe_matched_candidate_front.csv").copy()
+    trials = pd.read_csv(run_dir / "optimizer_trials.csv")
+    final = pd.read_csv(run_dir / "final_summary.csv").copy()
+    mo_tpe = trials.loc[
+        trials["optimizer"].eq("multi_objective_tpe")
+        & trials["trial_status"].eq("completed")
+    ].copy()
+    if doe.empty or mo_tpe.empty or final.empty:
+        raise ValueError("Revision Pareto inputs must each contain at least one row")
+
+    def one_complete_value(frame: pd.DataFrame, column: str, label: str):
+        if column not in frame or frame[column].isna().any():
+            raise ValueError(f"{label} requires complete {column} values")
+        values = frame[column].astype(str)
+        if values.str.strip().eq("").any() or values.nunique() != 1:
+            raise ValueError(f"{label} requires exactly one complete {column}")
+        return frame[column].iloc[0]
+
+    development_protocol = one_complete_value(
+        doe, "latency_protocol_id", "DOE development panel"
+    )
+    trial_protocol = one_complete_value(
+        mo_tpe, "latency_protocol_id", "MO-TPE development panel"
+    )
+    if development_protocol != trial_protocol:
+        raise ValueError(
+            "Development Pareto panel requires one matching latency protocol for DOE and MO-TPE"
+        )
+    doe_split = one_complete_value(
+        doe, "development_split_seed", "DOE development panel"
+    )
+    trial_split = one_complete_value(
+        mo_tpe, "development_split_seed", "MO-TPE development panel"
+    )
+    if int(doe_split) != int(trial_split):
+        raise ValueError(
+            "Development Pareto panel requires DOE and MO-TPE rows from the same split"
+        )
+    one_complete_value(
+        final, "latency_protocol_id", "Independent-evaluation panel"
+    )
+
+    for label, frame in (("DOE", doe), ("MO-TPE", mo_tpe)):
+        for column in ("validation_rmse", "predict_latency_us"):
+            numeric = pd.to_numeric(frame[column], errors="coerce").to_numpy(dtype=float)
+            if not np.all(np.isfinite(numeric)):
+                raise ValueError(f"{label} {column} values must be finite")
+            frame[column] = numeric
+    final_latency = pd.to_numeric(final["predict_latency_us"], errors="coerce")
+    if not np.all(np.isfinite(final_latency.to_numpy(dtype=float))):
+        raise ValueError("Independent predict_latency_us values must be finite")
+    final["predict_latency_us"] = final_latency
+
+    parsed = final.copy()
+    parsed["validation_rmse_mean"] = parsed["validation_rmse"].map(
+        lambda value: float(json.loads(value)["mean"])
+    )
+    parsed["validation_rmse_ci_low"] = parsed["validation_rmse"].map(
+        lambda value: json.loads(value)["confidence_interval_95"][0]
+    )
+    parsed["validation_rmse_ci_high"] = parsed["validation_rmse"].map(
+        lambda value: json.loads(value)["confidence_interval_95"][1]
+    )
+    if "test_rmse" in parsed.columns:
+        parsed["test_rmse_mean"] = parsed["test_rmse"].map(
+            lambda value: float(json.loads(value)["mean"])
+        )
+        parsed["test_rmse_ci_low"] = parsed["test_rmse"].map(
+            lambda value: float(json.loads(value)["confidence_interval_95"][0])
+        )
+        parsed["test_rmse_ci_high"] = parsed["test_rmse"].map(
+            lambda value: float(json.loads(value)["confidence_interval_95"][1])
+        )
+    interval_columns = [
+        "validation_rmse_mean",
+        "validation_rmse_ci_low",
+        "validation_rmse_ci_high",
+    ]
+    if not np.all(
+        np.isfinite(parsed[interval_columns].to_numpy(dtype=float))
+    ):
+        raise ValueError("Independent validation summaries require finite means and intervals")
+    return {
+        "doe_development": doe,
+        "mo_tpe_development": mo_tpe,
+        "independent_selected": parsed,
+    }
+
+
+def plot_revision_pareto_front(
+    run_dir: str | Path,
+    save_path: str = "figures/revision_v2_pareto_front.png",
+) -> None:
+    """Separate matched development fronts from frozen-selection holdout evaluation."""
+    data = load_revision_pareto_data(run_dir)
+    doe = data["doe_development"]
+    mo_tpe = data["mo_tpe_development"]
+    independent = data["independent_selected"]
+    fig, axes = plt.subplots(1, 2, figsize=(14.0, 5.8), dpi=300)
+
+    # Left panel: Development candidates on development split 42
+    axes[0].scatter(
+        doe["validation_rmse"],
+        doe["predict_latency_us"],
+        label="DOE evaluated candidates",
+        alpha=0.72,
+        edgecolor="black",
+        linewidth=0.4,
+    )
+    axes[0].scatter(
+        mo_tpe["validation_rmse"],
+        mo_tpe["predict_latency_us"],
+        label="MO-TPE trials",
+        marker="s",
+        alpha=0.72,
+        edgecolor="black",
+        linewidth=0.4,
+    )
+    doe_front = pareto_front_2d_min(
+        doe[["validation_rmse", "predict_latency_us"]].to_numpy()
+    )
+    if doe_front.points:
+        points = np.asarray(doe_front.points)
+        axes[0].step(
+            points[:, 0], points[:, 1], where="post", color="#1f77b4", label="DOE front"
+        )
+    for replicate_id, replicate in mo_tpe.groupby("replicate_id"):
+        front = pareto_front_2d_min(
+            replicate[["validation_rmse", "predict_latency_us"]].to_numpy()
+        )
+        if front.points:
+            points = np.asarray(front.points)
+            axes[0].step(
+                points[:, 0],
+                points[:, 1],
+                where="post",
+                alpha=0.75,
+                label=f"MO-TPE front, rep {int(replicate_id)}" if replicate_id in [0, 1] else None,
+            )
+    development_protocol = doe["latency_protocol_id"].iloc[0]
+    axes[0].set_title("Development candidates on matched split 42", fontweight="bold")
+    axes[0].set_xlabel("Search-time validation RMSE (split 42)")
+    axes[0].set_ylabel(f"predict() latency (μs)\n{development_protocol}")
+    axes[0].legend(fontsize=8, loc="best")
+    axes[0].grid(True, linestyle=":", alpha=0.5)
+
+    # Right panel: Frozen selections holdout test set evaluation across 20 retraining seeds
+    markers = {
+        "historical_preplanned_doe_desirability": "*",
+        "historical_preplanned_doe_single_objective": "^",
+        "repeated_preplanned_doe_multi_objective": "o",
+        "repeated_preplanned_doe_single_objective": "D",
+        "multi_objective_tpe": "s",
+        "constrained_tpe": "X",
+        "single_objective_tpe": "P",
+        "random_search": "v",
+    }
+    has_test = "test_rmse_mean" in independent.columns
+    for optimizer, group in independent.groupby("optimizer"):
+        if has_test:
+            x = group["test_rmse_mean"].to_numpy(dtype=float)
+            low = group["test_rmse_ci_low"].to_numpy(dtype=float)
+            high = group["test_rmse_ci_high"].to_numpy(dtype=float)
+        else:
+            x = group["validation_rmse_mean"].to_numpy(dtype=float)
+            low = group["validation_rmse_ci_low"].to_numpy(dtype=float)
+            high = group["validation_rmse_ci_high"].to_numpy(dtype=float)
+        y = group["predict_latency_us"].to_numpy(dtype=float)
+        xerr = np.vstack((x - low, high - x))
+        yerr = group["predict_latency_session_standard_deviation_us"].fillna(0).to_numpy(dtype=float)
+        axes[1].errorbar(
+            x,
+            y,
+            xerr=xerr,
+            yerr=yerr,
+            fmt=markers.get(optimizer, "o"),
+            linestyle="none",
+            capsize=2,
+            label=optimizer.replace("_", " "),
+        )
+
+    # Trace holdout non-dominated front among evaluated selections
+    if has_test:
+        holdout_front = pareto_front_2d_min(
+            independent[["test_rmse_mean", "predict_latency_us"]].to_numpy()
+        )
+        if holdout_front.points:
+            points = np.asarray(holdout_front.points)
+            axes[1].step(
+                points[:, 0],
+                points[:, 1],
+                where="post",
+                color="red",
+                linestyle="--",
+                alpha=0.85,
+                label="Holdout non-dominated front (12 distinct configs)",
+            )
+
+    primary_protocol = independent["latency_protocol_id"].iloc[0]
+    if has_test:
+        axes[1].set_title("Frozen selections: holdout test evaluation (20 seeds)", fontweight="bold")
+        axes[1].set_xlabel("Holdout test RMSE mean (95% CI across 20 retraining seeds)")
+    else:
+        axes[1].set_title("Frozen selections: independent validation means", fontweight="bold")
+        axes[1].set_xlabel("Independent validation RMSE mean (95% t interval)")
+    axes[1].set_ylabel(
+        f"predict() latency (μs; bars = between-session SD)\n{primary_protocol}"
+    )
+    axes[1].legend(fontsize=7, loc="best")
+    axes[1].grid(True, linestyle=":", alpha=0.5)
+
+    destination = Path(save_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if has_test:
+        fig.suptitle(
+            "Pareto evidence: development candidate fronts (split 42) vs. holdout test evaluations (20 seeds)",
+            fontweight="bold",
+            fontsize=12,
+        )
+    else:
+        fig.suptitle(
+            "Validation-domain Pareto evidence; panels use distinct, explicitly labelled estimands",
+            fontweight="bold",
+            fontsize=12,
+        )
+    fig.tight_layout()
+    fig.savefig(destination, dpi=300)
+    plt.close(fig)
+    print(f"[Plot] Saved revision Pareto plot to: {destination}")
 
 
 def plot_efficiency_comparison(save_path: str = "figures/efficiency_comparison_curve.png"):
-    """
-    Renders Optimization Efficiency Convergence:
+    """Render the historical v1 efficiency figure for archival reproduction only.
+
     Median and IQR shaded bands across 20 replicate runs for Random Search and TPE,
     with single illustrative DOE trajectory in actual randomized run_order.
+
+    This mixes a single DOE run-order trace with optimizer replicate summaries and
+    is deliberately excluded from the revision-v2 rendering entry point.
     """
     df_traj = pd.read_csv("results/benchmark_evals_trajectories.csv")
     evals = df_traj["eval_idx"].values
@@ -412,14 +670,22 @@ def plot_efficiency_comparison(save_path: str = "figures/efficiency_comparison_c
     print(f"[Plot] Saved Efficiency Comparison to: {save_path}")
 
 
-def render_all_plots():
+def render_revision_plots(revision_run_dir: str | Path):
+    """Render the supported diagnostics plus the estimand-separated v2 Pareto figure."""
     df_runs = pd.read_csv("results/runs.csv")
     plot_residual_diagnostics(df_runs, "figures/diagnostics_panel_4in1.png")
     plot_response_surface_rmse_2d_3d(df_runs, "figures/response_surface_rmse_2d_3d.png")
     plot_latency_vs_depth(df_runs, "figures/response_surface_latency_2d_3d.png")
     plot_pareto_front_and_desirability(df_runs, "figures/desirability_pareto_front.png")
-    plot_efficiency_comparison("figures/efficiency_comparison_curve.png")
-    print("All 5 publication plots rendered successfully.")
+    plot_revision_pareto_front(
+        revision_run_dir, "figures/revision_v2_pareto_front.png"
+    )
+    print("Revision diagnostics and estimand-separated Pareto plot rendered successfully.")
 
 if __name__ == "__main__":
-    render_all_plots()
+    parser = argparse.ArgumentParser(
+        description="Render plots from an explicit versioned revision-v2 run."
+    )
+    parser.add_argument("--revision-run-dir", required=True)
+    arguments = parser.parse_args()
+    render_revision_plots(arguments.revision_run_dir)

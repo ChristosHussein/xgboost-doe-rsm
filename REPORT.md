@@ -1,382 +1,285 @@
 # Sequential Response Surface Methodology and Central Composite Design for Multi-Objective Hyperparameter Optimization in Gradient Boosted Trees under Stochastic Nuisance Blocking
 
-**Author:** Antigravity Autonomous Scientific Engine  
-**Theoretical Reference:** Douglas C. Montgomery, *Design and Analysis of Experiments* (10th Edition, Chapters 5, 9, 10, and 14)  
-**Dataset:** California Housing (`sklearn.datasets.fetch_california_housing`, live fetch, 20,640 records)  
-**Model Architecture:** Extreme Gradient Boosted Trees (`xgboost.XGBRegressor`, $n_{\text{estimators}} = 100$)  
-**Experimental Paradigm:** 100% Genuine Empirical Execution (Zero Synthetic/Dummy Data Policy)
+**Author:** Christos Chousein Sounios
 
 ---
 
 ## Executive Summary
 
-Hyperparameter tuning in machine learning is predominantly treated as a black-box zero-order heuristic problem addressed via unguided random search or Bayesian optimization (e.g., Gaussian processes, Tree-structured Parzen Estimators). While such algorithms iteratively search for an optimal parameter combination, they fail to provide structural interpretability: they cannot isolate the underlying variance introduced by stochastic data splitting, quantify parameter interactions, test for response surface curvature, or assess goodness-of-fit through statistical hypothesis testing.
+<!-- BEGIN AUTO-GENERATED: EXEC_SUMMARY -->
+This report presents a comprehensive Design of Experiments (DOE) and Response Surface Methodology (RSM) study applied to the multi-objective hyperparameter optimization of an **XGBoost Regressor** on the **California Housing** benchmark dataset ($N = 20,640$ observations, $8$ continuous features). Following the methodology of Douglas C. Montgomery's *Design and Analysis of Experiments* (9th ed., 2017, Chapters 5, 9, 10, and 14), we treat stochastic machine learning variability—arising from random train/validation partitioning and row subsampling—as a **nuisance factor** controlled via a **Randomized Complete Block Design (RCBD)** across $b = 5$ seed blocks ($\mathcal{S} = \{42, 101, 202, 303, 404\}$).
 
-This project implements a publication-grade, mathematically rigorous Design of Experiments (DOE) framework based on Douglas C. Montgomery’s methodology. We optimize four continuous hyperparameters of an XGBoost regressor on the California Housing dataset:
-1. **Factor $A$ ($x_1$):** Learning rate ($\eta \in [0.01, 0.3]$, log-transformed)
-2. **Factor $B$ ($x_2$):** Max tree depth ($\text{depth} \in [3, 9]$, linear)
-3. **Factor $C$ ($x_3$):** Subsample fraction ($\text{subsample} \in [0.5, 1.0]$, linear)
-4. **Factor $D$ ($x_4$):** L2 Regularization parameter ($\text{reg\_lambda} \in [0.1, 10.0]$, log-transformed)
+All primary DOE phases consist of **150 genuine model training and evaluation runs** (100 in Phase 1, 40 axial augmentations in Phase 2, and 10 confirmation trials in Phase 5 for $\mathbf{x}^*_{\text{MO}}$, supplemented by 10 confirmation trials for $\mathbf{x}^*_{\text{SO}}$), alongside a prospective 20-replicate benchmark campaign comprising **17,077 XGBoost model fits** and **1,640,810 timed single-sample inferences**:
 
-We simultaneously optimize two competing responses:
-- **Response $Y_1$:** Root Mean Squared Error (RMSE) on a fixed $20\%$ stratified holdout test set (4,128 samples).
-- **Response $Y_2$:** Mean single-sample inference latency ($\mu s$ per sample) measured across 1,000 iterations post-warmup.
-
-Stochastic nuisance variation originating from data splitting and internal subsampling is controlled via a **Randomized Complete Block Design (RCBD)** across 5 distinct random seeds (`seeds = [42, 101, 202, 303, 404]`). Every single design point is evaluated across all 5 blocks, enabling variance decomposition and estimation of the **Intraclass Correlation Coefficient (ICC)**.
-
-### Key Numerical Findings:
-- **Phase 1 Screening ($2^4 + 4$ center runs $\times 5$ blocks = 100 runs):** Curvature assessment detected extreme quadratic curvature in holdout test RMSE ($F = 57468.86, p < 10^{-15}$), formally necessitating Phase 2 augmentation.
-- **Phase 2 CCD Augmentation ($8$ axial runs $\times 5$ blocks = 40 runs $\rightarrow$ 140 total runs):** Fitting a full second-order response surface decomposed residual error into Pure Error ($\text{MS}_{\text{PE}} = 9.84 \times 10^{-6}$) and Lack of Fit. For inference latency, the second-order model exhibited zero significant lack of fit ($F_{\text{LoF}} = 0.450, p = 0.8438$).
-- **Nuisance Variance Isolation:** Block nuisance accounted for $\text{ICC} = 21.60\%$ of unexplained stochastic variance, which was successfully extracted from experimental error.
-- **Phase 3 Canonical Analysis:** Spectral decomposition of the $4 \times 4$ quadratic coefficient matrix $\mathbf{B}$ yielded all positive eigenvalues ($\lambda_1 = 0.1023, \lambda_2 = 0.0213, \lambda_3 = 0.00168, \lambda_4 = 0.000126$), formally classifying the stationary point as a **Unique Local Minimum** located at $x_0 = [0.9689, 1.6419, 28.4377, -1.7819]$.
-- **Phase 4 Multi-Objective Optimization:** Derringer-Suich desirability optimization identified the optimal compromise coordinate at $x^* = [0.8575, -0.5475, 1.0000, -1.0000]$ ($\eta = 0.2354$, $\text{depth} = 4$, $\text{subsample} = 1.00$, $\text{reg\_lambda} = 0.10$), achieving a composite desirability of $D = 0.8851$.
-- **Phase 5 Confirmation & Benchmarks:** 5 confirmation trials confirmed an empirical RMSE of $0.4880 \pm 0.0036$ and latency of $130.97 \pm 4.63\ \mu s$, verifying that a depth-4 tree achieves $97.5\%$ of the predictive accuracy of depth-9 trees while slashing latency by over $22\%$.
+1. **Holdout Isolation and Dataset History**: The 20,640 dataset observations are partitioned into an 80% development pool ($N_{\text{dev}} = 16,512$) and a 20% external holdout test set ($N_{\text{test}} = 4,128$). Within each block $b$, the development pool is split 75/25 into training ($N_{\text{train}} = 12,384$) and validation ($N_{\text{val}} = 4,128$) sets. Response $Y_1$ is **Development Validation RMSE** on the 25% validation split. Whereas the historical `v1.0.0` baseline experiments recorded holdout test results during development, the revised `Revision-v2` pipeline programmatically prevented access to those test labels during all search iterations, surrogate fitting, curvature testing, lack-of-fit analysis, and desirability optimization until winning configurations were frozen in `finalized_selections.json`. These safeguards enforce programmatic pipeline isolation during the revised search, although they cannot retroactively undo earlier historical exposure of the same dataset.
+2. **Phase 1 ($2^4$ Full Factorial + Center Points in 5 Blocks, $N_1 = 100$ runs)**: Screening identifies **Learning Rate** ($\ln \eta$, $F = 357.40, p < 10^{-15}, \eta^2_p = 0.8079$) and **Max Tree Depth** ($F = 23.57, p < 0.0001, \eta^2_p = 0.2171$), along with their interaction $x_1 x_2$ ($F = 26.32, p < 0.0001, \eta^2_p = 0.2364$), as the dominant drivers of validation RMSE. Single-degree-of-freedom curvature testing against within-block center-point pure error ($\text{df} = 15, \text{MS}_{\text{PE, center}} = 2.74 \times 10^{-6}$) reveals strong quadratic curvature ($F_{\text{Curv}} = 105,432.31, p < 10^{-15}$), where the factorial corner mean ($\bar{y}_F = 0.6333$) exceeds the center mean ($\bar{y}_C = 0.4989$) by $0.1343$ RMSE.
+3. **Phase 2 (Face-Centered Central Composite Design, $\alpha = 1.0$, $N_{\text{CCD}} = 140$ runs)**: Augmenting with $40$ axial points fits a full second-order polynomial ($R^2 = 0.9951, \text{Adj } R^2 = 0.9944$). Once quadratic curvature is modeled, the RCBD block effect becomes highly significant ($F = 20.21, p < 0.0001$), absorbing **ICC = 40.69%** ($\text{ICC}_{\text{REML}} = 0.4069, \sigma_{\text{block}} \approx 0.0077$ RMSE) of unexplained residual variance. Formal lack-of-fit decomposition shows statistically significant structural polynomial misfit ($F_{\text{LoF}} = 62.21, p = 7.78 \times 10^{-41}$ against the 111-df saturated additive baseline; $F_{\text{LoF}} = 323.10, p < 10^{-15}$ against 15-df center pure error; RMS misfit $= 0.0297$ RMSE), demonstrating that second-order polynomials serve as local guidance maps rather than globally exact estimators of gradient boosting loss.
+4. **Phase 3 (Canonical & Ridge Analysis)**: Spectral decomposition of $\hat{\mathbf{B}}$ yields three positive eigenvalues and one near-zero eigenvalue ($\lambda = \{0.000057, 0.000873, 0.022759, 0.110196\}$; wild bootstrap 95% CI for $\lambda_1$: $[-0.0039, +0.0022]$, with $68.2\%$ of resamples $\le 0$), characterizing a **stationary/rising ridge system**. The unconstrained stationary point ($\|\mathbf{x}_0\| = 17.16$) lies outside $[-1, +1]^4$; constrained optimization over valid integer depths identifies the single-objective candidate $\mathbf{x}^*_{\text{SO}}$ at depth $7$ ($x_1 = 0.5983, x_2 = 0.3333, x_3 = 1.0000, x_4 = 1.0000$, i.e., $\eta = 0.1515, \text{depth} = 7, \text{subsample} = 1.0000, \lambda = 10.0000$) with predicted validation RMSE $\hat{y} = 0.4483$.
+5. **Phase 4 (Derringer-Suich Multi-Objective Desirability)**: Balancing Validation RMSE ($Y_1 \in [0.450, 0.700]$) and Single-Sample Inference Latency ($Y_2 \in [100.0, 180.0]\,\mu\text{s}$) yields an interior compromise coordinate $\mathbf{x}^*_{\text{MO}} = [0.8500, -0.6667, 1.0000, -0.0812]^T$ ($\eta = 0.2324, \text{depth} = 4, \text{subsample} = 1.0000, \lambda = 0.8295$), achieving composite desirability **$D = 0.6782$** ($d_1 = 0.8783, d_2 = 0.5236$) with predicted validation RMSE $\hat{Y}_1 = 0.4804$ and predicted latency $\hat{Y}_2 = 138.11\,\mu\text{s}$.
+6. **Phase 5 (Confirmation & Comparative Benchmarks)**: Across **10 confirmation trials** ($m = 10$ fresh seeds $\mathcal{S}_{\text{conf}} = \{505, 606, 707, 808, 909, 1010, 1111, 1212, 1313, 1414\}$), $\mathbf{x}^*_{\text{MO}}$ achieves empirical validation RMSE $0.4853 \pm 0.0115$ (falling inside the Satterthwaite 95% prediction interval $[0.4677, 0.4932]$), empirical latency $142.33 \pm 7.79\,\mu\text{s}$ ($142.3 \pm 7.8\,\mu\text{s}$, inside $[122.82, 153.40]\,\mu\text{s}$), and external holdout test RMSE $0.4888 \pm 0.0032$. At the single-objective depth-7 candidate $\mathbf{x}^*_{\text{SO}}$, empirical validation RMSE is $0.4700 \pm 0.0093$—lying $0.0088$ above the Satterthwaite 95% PI $[0.4354, 0.4612]$ due to $+0.0217$ polynomial optimism bias—while achieving external holdout test RMSE $0.4691 \pm 0.0034$ and borderline latency $171.1 \pm 10.9\,\mu\text{s}$ (at the lower bound of $[171.1, 202.9]\,\mu\text{s}$). In the 20-replicate prospective benchmark campaign, Single-Objective TPE achieves the lowest observed test RMSE ($0.46691 \pm 0.00116$) at high latency ($188.93 \pm 12.07\,\mu\text{s}$), whereas Repeated DOE Single-Objective yields deterministic selection ($0.46859 \pm 0.00000$, retraining $\sigma_{\text{eval}} = 0.00304$) at $20.2\%$ lower latency ($150.74 \pm 0.72\,\mu\text{s}$). In multi-objective optimization, Repeated DOE ($\mathbf{x}^*_{\text{MO}}$) and Multi-Objective TPE show no statistically significant difference in holdout test RMSE ($0.48997 \pm 0.00732$ vs. $0.49255 \pm 0.01080$, difference $-0.00258, p = 0.3826$) at comparable latency ($122.29 \pm 2.70\,\mu\text{s}$ vs. $121.46 \pm 3.75\,\mu\text{s}$) and $100\%$ ($20/20$) constraint feasibility.
+<!-- END AUTO-GENERATED: EXEC_SUMMARY -->
 
 ---
 
-## 1. Experimental Architecture and Mathematical Formulation
+## 1. Experimental Factors, Coding, and Blocking Architecture
 
-### 1.1 Hyperparameter Coding and Factor Space
-To ensure that linear and quadratic regression terms possess comparable scales and mutual orthogonality, natural variables $\xi_i$ are mapped into dimensionless coded variables $x_i \in [-1, +1]$ using Montgomery's linear coding formula:
+<!-- BEGIN AUTO-GENERATED: SECTION_1_FACTORS_AND_BLOCKS -->
+### 1.1 Hyperparameter Space & Natural-to-Coded Transformations
 
-$$x_i = \frac{\xi_i - \frac{\xi_{i,\max} + \xi_{i,\min}}{2}}{\frac{\xi_{i,\max} - \xi_{i,\min}}{2}}$$
+We investigate $k = 4$ hyperparameters of an XGBoost Regressor (`n_estimators = 100`, `objective = 'reg:squarederror'`, `n_jobs = 1` for inference). Factors spanning orders of magnitude ($x_1$ and $x_4$) are mapped via natural logarithmic transformations prior to linear coding into $[-1, +1]$:
 
-For factors spanning orders of magnitude ($\eta$ and $\text{reg\_lambda}$), natural variables are log-transformed prior to coding: $\xi_i = \ln(\text{hyperparameter})$.
+| Coded Factor | Parameter Name | Symbol | Scale Transformation | Low ($-1$) | Center ($0$) | High ($+1$) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **$x_1$ (Factor A)** | `learning_rate` | $\eta$ | $\xi_1 = \ln(\eta)$ | $0.0100$ | $0.0548$ | $0.3000$ |
+| **$x_2$ (Factor B)** | `max_depth` | $d$ | Linear (Integer) | $3$ | $6$ | $9$ |
+| **$x_3$ (Factor C)** | `subsample` | $s$ | Linear | $0.5000$ | $0.7500$ | $1.0000$ |
+| **$x_4$ (Factor D)** | `reg_lambda` | $\lambda$ | $\xi_4 = \ln(\lambda)$ | $0.1000$ | $1.0000$ | $10.0000$ |
 
-| Factor | Hyperparameter | Scale | Minimum ($\xi_{i,\min}$) | Center ($\xi_{i,0}$) | Maximum ($\xi_{i,\max}$) | Coded $x_i = -1$ | Coded $x_i = 0$ | Coded $x_i = +1$ |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Factor A ($x_1$)** | Learning rate $\eta$ | Logarithmic | $\ln(0.01) = -4.6052$ | $\ln(0.0548) = -2.9046$ | $\ln(0.30) = -1.2040$ | $\eta = 0.0100$ | $\eta = 0.0548$ | $\eta = 0.3000$ |
-| **Factor B ($x_2$)** | Max tree depth | Linear | $3$ | $6$ | $9$ | $\text{depth} = 3$ | $\text{depth} = 6$ | $\text{depth} = 9$ |
-| **Factor C ($x_3$)** | Subsample fraction | Linear | $0.50$ | $0.75$ | $1.00$ | $\text{subsample} = 0.50$ | $\text{subsample} = 0.75$ | $\text{subsample} = 1.00$ |
-| **Factor D ($x_4$)** | L2 Regularization $\lambda$ | Logarithmic | $\ln(0.1) = -2.3026$ | $\ln(1.0) = 0.0000$ | $\ln(10.0) = 2.3026$ | $\lambda = 0.1000$ | $\lambda = 1.0000$ | $\lambda = 10.0000$ |
+The dimensionless coded variables $x_i \in [-1, +1]$ are defined by:
+$$x_1 = \frac{\ln(\eta) - (-2.9046)}{1.7006}, \quad x_2 = \frac{d - 6}{3}, \quad x_3 = \frac{s - 0.75}{0.25}, \quad x_4 = \frac{\ln(\lambda) - 0}{2.3026}$$
 
-Inverse transformations from coded space $x \in [-1, 1]^4$ to natural hyperparameter space are defined by:
-- $\eta = \exp\left( -2.90457 + 1.70060 \cdot x_1 \right)$
-- $\text{depth} = \text{round}\left( 6.0 + 3.0 \cdot x_2 \right) \in [3, 9]$
-- $\text{subsample} = 0.75 + 0.25 \cdot x_3 \in [0.5, 1.0]$
-- $\text{reg\_lambda} = \exp\left( 2.30259 \cdot x_4 \right) = 10^{x_4} \in [0.1, 10.0]$
+### 1.2 Nuisance Blocking (RCBD) and Dual Responses
 
-### 1.2 Stochastic Nuisance Blocking
-In empirical machine learning, stochasticity enters through random data partitioning and stochastic subsampling. To isolate this nuisance variance from genuine hyperparameter effects, evaluations are stratified across 5 blocks defined by fixed random seeds: `seeds = [42, 101, 202, 303, 404]`.
-A fixed $20\%$ holdout test set (4,128 samples) is locked with global seed 42. Within each block $b \in \{1, 2, 3, 4, 5\}$, the training pool is randomly partitioned with seed $s_b$ and passed to XGBoost with `random_state = s_b`.
+Each of the $b = 5$ blocks ($\mathcal{S} = \{42, 101, 202, 303, 404\}$) defines a deterministic 75/25 train/validation split of the 16,512-sample development pool via split seed $S_b$. For factorial corner points ($1 \dots 16$) and axial points ($18 \dots 25$), the XGBoost model seed equals $S_b$. For the $n_C = 4$ center-point replicates within each block, the train/validation split is held fixed at $S_b$ while the XGBoost subsampling seed is varied as $S_b + r \times 1000$ ($r \in \{0, 1, 2, 3\}$), isolating **15 degrees of freedom of within-block subsampling pure error** from **4 degrees of freedom of block-to-block data-split variance**.
 
-The Intraclass Correlation Coefficient (ICC) measures the proportion of stochastic variance isolated by blocking:
-
-$$\text{ICC} = \frac{\sigma^2_{\text{block}}}{\sigma^2_{\text{block}} + \sigma^2_{\epsilon}}$$
-
-where $\sigma^2_{\text{block}} = \max\left(0, \frac{\text{MS}_{\text{block}} - \text{MS}_{\text{error}}}{a}\right)$ and $\sigma^2_{\epsilon} = \text{MS}_{\text{error}}$.
+Two response variables are recorded per run:
+- **Response $Y_1$ (Development Validation RMSE)**: Root Mean Squared Error on the 25% validation partition ($N_{\text{val}} = 4,128$). Unlike the historical `v1.0.0` pipeline, which logged holdout test metrics during development, the revised pipeline prevented access to the 20% external holdout test partition ($N_{\text{test}} = 4,128$) until candidate configurations were frozen in `finalized_selections.json`.
+- **Response $Y_2$ (Single-Sample Inference Latency, $\mu\text{s}$)**: Mean execution time in microseconds per single-row prediction on CPU Core 0 (`SetProcessAffinityMask = 1`, `n_jobs = 1`), timed over 1,000 single-sample calls after 100 untimed warmup calls (50 per prediction interface: `predict` and `inplace_predict`) using `time.perf_counter_ns()`.
+<!-- END AUTO-GENERATED: SECTION_1_FACTORS_AND_BLOCKS -->
 
 ---
 
-## 2. Phase 1: Screening & Curvature Assessment ($2^4$ Factorial with Center Points)
+## 2. Phase 1: $2^4$ Factorial Screening and Curvature Test
 
-Phase 1 comprises a $2^4$ full factorial design ($16$ corner runs) augmented with $n_C = 4$ replicates at the center point $(0, 0, 0, 0)$, replicated across the 5 seed blocks, resulting in $(16 + 4) \times 5 = 100$ genuine training runs.
+<!-- BEGIN AUTO-GENERATED: SECTION_2_PHASE1 -->
+### 2.1 Phase 1 ANOVA (Type III Sum of Squares)
 
-We fit the first-order regression model with two-factor interactions (2FI) and fixed block effects:
+Phase 1 evaluates $2^4 = 16$ factorial corners plus $n_C = 4$ center replicates across $b = 5$ blocks ($N_1 = 100$ runs). Fitting the first-order model with two-factor interactions yields:
 
-$$Y = \beta_0 + \sum_{i=1}^4 \beta_i x_i + \sum_{i < j} \beta_{ij} x_i x_j + \sum_{b=1}^5 \gamma_b Z_b + \epsilon$$
+| Source of Variation | Sum of Squares (SS) | DF | Mean Square (MS) | $F$-Value | $p$-Value | Partial $\eta^2$ |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Intercept** | $7.309127$ | $1$ | $7.309127$ | $2097.15$ | $< 10^{-15}$ | $0.9610$ |
+| **Block Effect $C(\text{block})$** | $0.004662$ | $4$ | $0.001166$ | $0.33$ | $0.8541$ | $0.0155$ |
+| **Factor A: $x_1$ ($\ln \eta$)** | $1.245625$ | $1$ | $1.245625$ | $357.40$ | $< 10^{-15}$ | $0.8079$ |
+| **Factor B: $x_2$ (`max_depth`)** | $0.082155$ | $1$ | $0.082155$ | $23.57$ | $0.0000$ | $0.2171$ |
+| **Factor C: $x_3$ (`subsample`)** | $0.002406$ | $1$ | $0.002406$ | $0.69$ | $0.4084$ | $0.0081$ |
+| **Factor D: $x_4$ ($\ln \lambda$)** | $0.000089$ | $1$ | $0.000089$ | $0.03$ | $0.8731$ | $0.0003$ |
+| **Interaction $x_1 \cdot x_2$** | $0.091725$ | $1$ | $0.091725$ | $26.32$ | $0.0000$ | $0.2364$ |
+| **Interaction $x_1 \cdot x_3$** | $0.001878$ | $1$ | $0.001878$ | $0.54$ | $0.4649$ | $0.0063$ |
+| **Interaction $x_1 \cdot x_4$** | $0.007452$ | $1$ | $0.007452$ | $2.14$ | $0.1474$ | $0.0245$ |
+| **Interaction $x_2 \cdot x_3$** | $0.001106$ | $1$ | $0.001106$ | $0.32$ | $0.5747$ | $0.0037$ |
+| **Interaction $x_2 \cdot x_4$** | $0.000092$ | $1$ | $0.000092$ | $0.03$ | $0.8714$ | $0.0003$ |
+| **Interaction $x_3 \cdot x_4$** | $0.000081$ | $1$ | $0.000081$ | $0.02$ | $0.8790$ | $0.0003$ |
+| **Residual Error** | $0.296247$ | $85$ | $0.003485$ | — | — | — |
 
-### 2.1 ANOVA Table for Phase 1 Test RMSE ($Y_1$)
-Type III Sum of Squares, Mean Squares, F-statistics, and partial $\eta^2$ values are reported below:
+### 2.2 Single-Degree-of-Freedom Curvature Test
 
-| Source of Variation | Sum of Squares (SS) | Degrees of Freedom (DF) | Mean Square (MS) | F-statistic | p-value | Partial $\eta^2$ |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Model Intercept** | $7.172409$ | $1$ | $7.172409$ | $2365.10$ | $8.01 \times 10^{-64}$ | $0.9653$ |
-| **Block Effect ($Z_b$)** | $0.000187$ | $4$ | $0.000047$ | $0.0154$ | $0.9995$ | $0.0007$ |
-| **$x_1$ (Learning Rate $\eta$)** | $1.227241$ | $1$ | $1.227241$ | $404.68$ | $4.52 \times 10^{-34}$ | $0.8264$ |
-| **$x_2$ (Max Depth)** | $0.098118$ | $1$ | $0.098118$ | $32.35$ | $1.78 \times 10^{-7}$ | $0.2757$ |
-| **$x_3$ (Subsample)** | $0.002236$ | $1$ | $0.002236$ | $0.74$ | $0.3929$ | $0.0086$ |
-| **$x_4$ (Reg. Lambda)** | $0.000407$ | $1$ | $0.000407$ | $0.13$ | $0.7149$ | $0.0016$ |
-| **$x_1 \cdot x_2$ ($\eta \times \text{Depth}$)** | $0.080835$ | $1$ | $0.080835$ | $26.66$ | $1.58 \times 10^{-6}$ | $0.2387$ |
-| **$x_1 \cdot x_3$ ($\eta \times \text{Subsample}$)** | $0.001861$ | $1$ | $0.001861$ | $0.61$ | $0.4355$ | $0.0072$ |
-| **$x_1 \cdot x_4$ ($\eta \times \text{Lambda}$)** | $0.007417$ | $1$ | $0.007417$ | $2.45$ | $0.1216$ | $0.0280$ |
-| **$x_2 \cdot x_3$ ($\text{Depth} \times \text{Subsample}$)**| $0.000584$ | $1$ | $0.000584$ | $0.19$ | $0.6618$ | $0.0023$ |
-| **$x_2 \cdot x_4$ ($\text{Depth} \times \text{Lambda}$)**| $0.000128$ | $1$ | $0.000128$ | $0.04$ | $0.8378$ | $0.0005$ |
-| **$x_3 \cdot x_4$ ($\text{Subsample} \times \text{Lambda}$)**| $0.000039$ | $1$ | $0.000039$ | $0.01$ | $0.9099$ | $0.0002$ |
-| **Residual Error** | $0.257772$ | $85$ | $0.003033$ | — | — | — |
-
-**Interpretation:** Factor $A$ ($x_1$) accounts for the overwhelming majority of variance ($\text{partial } \eta^2 = 0.8264$), followed by Factor $B$ ($x_2$) ($\eta^2 = 0.2757$) and their synergistic interaction $x_1 \cdot x_2$ ($\eta^2 = 0.2387$). Factors $C$ and $D$ display minor linear effects within this operational window.
-
-### 2.2 ANOVA Table for Phase 1 Latency ($Y_2$)
-| Source of Variation | Sum of Squares (SS) | DF | Mean Square (MS) | F-statistic | p-value | Partial $\eta^2$ |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Model Intercept** | $377940.74$ | $1$ | $377940.74$ | $3797.31$ | $2.54 \times 10^{-72}$ | $0.9781$ |
-| **Block Effect ($Z_b$)** | $404.36$ | $4$ | $101.09$ | $1.02$ | $0.4040$ | $0.0456$ |
-| **$x_1$ (Learning Rate $\eta$)** | $243.29$ | $1$ | $243.29$ | $2.44$ | $0.1217$ | $0.0280$ |
-| **$x_2$ (Max Depth)** | $18380.04$ | $1$ | $18380.04$ | $184.67$ | $5.08 \times 10^{-23}$ | $0.6848$ |
-| **$x_3$ (Subsample)** | $259.10$ | $1$ | $259.10$ | $2.60$ | $0.1103$ | $0.0297$ |
-| **$x_4$ (Reg. Lambda)** | $178.63$ | $1$ | $178.63$ | $1.79$ | $0.1839$ | $0.0207$ |
-| **$x_1 \cdot x_3$** | $421.90$ | $1$ | $421.90$ | $4.24$ | $0.0426$ | $0.0475$ |
-| **$x_2 \cdot x_3$** | $439.24$ | $1$ | $439.24$ | $4.41$ | $0.0386$ | $0.0494$ |
-| **Residual Error** | $8459.92$ | $85$ | $99.53$ | — | — | — |
-
-**Interpretation:** Tree depth ($x_2$) is the undisputed driver of inference latency, accounting for $68.48\%$ of total latency variance.
-
-### 2.3 Curvature Assessment Test
-According to Montgomery (Chapter 11), quadratic curvature across the design space is tested by comparing the mean of the factorial points $\bar{y}_F$ against the mean of the center points $\bar{y}_C$:
-
-$$\text{SS}_{\text{Curvature}} = \frac{n_F n_C (\bar{y}_F - \bar{y}_C)^2}{n_F + n_C}$$
-
-where $n_F = 80$ factorial evaluations and $n_C = 20$ center point evaluations.
-- $\bar{y}_F = 0.625258$
-- $\bar{y}_C = 0.499751$
-- $\bar{y}_F - \bar{y}_C = +0.125507$
-- $\text{SS}_{\text{Curvature}} = \frac{(80)(20)(0.125507)^2}{80 + 20} = 0.252032$
-- Center point Pure Error mean square: $\text{MS}_{\text{PE, center}} = 4.3855 \times 10^{-6}$ ($\text{DF} = 19$).
-- Test Statistic:
-  $$F_{\text{Curvature}} = \frac{\text{MS}_{\text{Curvature}}}{\text{MS}_{\text{PE, center}}} = \frac{0.252032}{4.3855 \times 10^{-6}} = 57468.86 \quad (p < 10^{-15})$$
-
-**Conclusion:** The null hypothesis of planar linearity is emphatically rejected ($p \approx 0.0$). The center point response is significantly lower than the perimeter corners, indicating a convex response basin and formally demanding augmentation into a second-order Central Composite Design.
+To test $H_0: \sum_{i=1}^4 \beta_{ii} = 0$, we compare the mean validation RMSE of the $n_F = 80$ factorial corner runs against the $n_C = 20$ center-point runs against within-block center-point pure error ($\text{df} = 15$):
+- **Factorial Mean ($\bar{y}_F$)**: $0.6333$
+- **Center Point Mean ($\bar{y}_C$)**: $0.4989$
+- **Curvature Contrast ($\bar{y}_F - \bar{y}_C$)**: $+0.1343$ RMSE
+- **Curvature Sum of Squares**: $\text{SS}_{\text{Curv}} = \frac{n_F n_C}{n_F + n_C}(\bar{y}_F - \bar{y}_C)^2 = 0.288786$
+- **Within-Block Center Pure Error**: $\text{SS}_{\text{PE, center}} = 0.000041$, $\text{df}_{\text{PE}} = 15$, $\text{MS}_{\text{PE, center}} = 2.74 \times 10^{-6}$
+- **Curvature $F$-Statistic**:
+$$F_{\text{Curv}} = \frac{\text{SS}_{\text{Curv}}}{\text{MS}_{\text{PE, center}}} = \frac{0.288786}{2.74 \times 10^{-6}} = 105,432.31 \quad (p < 10^{-15})$$
+*(Note: If evaluated against overall pure error pooled across all replicated design coordinates, $\text{df} = 83, \text{MS}_{\text{PE, All}} = 6.98 \times 10^{-5}$, the $F$-statistic is $F \approx 4,140, p < 10^{-15}$. Both confirm severe quadratic curvature requiring Phase 2 CCD augmentation.)*
+<!-- END AUTO-GENERATED: SECTION_2_PHASE1 -->
 
 ---
 
-## 3. Phase 2: Central Composite Design (CCD) Augmentation & Lack of Fit
+## 3. Phase 2: Face-Centered Central Composite Design (FCCD) and Model Adequacy
 
-To estimate pure quadratic coefficients $\beta_{ii}$ without bias, the design was augmented into a Face-Centered Central Composite Design (FCCD, $\alpha = 1.0$), evaluating $2k = 8$ axial star points across all 5 seed blocks ($8 \times 5 = 40$ runs), bringing the total CCD dataset to $N = 140$ runs.
+<!-- BEGIN AUTO-GENERATED: SECTION_3_PHASE2 -->
+### 3.1 Second-Order Response Surface ANOVA ($Y_1$: Validation RMSE and $Y_2$: Inference Latency)
 
-We fit the complete second-order response surface model:
+Augmenting Phase 1 with $2k = 8$ axial points ($\alpha = 1.0$) across 5 blocks yields $N = 140$ runs ($28$ runs/block). The fitted second-order validation RMSE model achieves $R^2 = 0.9951$ and $\text{Adjusted } R^2 = 0.9944$:
 
-$$Y = \beta_0 + \sum_{i=1}^4 \beta_i x_i + \sum_{i=1}^4 \beta_{ii} x_i^2 + \sum_{i < j} \beta_{ij} x_i x_j + \sum_{b=1}^5 \gamma_b Z_b + \epsilon$$
+| Source of Variation | SS | DF | MS | $F$-Stat | OLS $p$ | HC3 SE | HC3 $p$ |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Intercept** | $4.718852$ | $1$ | $4.718852$ | $54749.42$ | $< 10^{-15}$ | $0.0021$ | $< 10^{-15}$ |
+| **Block Effect $C(\text{block})$** | $0.006966$ | $4$ | $0.001742$ | $20.21$ | $< 0.0001$ | — | — |
+| **Factor A: $x_1$ ($\ln \eta$)** | $1.388673$ | $1$ | $1.388673$ | $16111.76$ | $< 10^{-15}$ | $0.0012$ | $< 10^{-15}$ |
+| **Factor B: $x_2$ (Depth)** | $0.101706$ | $1$ | $0.101706$ | $1180.02$ | $< 10^{-15}$ | $0.0013$ | $< 10^{-15}$ |
+| **Factor C: $x_3$ (Subsample)** | $0.002013$ | $1$ | $0.002013$ | $23.36$ | $< 0.0001$ | $0.0012$ | $0.0001$ |
+| **Factor D: $x_4$ ($\ln \lambda$)** | $0.000044$ | $1$ | $0.000044$ | $0.52$ | $0.4743$ | $0.0012$ | $0.5483$ |
+| **Quadratic $x_1^2$** | $0.146265$ | $1$ | $0.146265$ | $1697.01$ | $< 10^{-15}$ | $0.0023$ | $< 10^{-15}$ |
+| **Quadratic $x_2^2$** | $0.008779$ | $1$ | $0.008779$ | $101.85$ | $< 10^{-15}$ | $0.0035$ | $< 0.0001$ |
+| **Quadratic $x_3^2$** | $0.000005$ | $1$ | $0.000005$ | $0.05$ | $0.8188$ | $0.0023$ | $0.8005$ |
+| **Quadratic $x_4^2$** | $0.000006$ | $1$ | $0.000006$ | $0.08$ | $0.7844$ | $0.0020$ | $0.7197$ |
+| **Interaction $x_1 \cdot x_2$** | $0.091725$ | $1$ | $0.091725$ | $1064.22$ | $< 10^{-15}$ | $0.0013$ | $< 10^{-15}$ |
+| **Interaction $x_1 \cdot x_3$** | $0.001878$ | $1$ | $0.001878$ | $21.79$ | $< 0.0001$ | $0.0013$ | $0.0003$ |
+| **Interaction $x_1 \cdot x_4$** | $0.007452$ | $1$ | $0.007452$ | $86.46$ | $< 10^{-15}$ | $0.0013$ | $< 0.0001$ |
+| **Interaction $x_2 \cdot x_3$** | $0.001106$ | $1$ | $0.001106$ | $12.83$ | $0.0005$ | $0.0013$ | $0.0050$ |
+| **Interaction $x_2 \cdot x_4$** | $0.000092$ | $1$ | $0.000092$ | $1.07$ | $0.3040$ | $0.0013$ | $0.4118$ |
+| **Interaction $x_3 \cdot x_4$** | $0.000081$ | $1$ | $0.000081$ | $0.94$ | $0.3334$ | $0.0013$ | $0.4400$ |
+| **Residual Error** | $0.010429$ | $121$ | $0.000086$ | — | — | — | — |
 
-### 3.1 ANOVA Table for Second-Order Response Surface (Test RMSE $Y_1$)
-Model Fit: $R^2 = 0.9954$, Adjusted $R^2 = 0.9947$, Residual Degrees of Freedom: $\text{DF} = 121$.
+For **Response $Y_2$ (Inference Latency, $\mu\text{s/sample}$)**, the second-order ANOVA shows that tree depth ($x_2$, $F = 811.46, p < 10^{-15}$) and its quadratic term ($x_2^2$, $F = 39.86, p < 0.0001$) govern inference latency, while block effects are negligible ($F = 0.75, p = 0.5591, \text{ICC} = 0.0000$).
 
-| Source of Variation | Sum of Squares (SS) | DF | Mean Square (MS) | F-statistic | p-value | Partial $\eta^2$ |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Model Intercept** | $4.728574$ | $1$ | $4.728574$ | $68316.18$ | $2.15 \times 10^{-168}$ | $0.9982$ |
-| **Block Effect ($Z_b$)** | $0.000251$ | $4$ | $0.000063$ | $0.9049$ | $0.4635$ | $0.0290$ |
-| **$x_1$ ($\eta$)** | $1.372904$ | $1$ | $1.372904$ | $19835.07$ | $5.19 \times 10^{-136}$ | $0.9939$ |
-| **$x_2$ (Depth)** | $0.121139$ | $1$ | $0.121139$ | $1750.15$ | $8.31 \times 10^{-74}$ | $0.9353$ |
-| **$x_3$ (Subsample)** | $0.001997$ | $1$ | $0.001997$ | $28.85$ | $3.85 \times 10^{-7}$ | $0.1925$ |
-| **$x_4$ (Lambda)** | $0.000283$ | $1$ | $0.000283$ | $4.09$ | $0.0453$ | $0.0327$ |
-| **$x_1^2$ (Quadratic $\eta$)** | $0.125742$ | $1$ | $0.125742$ | $1816.66$ | $1.00 \times 10^{-74}$ | $0.9376$ |
-| **$x_2^2$ (Quadratic Depth)** | $0.007749$ | $1$ | $0.007749$ | $111.95$ | $6.37 \times 10^{-19}$ | $0.4806$ |
-| **$x_3^2$ (Quadratic Subsample)** | $0.000001$ | $1$ | $0.000001$ | $0.013$ | $0.9092$ | $0.0001$ |
-| **$x_4^2$ (Quadratic Lambda)** | $0.000046$ | $1$ | $0.000046$ | $0.658$ | $0.4187$ | $0.0054$ |
-| **$x_1 \cdot x_2$** | $0.080835$ | $1$ | $0.080835$ | $1167.87$ | $5.27 \times 10^{-64}$ | $0.9061$ |
-| **$x_1 \cdot x_3$** | $0.001861$ | $1$ | $0.001861$ | $26.89$ | $8.75 \times 10^{-7}$ | $0.1818$ |
-| **$x_1 \cdot x_4$** | $0.007417$ | $1$ | $0.007417$ | $107.16$ | $2.26 \times 10^{-18}$ | $0.4697$ |
-| **$x_2 \cdot x_3$** | $0.000584$ | $1$ | $0.000584$ | $8.44$ | $0.0044$ | $0.0652$ |
-| **$x_2 \cdot x_4$** | $0.000128$ | $1$ | $0.000128$ | $1.85$ | $0.1766$ | $0.0150$ |
-| **$x_3 \cdot x_4$** | $0.000039$ | $1$ | $0.000039$ | $0.56$ | $0.4538$ | $0.0046$ |
-| **Residual Error** | $0.008375$ | $121$ | $0.0000692$ | — | — | — |
+### 3.2 Variance Shielding and Block Intraclass Correlation (ICC)
 
-### 3.2 Pure Error vs. Lack of Fit Decomposition
-The residual sum of squares ($\text{SS}_E = 0.008375$) is partitioned into Pure Error ($\text{SS}_{\text{PE}}$) across identical factor coordinate replicates and Lack of Fit ($\text{SS}_{\text{LoF}}$):
+In Phase 1, unmodeled quadratic curvature inflated the residual mean square ($\text{MS}_E = 0.003485$), masking block differences ($F = 0.33, p = 0.8541$). In Phase 2, accounting for quadratic terms reduces $\text{MS}_E$ by $40\times$ to $0.000086$, exposing highly significant seed-to-seed variance ($F = 20.21, p < 0.0001$). The **Block Intraclass Correlation Coefficient** is:
+$$\text{ICC} = \frac{\sigma^2_{\text{block}}}{\sigma^2_{\text{block}} + \sigma^2_\epsilon} = 0.4069 \quad (40.69\%, \quad \text{ICC}_{\text{REML}} = 0.4069, \quad \sigma_{\text{block}} \approx 0.0077\text{ RMSE})$$
 
-$$\text{SS}_E = \text{SS}_{\text{PE}} + \text{SS}_{\text{LoF}}$$
+### 3.3 Exact Multi-Scale Lack-of-Fit Decomposition and Residual Diagnostics
 
-- Total observations: $N = 140$
-- Distinct factor locations: $m = 25$ ($16$ factorial + $8$ axial + $1$ center)
-- Pure Error Degrees of Freedom: $\text{DF}_{\text{PE}} = N - m = 140 - 25 = 115$
-- Lack of Fit Degrees of Freedom: $\text{DF}_{\text{LoF}} = \text{DF}_E - \text{DF}_{\text{PE}} = 121 - 115 = 6$
+Partitioning the $121$ residual degrees of freedom into **Structural Lack of Fit** ($10\text{ df}$), **Treatment $\times$ Block Interaction** ($96\text{ df}$), and **Genuine Center Pure Error** ($15\text{ df}$) yields:
 
-| Response Variable | Residual SS | DF | Pure Error SS | $\text{DF}_{\text{PE}}$ | $\text{MS}_{\text{PE}}$ | Lack of Fit SS | $\text{DF}_{\text{LoF}}$ | $\text{MS}_{\text{LoF}}$ | $F_{\text{LoF}}$ | p-value |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **RMSE ($Y_1$)** | $0.008375$ | $121$ | $0.001132$ | $115$ | $9.844 \times 10^{-6}$ | $0.007243$ | $6$ | $0.001207$ | $122.63$ | $< 10^{-15}$ |
-| **Latency ($Y_2$)** | $11288.12$ | $121$ | $11029.25$ | $115$ | $95.9066$ | $258.86$ | $6$ | $43.1436$ | $0.450$ | $0.8438$ |
+| Source of Variation / Model | SS | DF | MS | $F$ | $p$-Value | Reference / RMS Misfit |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Decomposition of Second-Order Residual ($Y_1$: Validation RMSE)** | | | | | | |
+| $\quad$ Structural Lack of Fit | $0.008850$ | $10$ | $0.000885$ | $323.10$ | $< 10^{-15}$ | vs. Center PE |
+| $\quad$ Treatment $\times$ Block Interaction | $0.001538$ | $96$ | $1.60 \times 10^{-5}$ | $5.85$ | $0.0002$ | vs. Center PE |
+| $\quad$ Genuine Center Pure Error | $0.000041$ | $15$ | $2.74 \times 10^{-6}$ | — | — | Base Replicate |
+| $\quad$ Total Model Residual | $0.010429$ | $121$ | $8.62 \times 10^{-5}$ | — | — | $\text{RMS} = 0.0093$ |
+| $\quad$ Saturated Additive Baseline | $0.001579$ | $111$ | $1.42 \times 10^{-5}$ | $62.21^*$ | $< 10^{-15}$ | ($^*$LoF vs. Additive, $p = 7.78 \times 10^{-41}$, $\text{RMS}_{\text{LoF}} = 0.0297$) |
+| **Restricted Domain ($Y_1$: $x_1 \ge -0.5$, $\eta \ge 0.033$, $N=95$)** | | | | | | |
+| $\quad$ Structural Lack of Fit | $0.000324$ | $2$ | $0.000162$ | $10.11$ | $0.0001$ | $\text{RMS} = 0.0127$ ($96.3\%$ SS reduction) |
+| $\quad$ Additive Baseline Residual | $0.001203$ | $75$ | $1.60 \times 10^{-5}$ | — | — | Saturated Base |
+| $\quad$ Total Restricted Residual | $0.001528$ | $77$ | $1.98 \times 10^{-5}$ | — | — | $\text{RMS} = 0.0045$ |
+| **Latency Residual Decomposition ($Y_2$: Latency, $\mu\text{s}$)** | | | | | | |
+| $\quad$ Structural Lack of Fit | $3322.37$ | $10$ | $332.24$ | $1.20$ | $0.3625$ | vs. Center PE ($\text{RMS} = 18.23$) |
+| $\quad$ Treatment $\times$ Block Interaction | $27844.93$ | $96$ | $290.05$ | $1.05$ | $0.4906$ | vs. Center PE |
+| $\quad$ Genuine Center Pure Error | $4148.89$ | $15$ | $276.59$ | — | — | Base Replicate |
+| $\quad$ Total Model Residual | $35316.19$ | $121$ | $291.87$ | $1.15^*$ | $0.3305$ | ($^*$LoF vs. Additive) |
 
-**Critical Methodological Insight:**
-1. For **Inference Latency ($Y_2$)**, $F_{\text{LoF}} = 0.450$ with $p = 0.8438 \gg 0.05$. There is **no evidence of lack of fit**, proving that the second-order quadratic model is a mathematically complete representation of hardware inference latency.
-2. For **Test RMSE ($Y_1$)**, pure experimental replication variance is vanishingly small ($\text{MS}_{\text{PE}} \approx 9.84 \times 10^{-6}$). Although the second-order model accounts for $99.54\%$ of total variance ($R^2 = 0.9954$), decision trees have piecewise-constant step boundaries that generate minute localized fluctuations. Under such tight replication error, the $F$-test detects these microscopic structural deviations as statistically significant.
-
----
-
-## 4. Residual Diagnostics and Statistical Verification
-
-Statistical assumptions of ordinary least squares (normality, homoscedasticity, independence, and influence) were verified using the 4-in-1 Diagnostics Panel:
-
-```
-![4-in-1 Residual Diagnostics Panel](figures/diagnostics_panel_4in1.png)
-```
-
-1. **Externally Studentized Residuals vs. Fitted Values (Panel a):**
-   Residuals are uniformly distributed within the $\pm 2\sigma$ control limits, with no funneling or curvilinear patterns, confirming linear variance stability.
-2. **Normal Q-Q Probability Plot (Panel b):**
-   The sample quantiles track the theoretical standard normal line tightly across $[-2\sigma, +2\sigma]$ ($R = 0.986$). Shapiro-Wilk test yields $W = 0.9779$ ($p = 0.0226$). Minor departures at the extreme tails reflect discrete tree partition quantization.
-3. **Residuals vs. Run Execution Order (Panel c):**
-   The 10-run rolling mean remains tightly bound around zero across all 140 sequential runs. No monotonic trend or temporal drift exists ($r = -0.014$), confirming temporal independence.
-4. **Cook's Distance (Panel d):**
-   All observations remain strictly below the critical threshold $D = 1.0$. Only one run (Run 84) slightly exceeds the heuristic $4/n = 0.029$ guideline ($D_{84} = 0.160$), confirming absence of deleterious high-leverage outliers.
-5. **Homoscedasticity Tests:**
-   - Levene's test across the 5 seed blocks: $W = 0.00033$, $p = 1.0000$. Variance across stochastic blocks is perfectly homogeneous.
-   - Tukey HSD pairwise post-hoc tests between all 10 block pairings yielded $p_{\text{adj}} = 1.0$ with zero rejections.
+Residual adequacy diagnostics for $Y_1$:
+- **Normality**: Shapiro-Wilk $W = 0.9971, p = 0.9947$ (normal residuals).
+- **Homoscedasticity**: Levene across blocks $W = 0.1754, p = 0.9507$; Brown-Forsythe across design groups $W = 0.6872, p = 0.8552$; Breusch-Pagan against fitted values $\text{LM} = 70.10, p < 0.0001$ (reflecting multi-scale variance across the factor domain, addressed via HC3 robust standard errors).
+- **Independence & Influence**: Durbin-Watson $DW = 1.9918$, Ljung-Box $Q = 4.01, p = 0.5486$, Runs test $p = 0.8576$, maximum Cook's distance $D_{\max} = 0.097 < 1.0$.
+<!-- END AUTO-GENERATED: SECTION_3_PHASE2 -->
 
 ---
 
-## 5. Phase 3: Canonical and Ridge Analysis
+## 4. Phase 3: Canonical Spectral Analysis and Ridge Optimization
 
-The fitted second-order model for test RMSE ($Y_1$) is represented in matrix notation:
+<!-- BEGIN AUTO-GENERATED: SECTION_4_PHASE3 -->
+Writing the second-order validation RMSE surface as $\hat{y}(\mathbf{x}) = b_0 + \mathbf{x}^T \mathbf{b} + \mathbf{x}^T \hat{\mathbf{B}} \mathbf{x}$ gives $b_0 = 0.4994$ and linear gradient $\mathbf{b} = [-0.1242, -0.0336, -0.0047, -0.0007]^T$. Solving $\mathbf{x}_0 = -\frac{1}{2}\hat{\mathbf{B}}^{-1}\mathbf{b}$ yields an unconstrained stationary point at $\mathbf{x}_0 = [0.4171, 1.3524, 15.6944, -6.8009]^T$ ($\|\mathbf{x}_0\|_2 = 17.16$, $\hat{y}_0 = 0.4161$), which lies far outside $[-1, +1]^4$ due to flat regularization and subsampling curvature.
 
-$$\hat{y}(\mathbf{x}) = \hat{\beta}_0 + \mathbf{x}^T \mathbf{b} + \mathbf{x}^T \mathbf{B} \mathbf{x}$$
+Spectral decomposition $\hat{\mathbf{B}} = \mathbf{V}\bm{\Lambda}\mathbf{V}^T$ yields eigenvalues:
+$$\lambda_1 = 0.000057, \quad \lambda_2 = 0.000873, \quad \lambda_3 = 0.022759, \quad \lambda_4 = 0.110196 \quad (\text{trace}(\hat{\mathbf{B}}) = 0.133886)$$
+Rademacher wild bootstrap (2,000 replications) places the 95% confidence interval for $\lambda_1$ at $[-0.0039, +0.0022]$, with $68.2\%$ of bootstrap resamples yielding $\min(\lambda) \le 0$. Because the confidence interval for $\lambda_1$ straddles zero, the response surface forms a **stationary/rising ridge system** along the $L_2$ regularization ($x_4$) and subsample ($x_3$) axes, while learning rate ($x_1$) and tree depth ($x_2$) exhibit steep positive convexity.
 
-where:
-$$\mathbf{b} = \begin{bmatrix} \hat{\beta}_1 \\ \hat{\beta}_2 \\ \hat{\beta}_3 \\ \hat{\beta}_4 \end{bmatrix} = \begin{bmatrix} -0.123517 \\ -0.036687 \\ -0.004708 \\ -0.001772 \end{bmatrix}$$
+Constrained optimization within $\mathcal{D} = [-1, +1]^4$ restricted to valid integer depths $d \in \{3, \dots, 9\}$ yields:
 
-and the $4 \times 4$ symmetric matrix of quadratic and interaction coefficients $\mathbf{B}$ is:
-$$\mathbf{B} = \begin{bmatrix}
-0.098725 & 0.015893 & -0.002412 & -0.004812 \\
-0.015893 & 0.024513 & -0.001351 & -0.000632 \\
--0.002412 & -0.001351 & 0.000266 & 0.000350 \\
--0.004812 & -0.000632 & 0.000350 & 0.001888
-\end{bmatrix}$$
+| Depth | Coded $x_1$ | Coded $x_2$ | Coded $x_3$ | Coded $x_4$ | Optimal $\eta$ | Predicted RMSE | $\text{SE}(\hat{y})$ |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| $3$ | $0.8103$ | $-1.0000$ | $1.00$ | $1.00$ | $0.2173$ | $0.4909$ | $0.0032$ |
+| $4$ | $0.7573$ | $-0.6667$ | $1.00$ | $1.00$ | $0.1985$ | $0.4724$ | $0.0030$ |
+| $5$ | $0.7043$ | $-0.3333$ | $1.00$ | $1.00$ | $0.1814$ | $0.4592$ | $0.0032$ |
+| $6$ | $0.6513$ | $+0.0000$ | $1.00$ | $1.00$ | $0.1658$ | $0.4511$ | $0.0033$ |
+| **$7$** | **$0.5983$** | **$+0.3333$** | **$1.00$** | **$1.00$** | **$0.1515$** | **$0.4483$** | **$0.0032$** |
+| $8$ | $0.5453$ | $+0.6667$ | $1.00$ | $1.00$ | $0.1384$ | $0.4506$ | $0.0031$ |
+| $9$ | $0.4923$ | $+1.0000$ | $1.00$ | $1.00$ | $0.1265$ | $0.4582$ | $0.0034$ |
 
-### 5.1 Stationary Point Calculation
-Differentiating with respect to $\mathbf{x}$ and equating to zero:
-
-$$\nabla \hat{y} = \mathbf{b} + 2 \mathbf{B} \mathbf{x} = 0 \implies \mathbf{x}_0 = -\frac{1}{2} \mathbf{B}^{-1} \mathbf{b}$$
-
-Solving yields the unconstrained stationary coordinate in coded space:
-$$\mathbf{x}_0 = \begin{bmatrix} +0.968873 \\ +1.641882 \\ +28.437678 \\ -1.781875 \end{bmatrix}$$
-
-Decoding $\mathbf{x}_0$ into natural hyperparameter space (clipping to physical boundaries):
-- Learning rate $\eta_0 = 0.2845$
-- Max tree depth $\text{depth}_0 = 9$ (clipped at domain boundary)
-- Subsample fraction $\text{subsample}_0 = 1.0000$ (clipped at domain boundary)
-- L2 Regularization $\lambda_0 = 0.1000$ (clipped at domain boundary)
-- Predicted response at unconstrained stationary point: $\hat{y}_0 = \hat{\beta}_0 + \frac{1}{2} \mathbf{x}_0^T \mathbf{b} = 0.3428$.
-
-### 5.2 Spectral Decomposition & Canonical Equation
-By the spectral theorem, $\mathbf{B} = \mathbf{M} \mathbf{\Lambda} \mathbf{M}^T$, where $\mathbf{\Lambda} = \text{diag}(\lambda_1, \lambda_2, \lambda_3, \lambda_4)$.
-The eigenvalues of $\mathbf{B}$ are:
-- $\lambda_1 = +0.102302$
-- $\lambda_2 = +0.021290$
-- $\lambda_3 = +0.001677$
-- $\lambda_4 = +0.000126$
-
-Associated eigenvectors (columns of $\mathbf{M}$):
-$$\mathbf{M} = \begin{bmatrix}
-0.9781 & -0.2037 & -0.0435 & -0.0039 \\
-0.2079 & 0.9685 & 0.1345 & 0.0135 \\
--0.0142 & -0.0984 & 0.8164 & -0.5689 \\
--0.0089 & 0.1051 & 0.5599 & 0.8218
-\end{bmatrix}$$
-
-Transforming to canonical variables $w_i = \mathbf{m}_i^T (\mathbf{x} - \mathbf{x}_0)$:
-
-$$\hat{y} = 0.3428 + 0.1023 w_1^2 + 0.0213 w_2^2 + 0.00168 w_3^2 + 0.000126 w_4^2$$
-
-**Surface Classification:** Because **all four eigenvalues are strictly positive** ($\lambda_i > 0$), the stationary point $\mathbf{x}_0$ is mathematically verified as a **Unique Local Minimum**.
-Because the unconstrained minimum lies outside the operational cube $[-1, 1]^4$ along the depth, subsample, and regularization axes, the constrained optimum within the experimental domain rests upon the operational boundary.
+The **Single-Objective RSM Candidate ($\mathbf{x}^*_{\text{SO}}$)** occurs at **depth $d = 7$** ($[0.5983, 0.3333, 1.0000, 1.0000]^T \implies \eta = 0.1515, d = 7, s = 1.0000, \lambda = 10.0000$), with predicted validation RMSE $\hat{y}(\mathbf{x}^*_{\text{SO}}) = 0.4483$ and Satterthwaite 95% PI $[0.4354, 0.4612]$.
+<!-- END AUTO-GENERATED: SECTION_4_PHASE3 -->
 
 ---
 
-## 6. Response Surface Projections
+## 5. Phase 4: Multi-Objective Derringer-Suich Desirability
 
-Below are the 2D contour slices and 3D surface projections displaying the interaction between the two strongest factors while holding other factors fixed:
+<!-- BEGIN AUTO-GENERATED: SECTION_5_PHASE4 -->
+To simultaneously minimize **Validation RMSE ($Y_1$)** and **Single-Sample Inference Latency ($Y_2$)**, we apply one-sided Derringer-Suich transformations ($s_1 = s_2 = 1.0$, equal weights $w_1 = w_2 = 1.0$) with operational specification bounds $Y_1 \in [L_1, U_1] = [0.450, 0.700]$ and $Y_2 \in [L_2, U_2] = [100.0, 180.0]\,\mu\text{s}$, maximizing $D(\mathbf{x}) = \sqrt{d_1(\hat{Y}_1(\mathbf{x})) \cdot d_2(\hat{Y}_2(\mathbf{x}))}$ over valid integer depths:
 
-### 6.1 Holdout Test RMSE ($Y_1$) Surface
-```
-![2D and 3D Response Surface for Test RMSE](figures/response_surface_rmse_2d_3d.png)
-```
-- **Contour Interpretation:** Slices of depth ($x_2$) vs. learning rate ($x_1$) reveal parabolic contours sloping steeply downward toward the upper-right quadrant ($x_1 \to +1, x_2 \to +1$).
-- **Interaction Dynamic:** At low learning rates ($\eta = 0.01, x_1 = -1$), tree depth has negligible impact on error (RMSE $\approx 0.80$). At elevated learning rates ($\eta \approx 0.25, x_1 \approx +0.8$), increasing tree depth from 3 to 9 drops RMSE from $0.510$ to $0.465$, illustrating the massive $x_1 \cdot x_2$ synergistic interaction ($F = 1167.87$).
-
-### 6.2 Inference Latency ($Y_2$) Surface
-```
-![2D and 3D Response Surface for Latency](figures/response_surface_latency_2d_3d.png)
-```
-- **Contour Interpretation:** Latency contours are horizontal planar contours dictated purely by tree depth ($x_2$). Latency scales exponentially with depth ($O(2^d)$ internal node evaluations), rising from $120\ \mu s$ at depth 3 to over $160\ \mu s$ at depth 9. Subsample ($x_3$) exhibits virtually zero influence on post-training inference latency.
+- **Coded Compromise Coordinate ($\mathbf{x}^*_{\text{MO}}$)**: $[0.8500, \ -0.6667, \ 1.0000, \ -0.0812]^T$
+- **Natural Hyperparameters**: `learning_rate` $\eta = 0.2324$, `max_depth` $d = 4$, `subsample` $s = 1.0000$, `reg_lambda` $\lambda = 0.8295$
+- **Surrogate Predictions**: $\hat{Y}_1 = 0.4804$ Validation RMSE, $\hat{Y}_2 = 138.11\,\mu\text{s}$ latency
+- **Individual & Composite Desirabilities**: $d_1 = 0.8783$, $d_2 = 0.5236$, **$D = 0.6782$**
+<!-- END AUTO-GENERATED: SECTION_5_PHASE4 -->
 
 ---
 
-## 7. Phase 4: Multi-Objective Desirability Optimization
+## 6. Phase 5: Empirical Confirmation Trials ($m = 10$ Fresh Seeds)
 
-In engineering production systems, minimizing prediction error conflicts directly with minimizing latency. We resolve this trade-off using Derringer-Suich desirability functions (smaller-the-better criterion):
+<!-- BEGIN AUTO-GENERATED: SECTION_6_PHASE5 -->
+Both DOE candidate coordinates ($\mathbf{x}^*_{\text{MO}}$ at depth 4 and $\mathbf{x}^*_{\text{SO}}$ at depth 7) were evaluated across **$m = 10$ fresh random seeds** ($\mathcal{S}_{\text{conf}} = \{505, 606, 707, 808, 909, 1010, 1111, 1212, 1313, 1414\}$, matching `config.yaml` and `results/confirmation_runs.csv`) against Satterthwaite-adjusted 95% prediction intervals ($\nu_{\text{eff}} = 14.0$ for $\mathbf{x}^*_{\text{MO}}$ at $h_0 = 0.1043$; $\nu_{\text{eff}} = 15.1$ for $\mathbf{x}^*_{\text{SO}}$ at $h_0 = 0.1210$):
 
-$$d_i(Y_i) = \begin{cases}
-1 & Y_i \le L_i \\
-\left(\frac{U_i - Y_i}{U_i - L_i}\right)^{s_i} & L_i < Y_i < U_i \\
-0 & Y_i \ge U_i
-\end{cases}$$
+| Configuration / Response Metric | Surrogate Pred ($\hat{y}$) | 95% Pred Interval (PI) | Empirical Mean $\pm$ SD ($m = 10$) | Confirmation Status |
+| :--- | :---: | :---: | :---: | :--- |
+| **DOE Multi-Objective Optimum $\mathbf{x}^*_{\text{MO}}$ (Depth 4)** | | | | |
+| Validation RMSE ($Y_1$) | $0.4804$ | $[0.4677, 0.4932]$ | $0.4853 \pm 0.0115$ | **Pass** (Inside 95% PI) |
+| Holdout Test RMSE | — | — | $0.4888 \pm 0.0032$ | Holdout Test Set |
+| Inference Latency ($\mu\text{s}$) | $138.1$ ($138.11$) | $[122.8, 153.4]$ ($[122.82, 153.40]$) | $142.3 \pm 7.8$ ($142.33 \pm 7.79$) | **Pass** (Inside 95% PI) |
+| **DOE Single-Objective Candidate $\mathbf{x}^*_{\text{SO}}$ (Depth 7)** | | | | |
+| Validation RMSE ($Y_1$) | $0.4483$ | $[0.4354, 0.4612]$ | $0.4700 \pm 0.0093$ | **Not Confirmed** (Optimism: $+0.0217$) |
+| Holdout Test RMSE | — | — | $0.4691 \pm 0.0034$ | Holdout Test Set |
+| Inference Latency ($\mu\text{s}$) | $187.0$ ($187.00$) | $[171.1, 202.9]$ ($[171.10, 202.90]$) | $171.1 \pm 10.9$ ($171.12 \pm 10.95$) | **Borderline** (At Lower PI) |
 
-where $L_1 = 0.4645, U_1 = 0.8250$ for RMSE, and $L_2 = 105.7\ \mu s, U_2 = 169.3\ \mu s$ for Latency.
-The overall composite desirability is the geometric mean:
-
-$$D(\mathbf{x}) = \sqrt{d_1(\hat{y}_1(\mathbf{x})) \times d_2(\hat{y}_2(\mathbf{x}))}$$
-
-```
-![Multi-Objective Pareto Trade-off & Desirability Optimum](figures/desirability_pareto_front.png)
-```
-
-### 7.1 Optimal Compromise Hyperparameters $\mathbf{x}^*$
-Nonlinear constrained optimization (SLSQP with multi-start over $[-1, 1]^4$) identified the optimal Pareto-compromise coordinate:
-- Coded coordinate: $\mathbf{x}^* = [+0.8575, -0.5475, +1.0000, -1.0000]$
-- **Natural Hyperparameters:**
-  - **Learning rate $\eta$:** $0.2354$
-  - **Max tree depth:** $4$
-  - **Subsample fraction:** $1.0000$
-  - **L2 Regularization $\lambda$:** $0.1000$
-
-### 7.2 Predicted Response and 95% Confidence Interval at $\mathbf{x}^*$
-$$\hat{y}_1(\mathbf{x}^*) = 0.4808, \quad 95\%\ \text{CI} = [0.4745, 0.4870]$$
-$$\hat{y}_2(\mathbf{x}^*) = 117.99\ \mu s$$
-- Individual Desirabilities: $d_1(\text{RMSE}) = 0.9539$, $d_2(\text{Latency}) = 0.8213$
-- Overall Composite Desirability: $D(\mathbf{x}^*) = 0.8851$
+At $\mathbf{x}^*_{\text{MO}}$ (depth 4), both validation RMSE ($0.4853 \pm 0.0115$) and single-sample inference latency ($142.33 \pm 7.79\,\mu\text{s}$) fall directly inside their Satterthwaite 95% prediction intervals. At $\mathbf{x}^*_{\text{SO}}$ (depth 7), empirical validation RMSE ($0.4700 \pm 0.0093$) lies $0.0088$ above the upper prediction interval bound ($0.4612$), confirming that quadratic interpolation across depths $\{3, 6, 9\}$ overestimates accuracy gains at depth 7 by $+0.0217$ RMSE ($6.8\times \text{SE}(\hat{y})$), while empirical latency ($171.1 \pm 10.9\,\mu\text{s}$) sits on the lower bound of its 95% prediction interval ($[171.1, 202.9]\,\mu\text{s}$).
+<!-- END AUTO-GENERATED: SECTION_6_PHASE5 -->
 
 ---
 
-## 8. Phase 5: Empirical Confirmation & Benchmarking
+## 7. Prospective Multi-Replicate Benchmark Campaign (`Revision-v2`)
 
-### 8.1 Empirical Confirmation Trials
-To validate the model's predictive validity, 5 independent confirmation trials were run at $\mathbf{x}^*$ across all 5 seed blocks:
+<!-- BEGIN AUTO-GENERATED: SECTION_7_BENCHMARKS -->
+To evaluate the DOE + RSM methodology against modern heuristic and Bayesian optimizers under strictly equal evaluation budgets (140 model evaluations per search), we executed a prospective benchmark campaign (`results/revision_v2/full_run_001/`) comprising **17,077 XGBoost model fits** and **1,640,810 timed single-sample inferences** across $N = 20$ independent search replicates per optimizer.
 
-| Trial | Block | Seed | Holdout Test RMSE ($Y_1$) | Inference Latency ($Y_2$, $\mu s$) | Training Time (s) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 1 | 42 | $0.4844$ | $134.21$ | $0.181$ |
-| 2 | 2 | 101 | $0.4883$ | $127.45$ | $0.174$ |
-| 3 | 3 | 202 | $0.4862$ | $126.89$ | $0.178$ |
-| 4 | 4 | 303 | $0.4939$ | $131.54$ | $0.179$ |
-| 5 | 5 | 404 | $0.4872$ | $134.78$ | $0.183$ |
-| **Mean** | — | — | **$0.4880 \pm 0.0036$** | **$130.97 \pm 4.63$** | **$0.179$** |
+All **122 winning selection records** (representing **95 distinct hyperparameter configurations** by SHA-256 hash and yielding **2,440 final evaluation rows** in `final_evaluations.csv`) were cryptographically frozen in `finalized_selections.json` prior to generalization testing across 20 fresh retraining seeds ($\mathcal{S}_{\text{eval}} = \{2001, 2002, \dots, 2020\}$) on the external holdout test set ($N = 4,128$). Whereas the historical `v1.0.0` baseline logged holdout test metrics during exploratory development, the `Revision-v2` pipeline programmatically prevented access to holdout test labels until `finalized_selections.json` was frozen (enforcing pipeline isolation during the revised search, while recognizing that the same dataset was previously evaluated in the historical baseline).
 
-**Confirmation Validation:** The empirical mean confirmation RMSE of $0.4880$ is within $0.0010$ of the upper limit of the model's predicted 95% confidence interval ($[0.4745, 0.4870]$), confirming that the response surface accurately estimated the performance frontier.
+### 7.1 Holdout Generalization and Latency Comparison
 
-### 8.2 Empirical Benchmark Comparison (Cumulative Budget = 140 Evaluations)
-We evaluated three optimization strategies under an identical cumulative evaluation budget ($N = 140$ genuine training runs):
-1. **Sequential DOE-CCD:** Phase 1 ($100$ runs) + Phase 2 ($40$ runs)
-2. **Unguided Random Search:** $140$ uniform draws from the hypercube
-3. **Bayesian Optimization (Optuna TPE):** $140$ trials using `TPESampler(seed=42)`
+| Optimization Method | Search Basis ($N$ Reps) | Val RMSE (Mean $\pm$ SD) | Holdout Test RMSE (Mean $\pm$ SD) | Holdout Test RMSE [95% CI] | Retrain $\sigma_{\text{eval}}$ | `predict` Latency ($\mu\text{s} \pm \text{SD}$) | `inplace_predict` ($\mu\text{s} \pm \text{SD}$) | Feasible ($\le 145\,\mu\text{s}$) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Panel A: Prospective Revision-v2 Full Benchmark ($N = 20$ Search Replicates)** | | | | | | | | |
+| **Repeated DOE MO ($\mathbf{x}^*_{\text{MO}}$)** | RSM ($N=20$) | $0.48528 \pm 0.00554$ ($0.4853 \pm 0.0055$) | $0.48997 \pm 0.00732$ ($0.4900 \pm 0.0073$) | $[0.48654, 0.49339]$ | $0.00330$ ($0.0033$) | $122.29 \pm 2.70$ ($122.3 \pm 2.7$) | $89.73 \pm 2.73$ | 20/20 (100%) |
+| **Multi-Objective TPE** | Parzen ($N=20$) | $0.48815 \pm 0.00934$ ($0.4881 \pm 0.0093$) | $0.49255 \pm 0.01080$ ($0.4926 \pm 0.0108$) | $[0.48749, 0.49761]$ | $0.00358$ ($0.0036$) | $121.46 \pm 3.75$ ($121.5 \pm 3.8$) | $88.84 \pm 3.76$ | 20/20 (100%) |
+| **Constrained TPE ($\le 145\,\mu\text{s}$)** | Parzen ($N=20$) | $0.46996 \pm 0.00222$ ($0.4700 \pm 0.0022$) | $0.47036 \pm 0.00324$ ($0.4704 \pm 0.0032$) | $[0.46885, 0.47188]$ | $0.00341$ ($0.0034$) | $144.27 \pm 7.06$ ($144.3 \pm 7.1$) | $112.07 \pm 7.24$ | 9/20 (45%) |
+| **Repeated DOE SO ($d = 7$)** | RSM ($N=20$) | $0.46872 \pm 0.00000$ ($0.4687 \pm 0.0000$) | $0.46859 \pm 0.00000$ ($0.4686 \pm 0.0000$) | $[0.46859, 0.46859]$ | $0.00304$ ($0.0030$) | $150.74 \pm 0.72$ ($150.7 \pm 0.7$) | $118.78 \pm 0.59$ | 0/20 (0%) |
+| **Single-Objective TPE** | Parzen ($N=20$) | $0.46750 \pm 0.00082$ ($0.4675 \pm 0.0008$) | $0.46691 \pm 0.00116$ ($0.4669 \pm 0.0012$) | $[0.46637, 0.46746]$ | $0.00314$ ($0.0031$) | $188.93 \pm 12.07$ ($188.9 \pm 12.1$) | $157.14 \pm 12.11$ | 0/20 (0%) |
+| **Unguided Random Search** | Uniform ($N=20$) | $0.46869 \pm 0.00143$ ($0.4687 \pm 0.0014$) | $0.46953 \pm 0.00207$ ($0.4695 \pm 0.0021$) | $[0.46856, 0.47050]$ | $0.00297$ ($0.0030$) | $181.12 \pm 19.02$ ($181.1 \pm 19.0$) | $149.05 \pm 18.81$ | 0/20 (0%) |
+| **Panel B: Historical Baseline Snapshot (`v1.0.0`, Single Search Replicate)** | | | | | | | | |
+| **Historical DOE MO ($\mathbf{x}^*_{\text{MO}}$)** | RSM (Single) | $0.4821$ | $0.4884$ | — | — | $119.8$ | $87.1$ | Yes |
+| **Historical Multi-Obj TPE** | Parzen (Single) | $0.4812$ | $0.4870$ | — | — | $118.8$ | $87.6$ | Yes |
+| **Historical Constrained TPE** | Parzen (Single) | $0.4783$ | $0.4823$ | — | — | $125.4$ | $94.1$ | Yes |
+| **Historical DOE SO ($d = 7$)** | RSM (Single) | $0.4687$ | $0.4690$ | — | — | $147.8$ | $116.9$ | No |
+| **Historical Bayesian TPE** | Parzen (Single) | $0.4735$ | $0.4726$ | — | — | $193.2$ | $160.9$ | No |
+| **Historical Random Search** | Uniform (Single) | $0.4696$ | $0.4707$ | — | — | $198.1$ | $164.2$ | No |
 
-```
-![Optimization Sample Efficiency Comparison](figures/efficiency_comparison_curve.png)
-```
+### 7.2 Multi-Objective Pareto Hypervolume Comparison
 
-### 8.3 Comparative Performance & Efficiency Summary
-| Evaluation Metric | Sequential DOE-CCD | Unguided Random Search | Bayesian Optimization (Optuna TPE) |
-| :--- | :--- | :--- | :--- |
-| **Evaluation Budget** | $140$ runs ($100$ Phase 1 + $40$ Phase 2) | $140$ runs | $140$ runs |
-| **Best Test RMSE Attained** | $0.4645$ | $0.4585$ | **$0.4548$** |
-| **Median Test RMSE Across Runs** | $0.5023$ | $0.5095$ | **$0.4645$** |
-| **Nuisance Variance Isolation** | **Yes (ICC = 21.60% isolated)** | No (Confounded) | No (Confounded) |
-| **Curvature Hypothesis Testing** | **Yes ($F = 57468, p < 10^{-15}$)** | Impossible | Impossible |
-| **Lack of Fit Test** | **Yes ($F = 122.6, F_{\text{lat}} = 0.45$)**| Impossible | Impossible |
-| **Interaction Quantified** | **Yes ($x_1 \cdot x_2, F = 1167.9$)** | Impossible | Impossible |
-| **Multi-Objective Pareto Model** | **Closed-form Desirability Surface** | Post-hoc Pareto filter only | Post-hoc scalarization only |
-| **Operational Guidance** | **Full quadratic surrogate equation**| Single discrete point | Single discrete point |
+| Frontier / Evaluation Protocol | Candidate Pool ($N$) | Non-Dom. Points | HV at $[0.60, 250]$ (Mean $\pm$ SD) | HV at $[0.65, 275]$ (Mean $\pm$ SD) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Panel A: Development Candidate Frontiers (Distinct Evaluation Protocols Noted per Row)** | | | | |
+| **Multi-Objective TPE Candidates (Single Split 42, 30-Call Search)** | $140 \times 20$ | $9.35 \pm 2.3$ | $18.3834 \pm 0.3301$ | $30.0535 \pm 0.4123$ |
+| **Repeated DOE Candidate Fronts (5-Block Means Across Replicates)** | $25 \times 20$ | $6.10 \pm 1.4$ | $15.6128 \pm 0.7268$ | $26.6847 \pm 0.8786$ |
+| **Fixed Full DOE Evaluated Front (Single Split 42, 27 Configs)** | $27$ | $4$ | $16.8585$ | $28.1430$ |
+| **Historical DOE 2-Point Set (Single Split 42, $\mathbf{x}^*_{\text{MO}}$ & $\mathbf{x}^*_{\text{SO}}$)** | $2$ | $2$ | $16.0363$ | $26.9168$ |
+| **Difference: Fixed Full DOE Front $-$ MO-TPE Mean (Split 42)** | — | — | $-1.5249$ ($p < 0.0001$) | $-1.9105$ ($p < 0.0001$) |
+| **Panel B: Holdout Non-Dominated Set (122 Records, 95 Configs, 20 Seeds)** | | | | |
+| **Non-Dominated Set (12 Distinct Configs)** | $122$ | $12$ | $17.6714$ | $28.9900$ |
+| $\quad \llcorner$ Repeated DOE MO Selections | $20$ | $3$ | — | — |
+| $\quad \llcorner$ Multi-Objective TPE Selections | $20$ | $3$ | — | — |
+| $\quad \llcorner$ Constrained TPE Selections | $20$ | $5$ | — | — |
+| $\quad \llcorner$ Single-Objective TPE Selections | $20$ | $1$ | — | — |
+
+### 7.3 Key Scientific Conclusions from the Benchmark Campaign
+
+1. **Single-Objective Accuracy vs. Latency**: Single-Objective TPE achieves the numerically lowest observed mean holdout test RMSE ($0.46691 \pm 0.00116$) by concentrating searches in deeper trees ($d \in \{7, 8, 9\}$), incurring $188.93 \pm 12.07\,\mu\text{s}$ inference latency (`inplace_predict`: $157.14 \pm 12.11\,\mu\text{s}$). Neither Single-Objective TPE nor Repeated DOE Single-Objective satisfies the $\le 145\,\mu\text{s}$ latency constraint ($0/20$ feasible). Repeated DOE Single-Objective ($\mathbf{x}^*_{\text{SO}}$, depth 7) selects the exact same configuration deterministically across all 20 replicates (between-search $\text{SD} = 0.00000$, retraining $\sigma_{\text{eval}} = 0.00304$), achieving $0.46859$ Test RMSE at $150.74 \pm 0.72\,\mu\text{s}$ inference latency (`inplace_predict`: $118.78 \pm 0.59\,\mu\text{s}$, $20.2\%$ lower latency than SO-TPE).
+2. **Multi-Objective Performance Comparison**: In the latency-constrained multi-objective regime, Repeated DOE ($\mathbf{x}^*_{\text{MO}}$, depth 4) achieves a mean Test RMSE of $0.48997 \pm 0.00732$ at $122.29 \pm 2.70\,\mu\text{s}$ latency (`inplace_predict`: $89.73 \pm 2.73\,\mu\text{s}$), compared to $0.49255 \pm 0.01080$ at $121.46 \pm 3.75\,\mu\text{s}$ (`inplace_predict`: $88.84 \pm 3.76\,\mu\text{s}$) for Multi-Objective TPE. The difference of $-0.00258$ RMSE is statistically non-significant under both Welch's two-sample $t$-test ($t = -0.8849, p = 0.3826$) and paired $t$-testing across search replicates ($t = -0.966, p = 0.3463$). Both methods achieve $20/20$ ($100\%$) benchmark constraint feasibility.
+3. **Development Hypervolume vs. Holdout Non-Dominated Set**: On development split 42 under the online 30-call timing protocol, MO-TPE candidate fronts achieve a mean hypervolume of $18.3834 \pm 0.3301$ at reference $[0.60, 250.0]$ ($30.0535 \pm 0.4123$ at $[0.65, 275.0]$), exceeding the fixed 27-point DOE candidate frontier ($16.8585$, difference $-1.5249, p < 0.0001$; at $[0.65, 275.0]$, $28.1430$, difference $-1.9105, p < 0.0001$), while Repeated DOE 5-block means achieve $15.6128 \pm 0.7268$ ($26.6847 \pm 0.8786$ at $[0.65, 275.0]$). This demonstrates a higher observed candidate hypervolume on the evaluated development split under 30-call search timing, without implying universal algorithmic superiority across unconstrained domains or unseen splits. When the 122 frozen selection records (95 distinct configurations) are evaluated on the external holdout test set across 20 retraining seeds, the empirical non-dominated set among the evaluated frozen configurations consists of **12 distinct configurations** ($\text{HV} = 17.6714$ at $[0.60, 250.0]$ and $28.9900$ at $[0.65, 275.0]$) spanning both paradigms: **3 Repeated DOE MO, 3 MO-TPE, 5 Constrained TPE, and 1 SO-TPE**.
+4. **Constrained TPE Feasibility Degradation**: While Constrained TPE satisfies $\le 145\,\mu\text{s}$ on $20/20$ searches during online 30-call search timing, only **$9/20$ ($45\%$)** remain feasible under 1,000-call benchmark verification ($9/9$ depth-6 selections feasible at $136.70 \pm 0.82\,\mu\text{s}$; $0/11$ depth-7 selections feasible at $150.45 \pm 0.67\,\mu\text{s}$). Plausible factors include noisy 30-call search measurements near the boundary, protocol differences (30 calls without warmup vs. 1,000 calls with warmup), and selection bias, rather than a single conclusively isolated cause.
+5. **Historical Latency Comparison Caveat**: Both historical `v1.0.0` scripts (`phase5_confirmation.py` and `phase5_benchmarks.py`) applied Win32 CPU core 0 affinity pinning. Consequently, the shift between historical single-run latency snapshots and the prospective benchmark session cannot be conclusively attributed to unpinned execution or a single identified environmental factor.
+<!-- END AUTO-GENERATED: SECTION_7_BENCHMARKS -->
 
 ---
 
-## 9. Engineering Takeaways and Practical Recommendations
+## 8. Discussion and Methodological Limitations
 
-1. **Depth-4 Trees Provide the Optimal Production Compromise:**
-   While unconstrained RMSE minimization pushes tree depth to 9 (achieving RMSE $\approx 0.465$ at $160\ \mu s$), Derringer-Suich desirability proves that depth 4 yields RMSE $= 0.488$ at $130\ \mu s$. Practitioners save over $22\%$ in inference latency and $55\%$ in tree memory footprint for a negligible $0.023$ loss in test RMSE.
-2. **Learning Rate Requires Concomitant Depth Scaling:**
-   The massive positive interaction coefficient between learning rate and max depth ($+0.0318, p < 10^{-63}$) indicates that higher learning rates ($\eta \approx 0.24$) must be paired with shallow-to-moderate tree depths to avoid severe overfitting and maintain high generalization.
-3. **Stochastic Blocking is Indispensable for ML Tuning:**
-   The Intraclass Correlation Coefficient ($\text{ICC} = 21.60\%$) reveals that more than one-fifth of the total variance across test runs arises purely from random data splitting and subsampling noise. Without block designs, black-box optimizers frequently chase phantom improvements that are statistical noise.
-4. **DOE Delivers Structural Intelligence, Not Just Coordinates:**
-   While Optuna TPE achieved a marginally lower scalar RMSE ($0.4548$ vs. $0.4645$), it provided zero insight into parameter sensitivity, curvature, or interaction effects. Sequential DOE-CCD established a verified quadratic equation of the entire hyperparameter space, tested goodness-of-fit, isolated noise, and derived the entire continuous Pareto front.
+<!-- BEGIN AUTO-GENERATED: SECTION_8_9_DISCUSSION_AND_ARTIFACTS -->
+1. **Parametric Attribution vs. Adaptive Search**: DOE + RSM decomposes variance across main effects, interactions, quadratic terms, and seed blocks, and provides formal hypothesis tests for curvature ($F = 105,432.31$) and lack of fit ($F = 62.21$). Conversely, Bayesian optimization (TPE) adapts dynamically to non-polynomial basins without parametric assumptions.
+2. **Value of Stochastic Nuisance Blocking**: Blocking across 5 data-partition seeds absorbed $\text{ICC} = 40.69\%$ of residual variance ($\sigma_{\text{block}} \approx 0.0077$ RMSE), preventing seed noise from confounding hyperparameter comparisons.
+3. **Structural Lack of Fit and Surrogate Optimism**: Because decision tree ensembles exhibit diminishing returns at deeper levels ($d \ge 6$), a second-order polynomial interpolated across $d \in \{3, 6, 9\}$ under-predicts validation RMSE at depth 7 by $+0.0217$ RMSE. Satterthwaite prediction intervals widen for variance heterogeneity across degrees of freedom but cannot correct deterministic polynomial bias.
+4. **Dimensionality Scaling**: While a 4-factor FCCD requires $2^4 + 2(4) + 4 = 28$ runs per block, full factorials scale as $2^k$. For higher-dimensional spaces ($k > 6$), Resolution IV/V fractional factorials ($2^{k-p}$), Box-Behnken designs, or hybrid DOE-screening + Bayesian refinement pipelines are recommended.
 
 ---
 
-## 10. References
-1. Montgomery, Douglas C. *Design and Analysis of Experiments*. 10th Edition, John Wiley & Sons, 2019.
-   - Chapter 5: Factorial Designs
-   - Chapter 9: Response Surface Methods and Designs
-   - Chapter 10: Robust Parameter Design and Process Robustness Studies
-   - Chapter 14: Experiments with Random Factors
-2. Box, G. E. P., and Wilson, K. B. "On the Experimental Attainment of Optimum Conditions." *Journal of the Royal Statistical Society: Series B (Methodological)*, vol. 13, no. 1, 1951, pp. 1–45.
-3. Derringer, George, and Ronald Suich. "Simultaneous Optimization of Several Response Variables." *Journal of Quality Technology*, vol. 12, no. 4, 1980, pp. 214–219.
-4. Chen, Tianqi, and Carlos Guestrin. "XGBoost: A Scalable Tree Boosting System." *ACM SIGKDD International Conference on Knowledge Discovery and Data Mining*, 2016.
-5. Akiba, Takuya, et al. "Optuna: A Next-generation Hyperparameter Optimization Framework." *ACM SIGKDD International Conference on Knowledge Discovery and Data Mining*, 2019.
+## 9. Repository Artifacts and Reproducibility
+
+- **LaTeX Manuscript & Compiled PDF**: `report.tex` and `report.pdf` (22 pages, compiled via Tectonic with zero unresolved references or layout overflows).
+- **Auto-Generated Statistical Macros & Tables**: `results/macros.tex` (283 macros) and `tables/*.tex`, generated deterministically via `python scripts/generate_report_artifacts.py`.
+- **Single-Source-of-Truth Reporting & Manifest**: `scripts/reporting_data.py`, `scripts/generate_research_reporting.py`, and `docs/generated/scientific_results_manifest.json`.
+- **Prospective Benchmark Evidence**: `results/revision_v2/full_run_001/` (`finalized_selections.json`, `final_evaluations.csv`, `final_summary.csv`, `optimizer_summary.json`, `hypervolume.json`, `paired_comparisons.json`, `computational_budget.json`, `run_manifest.json`).
+- **Verification & Audit Suite**: `python scripts/audit_scientific_consistency.py`, `python scripts/generate_research_reporting.py --check`, `python scripts/generate_report_artifacts.py --check`, and `pytest` (automated integrity, statistical, and numerical table consistency checks).
+<!-- END AUTO-GENERATED: SECTION_8_9_DISCUSSION_AND_ARTIFACTS -->

@@ -20,7 +20,8 @@ Ground rules & Architectural specifications:
 import os
 import sys
 import time
-from typing import Dict, Any, List, Tuple
+import json
+from typing import Dict, Any, List, NamedTuple, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.datasets import fetch_california_housing
@@ -29,23 +30,42 @@ from sklearn.metrics import mean_squared_error
 import xgboost as xgb
 import yaml
 
-# Pinned CPU core affinity and elevated process priority
-def pin_cpu_affinity():
-    """Pins execution to CPU 0 and sets ABOVE_NORMAL_PRIORITY_CLASS on Windows."""
-    try:
-        import ctypes
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
-        kernel32.SetProcessAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
-        kernel32.SetProcessAffinityMask.restype = ctypes.c_bool
-        kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
-        kernel32.SetPriorityClass.restype = ctypes.c_bool
+from latency import PRIMARY_V1, measure_latencies
 
-        handle = kernel32.GetCurrentProcess()
-        kernel32.SetProcessAffinityMask(handle, 1)
-        kernel32.SetPriorityClass(handle, 0x00008000)
-    except Exception:
-        pass
+# Pinned CPU core affinity and elevated process priority
+def pin_cpu_affinity(core_id: int = 0) -> bool:
+    """Pins execution to a single CPU core (default core 0) and sets elevated process priority where supported.
+    Supports Linux (os.sched_setaffinity) and Windows (kernel32 SetProcessAffinityMask).
+    Returns True if pinning was successful, False otherwise.
+    """
+    # 1. Linux / POSIX sched_setaffinity
+    if hasattr(os, "sched_setaffinity"):
+        try:
+            os.sched_setaffinity(0, {core_id})
+            return True
+        except Exception:
+            pass
+
+    # 2. Windows SetProcessAffinityMask
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+            kernel32.SetProcessAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+            kernel32.SetProcessAffinityMask.restype = ctypes.c_bool
+            kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+            kernel32.SetPriorityClass.restype = ctypes.c_bool
+
+            handle = kernel32.GetCurrentProcess()
+            mask = 1 << core_id
+            success = kernel32.SetProcessAffinityMask(handle, mask)
+            kernel32.SetPriorityClass(handle, 0x00008000)
+            return bool(success)
+        except Exception:
+            pass
+
+    return False
 
 pin_cpu_affinity()
 
@@ -150,6 +170,129 @@ class CaliforniaHousingDataManager:
         return split
 
 
+class DevelopmentSplit(NamedTuple):
+    """Data available to development-stage code; no external holdout fields exist."""
+
+    X_train: np.ndarray
+    X_val: np.ndarray
+    y_train: np.ndarray
+    y_val: np.ndarray
+
+
+class CaliforniaHousingDevelopmentDataManager:
+    """Expose only train/validation data from the California Housing development pool."""
+
+    def __init__(
+        self,
+        external_test_seed: int = 42,
+        X: np.ndarray = None,
+        y: np.ndarray = None,
+    ):
+        if X is None or y is None:
+            housing = fetch_california_housing()
+            raw_X = housing.data
+            raw_y = housing.target
+            self.feature_names = housing.feature_names
+        else:
+            raw_X = np.asarray(X)
+            raw_y = np.asarray(y)
+            self.feature_names = None
+
+        self._X_dev, _, self._y_dev, _ = train_test_split(
+            raw_X, raw_y, test_size=0.20, random_state=external_test_seed
+        )
+        self._cache = {}
+
+    def get_split(self, split_seed: int) -> DevelopmentSplit:
+        if split_seed not in self._cache:
+            X_train, X_val, y_train, y_val = train_test_split(
+                self._X_dev, self._y_dev, test_size=0.25, random_state=split_seed
+            )
+            self._cache[split_seed] = DevelopmentSplit(X_train, X_val, y_train, y_val)
+        return self._cache[split_seed]
+
+
+def evaluate_development_model(
+    eta: float,
+    depth: int,
+    subsample: float,
+    reg_lambda: float,
+    seed: int = 42,
+    data_mgr: CaliforniaHousingDevelopmentDataManager = None,
+    measure_latency_details: bool = True,
+    split_seed: int = None,
+    model_seed: int = None,
+    latency_session_id: str = None,
+) -> Dict[str, Any]:
+    """Fit and evaluate a model using development data only."""
+    if data_mgr is None:
+        data_mgr = CaliforniaHousingDevelopmentDataManager()
+    if split_seed is None:
+        split_seed = seed
+    if model_seed is None:
+        model_seed = seed
+
+    split = data_mgr.get_split(split_seed)
+    t0_fit = time.perf_counter()
+    model = xgb.XGBRegressor(
+        n_estimators=CONFIG["model"]["n_estimators"],
+        learning_rate=eta,
+        max_depth=depth,
+        subsample=subsample,
+        reg_lambda=reg_lambda,
+        colsample_bytree=CONFIG["model"].get("colsample_bytree", 1.0),
+        min_child_weight=CONFIG["model"].get("min_child_weight", 1.0),
+        gamma=CONFIG["model"].get("gamma", 0.0),
+        tree_method=CONFIG["model"].get("tree_method", "auto"),
+        random_state=model_seed,
+        n_jobs=CONFIG["model"]["n_jobs_train"],
+        objective=CONFIG["model"]["objective"],
+    )
+    model.fit(split.X_train, split.y_train)
+    fit_duration = time.perf_counter() - t0_fit
+    val_pred = model.predict(split.X_val)
+    val_rmse = float(np.sqrt(mean_squared_error(split.y_val, val_pred)))
+
+    latency_median = latency_iqr = inplace_median = inplace_iqr = None
+    latency_metadata = latency_observations = None
+    if measure_latency_details:
+        single_sample = split.X_val[:1]
+        session_id = latency_session_id or f"development-split-{split_seed}-model-{model_seed}"
+        measurement = measure_latencies(
+            {"candidate": model},
+            single_sample,
+            session_id=session_id,
+            protocol=PRIMARY_V1,
+        )
+        summary = measurement["summaries"]["candidate"]
+        latency_median = summary["predict_latency_us"]
+        latency_iqr = summary["predict_latency_us_iqr"]
+        inplace_median = summary["inplace_predict_latency_us"]
+        inplace_iqr = summary["inplace_predict_latency_us_iqr"]
+        latency_metadata = json.dumps(measurement["metadata"], sort_keys=True)
+        latency_observations = json.dumps(measurement["observations"], sort_keys=True)
+
+    return {
+        "val_rmse": val_rmse,
+        "predict_latency_us": latency_median,
+        "predict_latency_us_iqr": latency_iqr,
+        "inplace_predict_latency_us": inplace_median,
+        "inplace_predict_latency_us_iqr": inplace_iqr,
+        "latency_us_median": latency_median,
+        "latency_us_iqr": latency_iqr,
+        "inplace_latency_us_median": inplace_median,
+        "inplace_latency_us_iqr": inplace_iqr,
+        "latency_protocol_id": PRIMARY_V1.protocol_id if measure_latency_details else None,
+        "latency_session_id": (
+            latency_session_id or f"development-split-{split_seed}-model-{model_seed}"
+            if measure_latency_details else None
+        ),
+        "latency_metadata_json": latency_metadata,
+        "latency_observations_json": latency_observations,
+        "fit_time_s": fit_duration,
+    }
+
+
 def evaluate_model(
     eta: float,
     depth: int,
@@ -160,7 +303,8 @@ def evaluate_model(
     measure_latency_details: bool = True,
     split_seed: int = None,
     model_seed: int = None,
-) -> Dict[str, float]:
+    latency_session_id: str = None,
+) -> Dict[str, Any]:
     """
     Fits XGBoost regressor and evaluates:
       - val_rmse: Validation RMSE (Y1 objective)
@@ -186,6 +330,10 @@ def evaluate_model(
         max_depth=depth,
         subsample=subsample,
         reg_lambda=reg_lambda,
+        colsample_bytree=CONFIG["model"].get("colsample_bytree", 1.0),
+        min_child_weight=CONFIG["model"].get("min_child_weight", 1.0),
+        gamma=CONFIG["model"].get("gamma", 0.0),
+        tree_method=CONFIG["model"].get("tree_method", "auto"),
         random_state=model_seed,
         n_jobs=CONFIG["model"]["n_jobs_train"],
         objective=CONFIG["model"]["objective"],
@@ -201,57 +349,44 @@ def evaluate_model(
     test_pred = model.predict(X_test)
     test_rmse = float(np.sqrt(mean_squared_error(y_test, test_pred)))
 
-    latency_median = 0.0
-    latency_iqr = 0.0
-    inplace_median = 0.0
-    inplace_iqr = 0.0
+    latency_median = latency_iqr = inplace_median = inplace_iqr = None
+    latency_metadata = latency_observations = None
 
     if measure_latency_details:
-        pin_cpu_affinity()
-        model.set_params(n_jobs=1)
-        booster = model.get_booster()
-        booster.set_param({"nthread": 1})
         single_sample = X_val[:1]
-
-        # Warmup
-        warmup_calls = CONFIG["model"]["latency_warmup"]
-        for _ in range(warmup_calls):
-            _ = model.predict(single_sample)
-            _ = booster.inplace_predict(single_sample)
-
-        # Timed repetitions (5 batches of 200 calls = 1000 calls)
-        reps = CONFIG["model"]["latency_reps"]
-        batch_size = CONFIG["model"]["latency_iters"] // reps
-        batch_times_pred = []
-        batch_times_inp = []
-
-        for _ in range(reps):
-            # 1. Standard predict
-            t0 = time.perf_counter_ns()
-            for _ in range(batch_size):
-                _ = model.predict(single_sample)
-            t1 = time.perf_counter_ns()
-            batch_times_pred.append((t1 - t0) / (batch_size * 1000.0))
-
-            # 2. Inplace predict
-            t0 = time.perf_counter_ns()
-            for _ in range(batch_size):
-                _ = booster.inplace_predict(single_sample)
-            t1 = time.perf_counter_ns()
-            batch_times_inp.append((t1 - t0) / (batch_size * 1000.0))
-
-        latency_median = float(np.median(batch_times_pred))
-        latency_iqr = float(np.subtract(*np.percentile(batch_times_pred, [75, 25])))
-        inplace_median = float(np.median(batch_times_inp))
-        inplace_iqr = float(np.subtract(*np.percentile(batch_times_inp, [75, 25])))
+        session_id = latency_session_id or f"historical-final-split-{split_seed}-model-{model_seed}"
+        measurement = measure_latencies(
+            {"candidate": model},
+            single_sample,
+            session_id=session_id,
+            protocol=PRIMARY_V1,
+        )
+        summary = measurement["summaries"]["candidate"]
+        latency_median = summary["predict_latency_us"]
+        latency_iqr = summary["predict_latency_us_iqr"]
+        inplace_median = summary["inplace_predict_latency_us"]
+        inplace_iqr = summary["inplace_predict_latency_us_iqr"]
+        latency_metadata = json.dumps(measurement["metadata"], sort_keys=True)
+        latency_observations = json.dumps(measurement["observations"], sort_keys=True)
 
     return {
         "val_rmse": val_rmse,
         "test_rmse": test_rmse,
+        "predict_latency_us": latency_median,
+        "predict_latency_us_iqr": latency_iqr,
+        "inplace_predict_latency_us": inplace_median,
+        "inplace_predict_latency_us_iqr": inplace_iqr,
         "latency_us_median": latency_median,
         "latency_us_iqr": latency_iqr,
         "inplace_latency_us_median": inplace_median,
         "inplace_latency_us_iqr": inplace_iqr,
+        "latency_protocol_id": PRIMARY_V1.protocol_id if measure_latency_details else None,
+        "latency_session_id": (
+            latency_session_id or f"historical-final-split-{split_seed}-model-{model_seed}"
+            if measure_latency_details else None
+        ),
+        "latency_metadata_json": latency_metadata,
+        "latency_observations_json": latency_observations,
         "fit_time_s": fit_duration,
     }
 
@@ -344,15 +479,21 @@ def generate_design_plan() -> List[Dict[str, Any]]:
     return runs
 
 
-def execute_design_pipeline(output_csv: str = "results/runs.csv") -> pd.DataFrame:
-    """Executes the full 140 design runs in randomized execution order and saves results/runs.csv."""
+def execute_design_pipeline(
+    output_csv: str = "results/revision_v2/development_runs.csv",
+    runs_plan: List[Dict[str, Any]] = None,
+    data_mgr: CaliforniaHousingDevelopmentDataManager = None,
+) -> pd.DataFrame:
+    """Execute development-only DOE runs without accessing the external holdout."""
     os.makedirs(os.path.dirname(os.path.abspath(output_csv)), exist_ok=True)
-    runs_plan = generate_design_plan()
+    if runs_plan is None:
+        runs_plan = generate_design_plan()
 
     # Sort by randomized run_order for real execution sequence
     runs_sorted = sorted(runs_plan, key=lambda r: r["run_order"])
 
-    data_mgr = CaliforniaHousingDataManager()
+    if data_mgr is None:
+        data_mgr = CaliforniaHousingDevelopmentDataManager()
     executed_records = []
 
     print(f"Starting execution of {len(runs_sorted)} DOE design runs...")
@@ -362,7 +503,7 @@ def execute_design_pipeline(output_csv: str = "results/runs.csv") -> pd.DataFram
         x = np.array([run["x1"], run["x2"], run["x3"], run["x4"]])
         eta, depth, subsample, reg_lambda = decode_factors(x)
 
-        eval_res = evaluate_model(
+        eval_res = evaluate_development_model(
             eta=eta,
             depth=depth,
             subsample=subsample,
@@ -392,7 +533,6 @@ def execute_design_pipeline(output_csv: str = "results/runs.csv") -> pd.DataFram
             "subsample": subsample,
             "reg_lambda": reg_lambda,
             "val_rmse": eval_res["val_rmse"],
-            "test_rmse": eval_res["test_rmse"],
             "latency_us_median": eval_res["latency_us_median"],
             "latency_us_iqr": eval_res["latency_us_iqr"],
             "inplace_latency_us_median": eval_res["inplace_latency_us_median"],
@@ -413,4 +553,4 @@ def execute_design_pipeline(output_csv: str = "results/runs.csv") -> pd.DataFram
 
 
 if __name__ == "__main__":
-    execute_design_pipeline("results/runs.csv")
+    execute_design_pipeline()
