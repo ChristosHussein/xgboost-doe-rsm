@@ -412,10 +412,18 @@ def generate_macros():
         sel_map = {x["selection_id"]: x["hyperparameters"]["max_depth"] for x in sel_rev}
         df_rev_sum["max_depth"] = df_rev_sum["selection_id"].map(sel_map)
 
+        total_selection_records = len(sel_rev)
+        distinct_config_hashes = len(set(x["config_sha256"] for x in sel_rev))
+        total_eval_rows = len(df_rev_evals)
+
         # Budget totals
         add_macro("numRevTotalFits", "17{,}077")
         add_macro("numRevTotalTimedInferences", "1{,}640{,}810")
-        add_macro("numRevTotalFrozenConfigs", "122")
+        add_macro("numRevTotalFrozenConfigs", f"{total_selection_records}")
+        add_macro("numRevTotalSelectionRecords", f"{total_selection_records}")
+        add_macro("numRevTotalDistinctConfigs", f"{distinct_config_hashes}")
+        add_macro("numRevTotalEvaluationRows", f"{total_eval_rows:,}".replace(",", "{,}"))
+        add_macro("numRevHoldoutNonDominatedConfigs", "12")
         add_macro("numRevBetweenSessionSd", "1.28")
         add_macro("numRevInterfaceOverhead", "32.19")
 
@@ -505,7 +513,9 @@ def generate_macros():
         add_macro("numRevHvDiffDev", f"{dev_060['full_doe_evaluated_candidate_front']['value'] - dev_060['mo_tpe_hypervolume_distribution']['mean']:.4f}")
 
         add_macro("numRevHvMoTpeDevMeanRefTwo", f"{dev_065['mo_tpe_hypervolume_distribution']['mean']:.4f}")
+        add_macro("numRevHvMoTpeDevSdRefTwo", f"{dev_065['mo_tpe_hypervolume_distribution']['standard_deviation']:.4f}")
         add_macro("numRevHvFullDoeDevRefTwo", f"{dev_065['full_doe_evaluated_candidate_front']['value']:.4f}")
+        add_macro("numRevHvDiffDevRefTwo", f"{dev_065['full_doe_evaluated_candidate_front']['value'] - dev_065['mo_tpe_hypervolume_distribution']['mean']:.4f}")
 
         add_macro("numRevHvHoldoutFrozen", f"{test_060['all_frozen_selections']['value']:.4f}")
         add_macro("numRevHvHoldoutFrozenRefTwo", f"{test_065['all_frozen_selections']['value']:.4f}")
@@ -724,7 +734,7 @@ def generate_tables():
         "\\toprule",
         "\\textbf{Source of Variation / Model} & \\textbf{SS} & \\textbf{DF} & \\textbf{MS} & \\bm{$F$} & \\makecell{\\bm{$p$}\\\\\\textbf{value}} & \\makecell{\\textbf{Reference /}\\\\\\textbf{RMS Misfit}} \\\\",
         "\\midrule",
-        "\\multicolumn{7}{l}{\\textbf{Decomposition of Second-Order Model Residual ($Y_1$: Validation RMSE, Full CCD)}} \\\\",
+        "\\multicolumn{7}{l}{\\textbf{Decomposition of Second-Order Residual ($Y_1$: Validation RMSE)}} \\\\",
         f"Structural Lack of Fit & ${lof['Y1']['SS_LoF']:.6f}$ & ${lof['Y1']['df_LoF']}$ & ${lof['Y1']['MS_LoF']:.6f}$ & ${f_lof_center_y1:.2f}$ & $< 10^{{-15}}$ & vs. Center PE \\\\",
         f"Treatment $\\times$ Block Interaction & ${ss_interact_y1:.6f}$ & ${df_interact}$ & ${fmt_tex_num(ms_interact_y1)}$ & ${f_interact_center_y1:.2f}$ & ${p_interact_center_y1:.4f}$ & vs. Center PE \\\\",
         f"Genuine Center Pure Error & ${ss_pure_center_y1:.6f}$ & ${df_pure_center}$ & ${fmt_tex_num(ms_pure_center_y1)}$ & --- & --- & Base Replicate \\\\",
@@ -732,12 +742,12 @@ def generate_tables():
         f"Total Model Residual & ${lof['Y1']['SS_PE']+lof['Y1']['SS_LoF']:.6f}$ & $121$ & ${fmt_tex_num((lof['Y1']['SS_PE']+lof['Y1']['SS_LoF'])/121)}$ & --- & --- & $\\text{{RMS}} = {np.sqrt((lof['Y1']['SS_PE']+lof['Y1']['SS_LoF'])/121):.4f}$ \\\\",
         f"Saturated Additive Baseline & ${lof['Y1']['SS_PE']:.6f}$ & ${lof['Y1']['df_PE']}$ & ${fmt_tex_num(lof['Y1']['MS_PE'])}$ & ${lof['Y1']['F_LoF']:.2f}^*$ & {p1_str} & ($^*$LoF vs. Additive) \\\\",
         "\\midrule",
-        "\\multicolumn{7}{l}{\\textbf{Restricted Domain Sensitivity ($Y_1$: $x_1 \\ge -0.5$, $\\eta \\ge 0.033$, $N=95$)}} \\\\",
+        "\\multicolumn{7}{l}{\\textbf{Restricted Domain ($Y_1$: $x_1 \\ge -0.5$, $\\eta \\ge 0.033$, $N=95$)}} \\\\",
         f"Structural Lack of Fit & ${lof['Y1_restricted']['SS_LoF']:.6f}$ & ${lof['Y1_restricted']['df_LoF']}$ & ${lof['Y1_restricted']['MS_LoF']:.6f}$ & ${lof['Y1_restricted']['F_LoF']:.2f}$ & {p1_restr_str} & $\\text{{RMS}} = {lof['Y1_restricted']['sqrt_MS_LoF']:.4f}$ \\\\",
         f"Additive Baseline Residual & ${lof['Y1_restricted']['SS_PE']:.6f}$ & ${lof['Y1_restricted']['df_PE']}$ & ${fmt_tex_num(lof['Y1_restricted']['MS_PE'])}$ & --- & --- & Saturated Base \\\\",
         f"Total Restricted Residual & ${lof['Y1_restricted']['SS_PE']+lof['Y1_restricted']['SS_LoF']:.6f}$ & ${lof['Y1_restricted']['df_PE']+lof['Y1_restricted']['df_LoF']}$ & ${fmt_tex_num((lof['Y1_restricted']['SS_PE']+lof['Y1_restricted']['SS_LoF'])/(lof['Y1_restricted']['df_PE']+lof['Y1_restricted']['df_LoF']))}$ & --- & --- & $\\text{{RMS}} = {np.sqrt((lof['Y1_restricted']['SS_PE']+lof['Y1_restricted']['SS_LoF'])/(lof['Y1_restricted']['df_PE']+lof['Y1_restricted']['df_LoF'])):.4f}$ \\\\",
         "\\midrule",
-        "\\multicolumn{7}{l}{\\textbf{Latency Residual Decomposition and Adequacy ($Y_2$: Single-Sample Latency, $\\mu\\text{s}$)}} \\\\",
+        "\\multicolumn{7}{l}{\\textbf{Latency Residual Decomposition ($Y_2$: Latency, $\\mu\\text{s}$)}} \\\\",
         f"Structural Lack of Fit & ${lof['Y2']['SS_LoF']:.2f}$ & ${lof['Y2']['df_LoF']}$ & ${lof['Y2']['MS_LoF']:.2f}$ & ${f_lof_center_y2:.2f}$ & ${p_lof_center_y2:.4f}$ & vs. Center PE ($\\text{{RMS}}={lof['Y2']['sqrt_MS_LoF']:.2f}$) \\\\",
         f"Treatment $\\times$ Block Interaction & ${ss_interact_y2:.2f}$ & ${df_interact}$ & ${ms_interact_y2:.2f}$ & ${f_interact_center_y2:.2f}$ & ${p_interact_center_y2:.4f}$ & vs. Center PE \\\\",
         f"Genuine Center Pure Error & ${ss_pure_center_y2:.2f}$ & ${df_pure_center}$ & ${ms_pure_center_y2:.2f}$ & --- & --- & Base Replicate \\\\",
@@ -830,20 +840,20 @@ def generate_tables():
         df_rev_sum["max_depth"] = df_rev_sum["selection_id"].map(sel_map)
 
         rev_method_specs = [
-            ("repeated_preplanned_doe_multi_objective", r"\makecell[l]{Repeated DOE Multi-Obj ($\mathbf{x}^*_{\text{MO}}$)}", "RSM ($N{=}20$ reps)"),
-            ("multi_objective_tpe", r"\makecell[l]{Multi-Objective TPE (Desirability)}", "Parzen ($N{=}20$ reps)"),
-            ("constrained_tpe", r"\makecell[l]{Constrained TPE ($\le 145\,\mu\text{s}$)}", "Parzen ($N{=}20$ reps)"),
-            ("repeated_preplanned_doe_single_objective", r"\makecell[l]{Repeated DOE Single-Obj ($\mathbf{x}^*_{\text{SO}}, d{=}7$)}", "RSM ($N{=}20$ reps)"),
-            ("single_objective_tpe", r"\makecell[l]{Single-Objective TPE}", "Parzen ($N{=}20$ reps)"),
-            ("random_search", r"\makecell[l]{Unguided Random Search}", "Uniform ($N{=}20$ reps)"),
+            ("repeated_preplanned_doe_multi_objective", r"\makecell[l]{Repeated DOE MO\\($\mathbf{x}^*_{\text{MO}}$)}", "RSM ($N{=}20$)"),
+            ("multi_objective_tpe", r"\makecell[l]{Multi-Objective TPE}", "Parzen ($N{=}20$)"),
+            ("constrained_tpe", r"\makecell[l]{Constrained TPE\\($\le 145\,\mu\text{s}$)}", "Parzen ($N{=}20$)"),
+            ("repeated_preplanned_doe_single_objective", r"\makecell[l]{Repeated DOE SO\\($d{=}7$)}", "RSM ($N{=}20$)"),
+            ("single_objective_tpe", r"\makecell[l]{Single-Objective TPE}", "Parzen ($N{=}20$)"),
+            ("random_search", r"\makecell[l]{Unguided Random Search}", "Uniform ($N{=}20$)"),
         ]
 
         tex_bm = [
             "\\begin{tabular}{lcccccc}",
             "\\toprule",
-            "\\makecell{\\textbf{Optimization Method}} & \\makecell{\\textbf{Search Basis}\\\\\\scriptsize\\textbf{($N$ Replicates)}} & \\makecell{\\textbf{Val RMSE}\\\\\\scriptsize\\textbf{Mean $\\pm$ SD$_{\\text{search}}$}} & \\makecell{\\textbf{Holdout Test RMSE}\\\\\\scriptsize\\textbf{Mean $\\pm$ SD$_{\\text{search}}$}} & \\makecell{\\textbf{Retrain}\\\\\\bm{$\\sigma_{\\text{eval}}$}} & \\makecell{\\textbf{Predict Latency}\\\\\\bm{$(\\mu\\text{s} \\pm \\text{SD})$}} & \\makecell{\\textbf{Benchmark}\\\\\\textbf{Feasible}} \\\\",
+            "\\makecell{\\textbf{Optimization}\\\\\\textbf{Method}} & \\makecell{\\textbf{Search Basis}\\\\\\scriptsize($N$ Reps)} & \\makecell{\\textbf{Val RMSE}\\\\\\scriptsize Mean $\\pm$ SD} & \\makecell{\\textbf{Holdout}\\\\\\textbf{Test RMSE}\\\\\\scriptsize Mean $\\pm$ SD} & \\makecell{\\textbf{Retrain}\\\\\\bm{$\\sigma_{\\text{eval}}$}} & \\makecell{\\textbf{Latency}\\\\\\scriptsize($\\mu\\text{s} \\pm \\text{SD}$)} & \\makecell{\\textbf{Feasible}\\\\\\scriptsize($\\le 145\\,\\mu\\text{s}$)} \\\\",
             "\\midrule",
-            "\\multicolumn{7}{l}{\\textbf{Panel A: Prospective Revision-v2 Full Benchmark ($N=20$ Independent Search Replicates, 140 Fits/Rep)}} \\\\"
+            "\\multicolumn{7}{l}{\\textbf{Panel A: Prospective Revision-v2 Full Benchmark ($N=20$ Search Replicates)}} \\\\"
         ]
 
         for opt_key, label, basis in rev_method_specs:
@@ -864,12 +874,12 @@ def generate_tables():
         tex_bm.append("\\multicolumn{7}{l}{\\textbf{Panel B: Historical Baseline Snapshot ($v1.0.0$, Single Search Replicate)}} \\\\")
         df_bm_hist = pd.read_csv("results/benchmark.csv")
         hist_specs = [
-            ("Sequential DOE-CCD (x*, Multi-Objective)", r"\makecell[l]{Historical DOE Multi-Obj ($\mathbf{x}^*_{\text{MO}}$)}", "RSM (Single rep)"),
-            ("Multi-Objective TPE (Desirability)", r"\makecell[l]{Historical Multi-Obj TPE}", "Parzen (Single rep)"),
-            ("Constrained TPE (Latency <= 145 us)", r"\makecell[l]{Historical Constrained TPE}", "Parzen (Single rep)"),
-            ("Sequential DOE-CCD (Single-Objective)", r"\makecell[l]{Historical DOE Single-Obj ($d{=}7$)}", "RSM (Single rep)"),
-            ("Bayesian Optimization (Optuna TPE Single-Obj)", r"\makecell[l]{Historical Bayesian TPE (SO)}", "Parzen (Single rep)"),
-            ("Unguided Random Search", r"\makecell[l]{Historical Random Search}", "Uniform (Single rep)"),
+            ("Sequential DOE-CCD (x*, Multi-Objective)", r"\makecell[l]{Historical DOE MO\\($\mathbf{x}^*_{\text{MO}}$)}", "RSM (Single)"),
+            ("Multi-Objective TPE (Desirability)", r"\makecell[l]{Historical Multi-Obj TPE}", "Parzen (Single)"),
+            ("Constrained TPE (Latency <= 145 us)", r"\makecell[l]{Historical Constrained TPE}", "Parzen (Single)"),
+            ("Sequential DOE-CCD (Single-Objective)", r"\makecell[l]{Historical DOE SO\\($d{=}7$)}", "RSM (Single)"),
+            ("Bayesian Optimization (Optuna TPE Single-Obj)", r"\makecell[l]{Historical Bayesian TPE}", "Parzen (Single)"),
+            ("Unguided Random Search", r"\makecell[l]{Historical Random Search}", "Uniform (Single)"),
         ]
         for raw_name, label, basis in hist_specs:
             hrow = df_bm_hist[df_bm_hist["method"] == raw_name].iloc[0]
@@ -894,21 +904,21 @@ def generate_tables():
         tex_hv = [
             "\\begin{tabular}{lcccc}",
             "\\toprule",
-            "\\makecell{\\textbf{Frontier / Estimand Domain}} & \\makecell{\\textbf{Candidate}\\\\\\textbf{Pool ($N$)}} & \\makecell{\\textbf{Non-Dominated}\\\\\\textbf{Points}} & \\makecell{\\textbf{HV at $[0.60, 250]$}\\\\\\scriptsize(Mean $\\pm$ SD)} & \\makecell{\\textbf{HV at $[0.65, 275]$}\\\\\\scriptsize(Mean $\\pm$ SD)} \\\\",
+            "\\makecell{\\textbf{Frontier / Domain}} & \\makecell{\\textbf{Candidate}\\\\\\textbf{Pool ($N$)}} & \\makecell{\\textbf{Non-Dom.}\\\\\\textbf{Points}} & \\makecell{\\textbf{HV at $[0.60, 250]$}\\\\\\scriptsize(Mean $\\pm$ SD)} & \\makecell{\\textbf{HV at $[0.65, 275]$}\\\\\\scriptsize(Mean $\\pm$ SD)} \\\\",
             "\\midrule",
-            "\\multicolumn{5}{l}{\\textbf{Panel A: Development Candidate Frontiers (Split 42, 30-Call Online Latency Protocol)}} \\\\",
-            f"Multi-Objective TPE (Search Candidates) & $140 \\times 20$ & $9.35 \\pm 2.1$ & ${dev_060['mo_tpe_hypervolume_distribution']['mean']:.4f} \\pm {dev_060['mo_tpe_hypervolume_distribution']['standard_deviation']:.4f}$ & ${dev_065['mo_tpe_hypervolume_distribution']['mean']:.4f} \\pm {dev_065['mo_tpe_hypervolume_distribution']['standard_deviation']:.4f}$ \\\\",
-            f"Repeated DOE Candidate Fronts (Block Means) & $25 \\times 20$ & $6.10 \\pm 1.1$ & ${dev_060['repeated_doe_hypervolume_distribution']['mean']:.4f} \\pm {dev_060['repeated_doe_hypervolume_distribution']['standard_deviation']:.4f}$ & ${dev_065['repeated_doe_hypervolume_distribution']['mean']:.4f} \\pm {dev_065['repeated_doe_hypervolume_distribution']['standard_deviation']:.4f}$ \\\\",
-            f"Full Evaluated DOE Candidate Front & $27$ & $4$ & ${dev_060['full_doe_evaluated_candidate_front']['value']:.4f}$ & ${dev_065['full_doe_evaluated_candidate_front']['value']:.4f}$ \\\\",
-            f"Historical DOE 2-Point Candidate Set & $2$ & $2$ & ${dev_060['doe_two_point']['value']:.4f}$ & ${dev_065['doe_two_point']['value']:.4f}$ \\\\",
-            f"Difference (Full DOE Front $-$ MO-TPE Mean) & --- & --- & ${dev_060['full_doe_evaluated_candidate_front']['value'] - dev_060['mo_tpe_hypervolume_distribution']['mean']:+.4f}$ ($p < 0.0001$) & ${dev_065['full_doe_evaluated_candidate_front']['value'] - dev_065['mo_tpe_hypervolume_distribution']['mean']:+.4f}$ ($p < 0.0001$) \\\\",
+            "\\multicolumn{5}{l}{\\textbf{Panel A: Development Candidate Frontiers (Split 42, 30-Call Protocol)}} \\\\",
+            f"\\makecell[l]{{Multi-Objective TPE Candidates\\\\(Split 42)}} & $140 \\times 20$ & $9.35 \\pm 2.1$ & ${dev_060['mo_tpe_hypervolume_distribution']['mean']:.4f} \\pm {dev_060['mo_tpe_hypervolume_distribution']['standard_deviation']:.4f}$ & ${dev_065['mo_tpe_hypervolume_distribution']['mean']:.4f} \\pm {dev_065['mo_tpe_hypervolume_distribution']['standard_deviation']:.4f}$ \\\\",
+            f"\\makecell[l]{{Repeated DOE Candidate Fronts\\\\(Block Means)}} & $25 \\times 20$ & $6.10 \\pm 1.1$ & ${dev_060['repeated_doe_hypervolume_distribution']['mean']:.4f} \\pm {dev_060['repeated_doe_hypervolume_distribution']['standard_deviation']:.4f}$ & ${dev_065['repeated_doe_hypervolume_distribution']['mean']:.4f} \\pm {dev_065['repeated_doe_hypervolume_distribution']['standard_deviation']:.4f}$ \\\\",
+            f"\\makecell[l]{{Full Evaluated DOE Front\\\\(Split 42)}} & $27$ & $4$ & ${dev_060['full_doe_evaluated_candidate_front']['value']:.4f}$ & ${dev_065['full_doe_evaluated_candidate_front']['value']:.4f}$ \\\\",
+            f"\\makecell[l]{{Historical DOE 2-Point Set\\\\(Split 42)}} & $2$ & $2$ & ${dev_060['doe_two_point']['value']:.4f}$ & ${dev_065['doe_two_point']['value']:.4f}$ \\\\",
+            f"\\makecell[l]{{Difference: Full DOE Front\\\\\\quad $-$ MO-TPE Mean (Split 42)}} & --- & --- & ${dev_060['full_doe_evaluated_candidate_front']['value'] - dev_060['mo_tpe_hypervolume_distribution']['mean']:+.4f}$ ($p < 0.0001$) & ${dev_065['full_doe_evaluated_candidate_front']['value'] - dev_065['mo_tpe_hypervolume_distribution']['mean']:+.4f}$ ($p < 0.0001$) \\\\",
             "\\midrule",
-            "\\multicolumn{5}{l}{\\textbf{Panel B: Holdout Non-Dominated Set Among 122 Frozen Evaluated Selections (20 Fresh Seeds)}} \\\\",
-            f"Non-Dominated Set (122 Selections) & $122$ & $12$ & ${test_060['all_frozen_selections']['value']:.4f}$ & ${test_065['all_frozen_selections']['value']:.4f}$ \\\\",
-            "\\quad $\\llcorner$ Repeated DOE MO Selections ($118.7 - 126.2\\,\\mu\\text{s}$) & $20$ & $3$ & --- & --- \\\\",
-            "\\quad $\\llcorner$ Multi-Objective TPE Selections ($116.1 - 120.2\\,\\mu\\text{s}$) & $20$ & $3$ & --- & --- \\\\",
-            "\\quad $\\llcorner$ Constrained TPE Selections ($136.0 - 150.4\\,\\mu\\text{s}$) & $20$ & $5$ & --- & --- \\\\",
-            "\\quad $\\llcorner$ Single-Objective TPE Selections ($171.3\\,\\mu\\text{s}$) & $20$ & $1$ & --- & --- \\\\",
+            "\\multicolumn{5}{l}{\\textbf{Panel B: Holdout Non-Dominated Set (122 Records, 95 Configs, 20 Seeds)}} \\\\",
+            f"\\makecell[l]{{Non-Dominated Set\\\\(12 Distinct Configs)}} & $122$ & $12$ & ${test_060['all_frozen_selections']['value']:.4f}$ & ${test_065['all_frozen_selections']['value']:.4f}$ \\\\",
+            "\\quad $\\llcorner$ Repeated DOE MO Selections & $20$ & $3$ & --- & --- \\\\",
+            "\\quad $\\llcorner$ Multi-Objective TPE Selections & $20$ & $3$ & --- & --- \\\\",
+            "\\quad $\\llcorner$ Constrained TPE Selections & $20$ & $5$ & --- & --- \\\\",
+            "\\quad $\\llcorner$ Single-Objective TPE Selections & $20$ & $1$ & --- & --- \\\\",
             "\\bottomrule",
             "\\end{tabular}"
         ]

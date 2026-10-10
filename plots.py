@@ -267,7 +267,24 @@ def plot_latency_vs_depth(df_runs: pd.DataFrame, save_path: str = "figures/respo
 
 
 def plot_pareto_front_and_desirability(df_runs: pd.DataFrame, save_path: str = "figures/desirability_pareto_front.png"):
-    """Plot the historical DOE front from configuration-level block means only."""
+    """Plot the historical DOE development front from configuration-level block means,
+    with individual block run realizations rendered as background observations.
+    """
+    fig, ax = plt.subplots(figsize=(9.5, 7), dpi=300)
+
+    # 1. Background individual run observations across the 5 seed blocks
+    ax.scatter(
+        df_runs["val_rmse"],
+        df_runs["latency_us_median"],
+        c="0.75",
+        s=20,
+        alpha=0.35,
+        edgecolor="none",
+        label="Individual block observations (140 runs, 5 blocks)",
+        zorder=1,
+    )
+
+    # 2. Configuration-level block means across the 25 unique design coordinates
     grouped = (
         df_runs.groupby(["point_id", "depth"], as_index=False)
         .agg(
@@ -277,16 +294,16 @@ def plot_pareto_front_and_desirability(df_runs: pd.DataFrame, save_path: str = "
             predict_latency_us_sd=("latency_us_median", "std"),
         )
     )
-    fig, ax = plt.subplots(figsize=(9.5, 7), dpi=300)
     sc = ax.scatter(
         grouped["validation_rmse"],
         grouped["predict_latency_us"],
         c=grouped["depth"],
         cmap="cividis",
-        s=65,
+        s=70,
         edgecolor="black",
-        linewidth=0.5,
-        label="DOE configuration means",
+        linewidth=0.6,
+        label="DOE configuration means (N=25)",
+        zorder=3,
     )
     ax.errorbar(
         grouped["validation_rmse"],
@@ -294,12 +311,15 @@ def plot_pareto_front_and_desirability(df_runs: pd.DataFrame, save_path: str = "
         xerr=grouped["validation_rmse_sd"],
         yerr=grouped["predict_latency_us_sd"],
         fmt="none",
-        ecolor="0.55",
-        alpha=0.45,
-        linewidth=0.7,
+        ecolor="0.50",
+        alpha=0.50,
+        linewidth=0.8,
+        zorder=2,
     )
     cbar = fig.colorbar(sc, ax=ax, shrink=0.85)
     cbar.set_label("Maximum tree depth (integer)", fontsize=11)
+
+    # 3. Tracing configuration-mean Pareto front
     front = pareto_front_2d_min(
         grouped[["validation_rmse", "predict_latency_us"]].to_numpy()
     )
@@ -311,16 +331,42 @@ def plot_pareto_front_and_desirability(df_runs: pd.DataFrame, save_path: str = "
             where="post",
             color="red",
             linestyle="--",
-            label="DOE configuration-mean Pareto front",
+            linewidth=1.5,
+            label="Configuration-mean Pareto front",
+            zorder=4,
         )
+
+    # 4. Highlight operating points from confirmation
+    conf_path = Path("results/confirmation.json")
+    if conf_path.exists():
+        with open(conf_path, "r", encoding="utf-8") as f:
+            conf = json.load(f)
+        mo_val = conf["Y1_Val_RMSE"]["empirical_mean"]
+        mo_lat = conf["Y2_Latency"]["empirical_mean"]
+        ax.scatter(
+            [mo_val], [mo_lat],
+            marker="*", s=220, color="crimson", edgecolor="black", linewidth=0.8,
+            label=r"Selected compromise $\mathbf{x}^*_{\text{MO}}$ (depth 4)",
+            zorder=5,
+        )
+        so_val = conf["Single_Objective_Optimum"]["empirical_val_rmse"]
+        so_lat = conf["Single_Objective_Optimum"]["empirical_latency"]
+        ax.scatter(
+            [so_val], [so_lat],
+            marker="D", s=100, color="forestgreen", edgecolor="black", linewidth=0.8,
+            label=r"Single-objective candidate $\mathbf{x}^*_{\text{SO}}$ (depth 7)",
+            zorder=5,
+        )
+
     ax.set_title(
-        "Historical DOE configuration means: validation RMSE and latency",
+        "Historical DOE Development: Configuration Means and Pareto Trade-off",
         fontweight="bold",
+        fontsize=12,
     )
-    ax.set_xlabel(r"Validation RMSE ($Y_1$, Smaller is Better)")
-    ax.set_ylabel(r"Historical-session predict latency ($\mu$s/sample)")
+    ax.set_xlabel(r"Validation RMSE ($Y_1$, 5-block mean; smaller is better)", fontsize=11)
+    ax.set_ylabel(r"Inference latency ($\mu$s/sample; 5-block mean)", fontsize=11)
     ax.grid(True, linestyle=":", alpha=0.6)
-    ax.legend(loc="best", frameon=True, facecolor="white", framealpha=0.95)
+    ax.legend(loc="upper right", frameon=True, facecolor="white", framealpha=0.95, fontsize=8.5)
 
     os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
     plt.tight_layout()
@@ -395,6 +441,16 @@ def load_revision_pareto_data(run_dir: str | Path) -> Dict[str, pd.DataFrame]:
     parsed["validation_rmse_ci_high"] = parsed["validation_rmse"].map(
         lambda value: json.loads(value)["confidence_interval_95"][1]
     )
+    if "test_rmse" in parsed.columns:
+        parsed["test_rmse_mean"] = parsed["test_rmse"].map(
+            lambda value: float(json.loads(value)["mean"])
+        )
+        parsed["test_rmse_ci_low"] = parsed["test_rmse"].map(
+            lambda value: float(json.loads(value)["confidence_interval_95"][0])
+        )
+        parsed["test_rmse_ci_high"] = parsed["test_rmse"].map(
+            lambda value: float(json.loads(value)["confidence_interval_95"][1])
+        )
     interval_columns = [
         "validation_rmse_mean",
         "validation_rmse_ci_low",
@@ -415,13 +471,14 @@ def plot_revision_pareto_front(
     run_dir: str | Path,
     save_path: str = "figures/revision_v2_pareto_front.png",
 ) -> None:
-    """Separate matched development fronts from frozen-selection evaluation."""
+    """Separate matched development fronts from frozen-selection holdout evaluation."""
     data = load_revision_pareto_data(run_dir)
     doe = data["doe_development"]
     mo_tpe = data["mo_tpe_development"]
     independent = data["independent_selected"]
-    fig, axes = plt.subplots(1, 2, figsize=(13.5, 5.8), dpi=300)
+    fig, axes = plt.subplots(1, 2, figsize=(14.0, 5.8), dpi=300)
 
+    # Left panel: Development candidates on development split 42
     axes[0].scatter(
         doe["validation_rmse"],
         doe["predict_latency_us"],
@@ -458,28 +515,37 @@ def plot_revision_pareto_front(
                 points[:, 1],
                 where="post",
                 alpha=0.75,
-                label=f"MO-TPE front, replicate {int(replicate_id)}",
+                label=f"MO-TPE front, rep {int(replicate_id)}" if replicate_id in [0, 1] else None,
             )
     development_protocol = doe["latency_protocol_id"].iloc[0]
-    axes[0].set_title("Development candidates on one matched split")
-    axes[0].set_xlabel("Search-time validation RMSE")
+    axes[0].set_title("Development candidates on matched split 42", fontweight="bold")
+    axes[0].set_xlabel("Search-time validation RMSE (split 42)")
     axes[0].set_ylabel(f"predict() latency (μs)\n{development_protocol}")
-    axes[0].legend(fontsize=8)
+    axes[0].legend(fontsize=8, loc="best")
     axes[0].grid(True, linestyle=":", alpha=0.5)
 
+    # Right panel: Frozen selections holdout test set evaluation across 20 retraining seeds
     markers = {
         "historical_preplanned_doe_desirability": "*",
         "historical_preplanned_doe_single_objective": "^",
+        "repeated_preplanned_doe_multi_objective": "o",
+        "repeated_preplanned_doe_single_objective": "D",
         "multi_objective_tpe": "s",
         "constrained_tpe": "X",
         "single_objective_tpe": "P",
-        "random_search": "o",
+        "random_search": "v",
     }
+    has_test = "test_rmse_mean" in independent.columns
     for optimizer, group in independent.groupby("optimizer"):
-        x = group["validation_rmse_mean"].to_numpy(dtype=float)
+        if has_test:
+            x = group["test_rmse_mean"].to_numpy(dtype=float)
+            low = group["test_rmse_ci_low"].to_numpy(dtype=float)
+            high = group["test_rmse_ci_high"].to_numpy(dtype=float)
+        else:
+            x = group["validation_rmse_mean"].to_numpy(dtype=float)
+            low = group["validation_rmse_ci_low"].to_numpy(dtype=float)
+            high = group["validation_rmse_ci_high"].to_numpy(dtype=float)
         y = group["predict_latency_us"].to_numpy(dtype=float)
-        low = group["validation_rmse_ci_low"].to_numpy(dtype=float)
-        high = group["validation_rmse_ci_high"].to_numpy(dtype=float)
         xerr = np.vstack((x - low, high - x))
         yerr = group["predict_latency_session_standard_deviation_us"].fillna(0).to_numpy(dtype=float)
         axes[1].errorbar(
@@ -492,20 +558,51 @@ def plot_revision_pareto_front(
             capsize=2,
             label=optimizer.replace("_", " "),
         )
+
+    # Trace holdout non-dominated front among evaluated selections
+    if has_test:
+        holdout_front = pareto_front_2d_min(
+            independent[["test_rmse_mean", "predict_latency_us"]].to_numpy()
+        )
+        if holdout_front.points:
+            points = np.asarray(holdout_front.points)
+            axes[1].step(
+                points[:, 0],
+                points[:, 1],
+                where="post",
+                color="red",
+                linestyle="--",
+                alpha=0.85,
+                label="Holdout non-dominated front (12 distinct configs)",
+            )
+
     primary_protocol = independent["latency_protocol_id"].iloc[0]
-    axes[1].set_title("Frozen selections: independent validation means")
-    axes[1].set_xlabel("Independent validation RMSE mean (95% t interval)")
+    if has_test:
+        axes[1].set_title("Frozen selections: holdout test evaluation (20 seeds)", fontweight="bold")
+        axes[1].set_xlabel("Holdout test RMSE mean (95% CI across 20 retraining seeds)")
+    else:
+        axes[1].set_title("Frozen selections: independent validation means", fontweight="bold")
+        axes[1].set_xlabel("Independent validation RMSE mean (95% t interval)")
     axes[1].set_ylabel(
         f"predict() latency (μs; bars = between-session SD)\n{primary_protocol}"
     )
-    axes[1].legend(fontsize=7)
+    axes[1].legend(fontsize=7, loc="best")
     axes[1].grid(True, linestyle=":", alpha=0.5)
 
     destination = Path(save_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    fig.suptitle(
-        "Validation-domain Pareto evidence; panels use distinct, explicitly labelled estimands"
-    )
+    if has_test:
+        fig.suptitle(
+            "Pareto evidence: development candidate fronts (split 42) vs. holdout test evaluations (20 seeds)",
+            fontweight="bold",
+            fontsize=12,
+        )
+    else:
+        fig.suptitle(
+            "Validation-domain Pareto evidence; panels use distinct, explicitly labelled estimands",
+            fontweight="bold",
+            fontsize=12,
+        )
     fig.tight_layout()
     fig.savefig(destination, dpi=300)
     plt.close(fig)

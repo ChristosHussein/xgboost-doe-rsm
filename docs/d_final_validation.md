@@ -37,8 +37,8 @@ The revised manuscript incorporates all verified findings and claim boundaries e
 - **Manuscript Formulation:** The difference ($-0.00258$ RMSE) is statistically non-significant ($p = 0.3826$ Welch two-sample $t$-test; $p = 0.3463$ paired $t$-test). The manuscript strictly reports this as a *numerically lower observed mean Test RMSE* without claiming statistical superiority or equivalence.
 
 ### 2.3 Non-Dominated Set Among Evaluated Selections (Claim C10)
-- **Holdout Architecture:** Across the 6 optimization methods, the 20 search replicates produced 122 unique winning hyperparameter configurations. Evaluating these 122 configurations across 20 fresh seeds on the holdout test set identified 12 non-dominated configurations (hypervolume $17.6714$ at $[0.60, 250.0]$).
-- **Manuscript Formulation:** The manuscript explicitly designates this frontier as the *non-dominated set among the 122 frozen evaluated configurations*, not the global Pareto frontier across the entire unconstrained hyperparameter domain. It highlights the complementary composition of this set: 3 DOE MO selections, 3 MO-TPE selections, 5 Constrained TPE selections, and 1 SO-TPE selection.
+- **Holdout Architecture:** Across the 6 optimization methods, the 20 search replicates produced 122 selection records representing 95 distinct configuration hashes, yielding 2,440 final evaluation rows in `final_evaluations.csv` serialized in `finalized_selections.json`. Evaluating these configurations across 20 fresh seeds on the holdout test set identified 12 non-dominated configurations (hypervolume $17.6714$ at $[0.60, 250.0]$ and $28.9900$ at $[0.65, 275.0]$).
+- **Manuscript Formulation:** The manuscript explicitly designates this frontier as the *non-dominated set among the evaluated frozen configurations*, not the global Pareto frontier across the entire unconstrained hyperparameter domain. It highlights the complementary composition of this set: 3 DOE MO selections, 3 MO-TPE selections, 5 Constrained TPE selections, and 1 SO-TPE selection.
 
 ### 2.4 Qualified Hypervolume Conclusions (Claim C5 & Claim C6)
 - **Development Evidence:** On development split 42, MO-TPE candidate fronts attained a mean hypervolume of $18.3834 \pm 0.3301$ (reference $[0.60, 250.0]$), significantly higher than the full evaluated DOE frontier ($16.8585$, difference $-1.5249, p < 0.0001$).
@@ -58,15 +58,15 @@ The revised manuscript incorporates all verified findings and claim boundaries e
 
 ### 3.1 Automated Generator (`scripts/generate_report_artifacts.py`)
 The generator was extended to load both historical Phase 1–4 experimental records and prospective Revision-v2 full-budget results (`results/revision_v2/full_run_001/`):
-- **Macros (`results/macros.tex`):** 275 LaTeX macros generated covering all ANOVA statistics, lack-of-fit tests, canonical eigenvalues, bootstrap intervals, confirmation trials, and full Revision-v2 benchmark summaries (`\numRevTotalFits`, `\numRevTotalTimedInferences`, `\numRevDoeMoTestRMSE`, etc.).
+- **Macros (`results/macros.tex`):** 281 LaTeX macros generated covering all ANOVA statistics, lack-of-fit tests, canonical eigenvalues, bootstrap intervals, confirmation trials, and full Revision-v2 benchmark summaries (`\numRevTotalFits`, `\numRevTotalTimedInferences`, `\numRevDoeMoTestRMSE`, etc.).
 - **Table 5 (`tables/tab_benchmarks.tex`):** Dual-panel table reporting Panel A (Revision-v2 full 20-replicate empirical evidence with between-search SD, retraining SD, predict latency, inplace latency, and feasibility) and Panel B (Historical baseline snapshot $v1.0.0$).
-- **Table 6 (`tables/tab_hypervolume_comparison.tex`):** Dual-panel table reporting Panel A (Candidate Pareto fronts on development split 42 at $[0.60, 250.0]$ and $[0.65, 275.0]$) and Panel B (Holdout non-dominated set among the 122 frozen evaluated configurations).
-- **Figure 6 (`figures/revision_v2_pareto_front.png`):** Generated via `plots.py`, illustrating development candidate Pareto fronts on split 42 (left) and independent holdout evaluations across retraining seeds with confidence intervals and session latency error bars (right).
+- **Table 6 (`tables/tab_hypervolume_comparison.tex`):** Dual-panel table reporting Panel A (Candidate Pareto fronts on development split 42 at $[0.60, 250.0]$ and $[0.65, 275.0]$) and Panel B (Holdout non-dominated set among the 122 frozen evaluated selection records representing 95 distinct configurations).
+- **Figure 5 (`figures/revision_v2_pareto_front.png`):** Generated via `plots.py`, illustrating development candidate Pareto fronts on split 42 (left) and independent holdout evaluations across retraining seeds with confidence intervals and session latency error bars (right).
 
 ### 3.2 LaTeX Manuscript Compilation (`report.tex` $\to$ `report.pdf`)
 - **Compiler:** Tectonic 0.17.0 (`C:\Users\chris\bin\tectonic.exe`).
 - **Compilation Command:** `& "C:\Users\chris\bin\tectonic.exe" report.tex`
-- **Output:** `report.pdf` (4.04 MB, 14 pages).
+- **Output:** `report.pdf` (3.86 MB, exactly 22 physical pages).
 - **Log Inspection:** Clean compilation with exit code 0; zero undefined macros or broken cross-references; zero overfull hboxes exceeding minor typographical tolerance ($< 6\,\text{pt}$).
 
 ---
@@ -78,7 +78,7 @@ Every unit test and consistency check was executed and confirmed passing:
 ```powershell
 # 1. Complete test suite execution
 python -m pytest -q
-# Result: 110 passed, 4 warnings in 4.84s
+# Result: 115 passed, 4 warnings in 4.37s
 
 # 2. Automated scientific consistency audit
 python scripts/audit_scientific_consistency.py
@@ -99,15 +99,15 @@ python scripts/audit_scientific_consistency.py
 | Deliverable | Location | Status | Description |
 |---|---|---|---|
 | Revised LaTeX Source | `report.tex` | Complete | Publication-ready LaTeX source with verified numbers and qualified narrative |
-| Compiled PDF | `report.pdf` | Complete | 14-page publication PDF compiled via Tectonic |
+| Compiled PDF | `report.pdf` | Complete | 22-page publication PDF compiled via Tectonic |
 | Automated Macro Generator | `scripts/generate_report_artifacts.py` | Complete | Programmatically generates `results/macros.tex` and all LaTeX tables |
-| Report Macros | `results/macros.tex` | Complete | 275 macros sourcing all numbers directly from code and raw data |
+| Report Macros | `results/macros.tex` | Complete | 281 macros sourcing all numbers directly from code and raw data |
 | Benchmark Table | `tables/tab_benchmarks.tex` | Complete | Table 5: Panel A (Revision-v2 full evidence) & Panel B (Historical snapshot) |
 | Hypervolume Table | `tables/tab_hypervolume_comparison.tex` | Complete | Table 6: Panel A (Development candidates) & Panel B (Holdout non-dominated set) |
-| Pareto Frontier Figure | `figures/revision_v2_pareto_front.png` | Complete | Figure 6: Development candidate fronts & Holdout frozen-selection evaluation |
+| Pareto Frontier Figure | `figures/revision_v2_pareto_front.png` | Complete | Figure 5: Development candidate fronts & Holdout frozen-selection evaluation |
 | Scientific Consistency Script | `scripts/audit_scientific_consistency.py` | Complete | Independent verification script testing raw artifacts against claim boundaries |
 | Consistency Test Suite | `tests/test_scientific_consistency_audit.py` | Complete | Automated pytest verifying audit integrity |
-| No-Hardcoded-Numbers Test | `tests/test_no_hardcoded_numbers.py` | Complete | Automated pytest verifying all numbers in `report.tex` derive from macros/tables |
+| No-Hardcoded-Numbers Test | `tests/test_no_hardcoded_numbers.py` | Complete | Automated pytest verifying all numbers in `report.tex` derive from macros/tables and PDF page count is exactly 22 |
 | C.1 Final Assessment | `docs/c1_final_assessment.md` | Complete | Detailed synthesis and closeout of Work Package C.1 |
 | Final Validation Summary | `docs/d_final_validation.md` | Complete | Comprehensive validation document for Work Package D |
 
@@ -118,6 +118,6 @@ python scripts/audit_scientific_consistency.py
 Work Package D has achieved complete scientific and technical convergence:
 - The manuscript narrative accurately balances the complementary strengths and limitations of both Design of Experiments and Tree-structured Parzen Estimators.
 - All experimental claims are statistically sound, reproducible, and trace directly to raw trial records without manual intervention.
-- The software pipeline passes all 110 automated tests and all 7 scientific consistency checks.
+- The software pipeline passes all 115 automated tests and all 7 scientific consistency checks.
 
 **Release Posture:** All changes are maintained on working branch `codex/scientific-revision` under PR #2. The branch is ready for final CI confirmation on GitHub Actions (Ubuntu and Windows) and user review. PR #2 remains unmerged as instructed.
