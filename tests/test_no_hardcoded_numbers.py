@@ -87,14 +87,71 @@ def test_absence_of_unsupported_equivalence_language():
             assert phrase not in text, f"Found banned phrase '{phrase}' in {doc}"
 
 
-def test_montgomery_edition_and_author_placeholders():
-    """Verifies Montgomery 9th edition (2017) and explicit user author placeholders in manuscripts."""
+def test_montgomery_edition_and_author_name():
+    """Verifies Montgomery 9th edition (2017) and confirmed author name in manuscripts."""
     for doc in ["report.tex", "REPORT.md"]:
         with open(doc, "r", encoding="utf-8") as f:
             text = f.read()
-        assert "[Author Names to be Confirmed Prior to Publication]" in text, f"Missing author placeholder in {doc}"
+        assert "Christos Chousein Sounios" in text, f"Missing author 'Christos Chousein Sounios' in {doc}"
+        assert "[Author Names" not in text, f"Unresolved author placeholder in {doc}"
+        assert "[Institutional Affiliations" not in text, f"Unresolved affiliation placeholder in {doc}"
         assert "10th" not in text, f"Found reference to 10th edition in {doc}"
         assert "2017" in text, f"Missing 2017 year for Montgomery 9th edition in {doc}"
+
+
+def test_report_md_synchronized_with_revised_evidence():
+    """Verifies REPORT.md contains updated validation-RMSE metrics and no outdated pre-revision values."""
+    with open("REPORT.md", "r", encoding="utf-8") as f:
+        md = f.read()
+
+    # Must contain current verified values
+    required_current = [
+        "Development Validation RMSE",
+        "10 confirmation trials",
+        "105,432.31",
+        "0.6782",
+        "40.69%",
+    ]
+    for token in required_current:
+        assert token in md, f"REPORT.md is missing current verified value/label: '{token}'"
+
+    # Must not contain outdated pre-revision numbers
+    outdated_tokens = [
+        "57,468.86",
+        "57468.86",
+        "57,469",
+        "0.8851",
+        "21.60%",
+        "0.2160",
+        "5 confirmation trials",
+        "m = 5",
+    ]
+    for bad in outdated_tokens:
+        assert bad not in md, f"REPORT.md contains outdated pre-revision value: '{bad}'"
+
+
+def test_holdout_history_and_hypervolume_table_labels():
+    """Verifies accurate holdout test-set history phrasing and distinct hypervolume evaluation labels."""
+    for doc in ["report.tex", "REPORT.md"]:
+        with open(doc, "r", encoding="utf-8") as f:
+            text = f.read().lower()
+        assert "untouched" not in text, f"Found inaccurate 'untouched' holdout claim in {doc}"
+        assert "prevented access" in text or "blocked access" in text, (
+            f"Missing explanation of revised holdout access prevention in {doc}"
+        )
+
+    hv_tex_path = os.path.join("tables", "tab_hypervolume_comparison.tex")
+    assert os.path.exists(hv_tex_path), f"Missing {hv_tex_path}"
+    with open(hv_tex_path, "r", encoding="utf-8") as f:
+        hv_tex = f.read()
+
+    assert "Candidate Frontiers on Development Split (Split 42, 30-Call Protocol)" not in hv_tex, (
+        "Hypervolume table still uses blanket Split 42 / 30-Call heading for all Panel A rows"
+    )
+    assert "Distinct Evaluation Protocols Noted per Row" in hv_tex
+    assert "Single Split 42, 30-Call Search" in hv_tex
+    assert "5-Block Means Across Replicates" in hv_tex
+    assert "Single Split 42, 27 Configs" in hv_tex
 
 
 def test_compiled_pdf_page_count():
@@ -108,3 +165,4 @@ def test_compiled_pdf_page_count():
     assert os.path.exists(pdf_path), f"Missing {pdf_path}"
     reader = pypdf.PdfReader(pdf_path)
     assert len(reader.pages) == 22, f"Expected exactly 22 pages in {pdf_path}, found {len(reader.pages)}"
+

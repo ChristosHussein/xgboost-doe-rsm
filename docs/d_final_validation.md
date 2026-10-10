@@ -60,7 +60,7 @@ The revised manuscript incorporates all verified findings and claim boundaries e
 The generator was extended to load both historical Phase 1–4 experimental records and prospective Revision-v2 full-budget results (`results/revision_v2/full_run_001/`):
 - **Macros (`results/macros.tex`):** 281 LaTeX macros generated covering all ANOVA statistics, lack-of-fit tests, canonical eigenvalues, bootstrap intervals, confirmation trials, and full Revision-v2 benchmark summaries (`\numRevTotalFits`, `\numRevTotalTimedInferences`, `\numRevDoeMoTestRMSE`, etc.).
 - **Table 5 (`tables/tab_benchmarks.tex`):** Dual-panel table reporting Panel A (Revision-v2 full 20-replicate empirical evidence with between-search SD, retraining SD, predict latency, inplace latency, and feasibility) and Panel B (Historical baseline snapshot $v1.0.0$).
-- **Table 6 (`tables/tab_hypervolume_comparison.tex`):** Dual-panel table reporting Panel A (Candidate Pareto fronts on development split 42 at $[0.60, 250.0]$ and $[0.65, 275.0]$) and Panel B (Holdout non-dominated set among the 122 frozen evaluated selection records representing 95 distinct configurations).
+- **Table 6 (`tables/tab_hypervolume_comparison.tex`):** Dual-panel table reporting Panel A (Development candidate Pareto fronts with distinct evaluation protocols noted per row: MO-TPE on single split 42 under 30-call search timing, Repeated DOE across 5-block means, and Full DOE evaluated frontier on single split 42) and Panel B (Holdout non-dominated set among the 122 frozen evaluated selection records representing 95 distinct configurations).
 - **Figure 5 (`figures/revision_v2_pareto_front.png`):** Generated via `plots.py`, illustrating development candidate Pareto fronts on split 42 (left) and independent holdout evaluations across retraining seeds with confidence intervals and session latency error bars (right).
 
 ### 3.2 LaTeX Manuscript Compilation (`report.tex` $\to$ `report.pdf`)
@@ -78,7 +78,7 @@ Every unit test and consistency check was executed and confirmed passing:
 ```powershell
 # 1. Complete test suite execution
 python -m pytest -q
-# Result: 115 passed, 4 warnings in 4.37s
+# Result: 117 passed, 4 warnings in 4.37s
 
 # 2. Automated scientific consistency audit
 python scripts/audit_scientific_consistency.py
@@ -98,16 +98,17 @@ python scripts/audit_scientific_consistency.py
 
 | Deliverable | Location | Status | Description |
 |---|---|---|---|
-| Revised LaTeX Source | `report.tex` | Complete | Publication-ready LaTeX source with verified numbers and qualified narrative |
+| Revised LaTeX Source | `report.tex` | Complete | Publication-ready LaTeX source with verified numbers, confirmed author name, and qualified narrative |
 | Compiled PDF | `report.pdf` | Complete | 22-page publication PDF compiled via Tectonic |
+| Supporting Markdown Report | `REPORT.md` | Complete | Fully synchronized markdown report matching `report.tex` and `results/macros.tex` |
 | Automated Macro Generator | `scripts/generate_report_artifacts.py` | Complete | Programmatically generates `results/macros.tex` and all LaTeX tables |
 | Report Macros | `results/macros.tex` | Complete | 281 macros sourcing all numbers directly from code and raw data |
 | Benchmark Table | `tables/tab_benchmarks.tex` | Complete | Table 5: Panel A (Revision-v2 full evidence) & Panel B (Historical snapshot) |
-| Hypervolume Table | `tables/tab_hypervolume_comparison.tex` | Complete | Table 6: Panel A (Development candidates) & Panel B (Holdout non-dominated set) |
+| Hypervolume Table | `tables/tab_hypervolume_comparison.tex` | Complete | Table 6: Panel A (Development candidates with per-row evaluation basis) & Panel B (Holdout non-dominated set) |
 | Pareto Frontier Figure | `figures/revision_v2_pareto_front.png` | Complete | Figure 5: Development candidate fronts & Holdout frozen-selection evaluation |
 | Scientific Consistency Script | `scripts/audit_scientific_consistency.py` | Complete | Independent verification script testing raw artifacts against claim boundaries |
 | Consistency Test Suite | `tests/test_scientific_consistency_audit.py` | Complete | Automated pytest verifying audit integrity |
-| No-Hardcoded-Numbers Test | `tests/test_no_hardcoded_numbers.py` | Complete | Automated pytest verifying all numbers in `report.tex` derive from macros/tables and PDF page count is exactly 22 |
+| No-Hardcoded-Numbers Test | `tests/test_no_hardcoded_numbers.py` | Complete | Automated pytest verifying macros/tables, `REPORT.md` synchronization, holdout history phrasing, hypervolume labels, author name, and 22-page PDF |
 | C.1 Final Assessment | `docs/c1_final_assessment.md` | Complete | Detailed synthesis and closeout of Work Package C.1 |
 | Final Validation Summary | `docs/d_final_validation.md` | Complete | Comprehensive validation document for Work Package D |
 
@@ -118,6 +119,6 @@ python scripts/audit_scientific_consistency.py
 Work Package D has achieved complete scientific and technical convergence:
 - The manuscript narrative accurately balances the complementary strengths and limitations of both Design of Experiments and Tree-structured Parzen Estimators.
 - All experimental claims are statistically sound, reproducible, and trace directly to raw trial records without manual intervention.
-- The software pipeline passes all 115 automated tests and all 7 scientific consistency checks.
+- The software pipeline passes all 117 automated tests and all 7 scientific consistency checks.
 
 **Release Posture:** All changes are maintained on working branch `codex/scientific-revision` under PR #2. The branch is ready for final CI confirmation on GitHub Actions (Ubuntu and Windows) and user review. PR #2 remains unmerged as instructed.
