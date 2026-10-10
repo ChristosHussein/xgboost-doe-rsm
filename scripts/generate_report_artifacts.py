@@ -482,7 +482,9 @@ def generate_macros():
         add_macro("numRevCtpeBenchFeas", f"{ctpe_g['benchmark_time_feasible'].sum()}/20")
         add_macro("numRevCtpeBenchFeasPct", f"{int(ctpe_g['benchmark_time_feasible'].sum() / len(ctpe_g) * 100)}\\%")
         add_macro("numRevCtpeDepthSixLat", f"{ctpe_g[ctpe_g['max_depth'] == 6]['predict_latency_us'].mean():.2f}")
+        add_macro("numRevCtpeDepthSixLatSd", f"{ctpe_g[ctpe_g['max_depth'] == 6]['predict_latency_us'].std():.2f}")
         add_macro("numRevCtpeDepthSevenLat", f"{ctpe_g[ctpe_g['max_depth'] == 7]['predict_latency_us'].mean():.2f}")
+        add_macro("numRevCtpeDepthSevenLatSd", f"{ctpe_g[ctpe_g['max_depth'] == 7]['predict_latency_us'].std():.2f}")
 
         add_macro("numRevRsTestRMSE", f"{rs_g['test_rmse_mean'].mean():.5f}")
         add_macro("numRevRsTestRMSESd", f"{rs_g['test_rmse_mean'].std():.5f}")
@@ -901,20 +903,26 @@ def generate_tables():
         test_060 = hv_rev["external_test_domain"]["reference_points"]["[0.6, 250.0]"]
         test_065 = hv_rev["external_test_domain"]["reference_points"]["[0.65, 275.0]"]
 
+        motpe_nd = pd.Series([len(v["pareto"]["points"]) for v in dev_060["mo_tpe_by_replicate"].values()])
+        rdoe_nd = pd.Series([len(v["pareto"]["points"]) for v in dev_060["repeated_doe_by_replicate"].values()])
+        fdoe_nd = len(dev_060["full_doe_evaluated_candidate_front"]["pareto"]["points"])
+        hdoe_nd = len(dev_060["doe_two_point"]["pareto"]["points"])
+        holdout_nd = len(test_060["all_frozen_selections"]["pareto"]["points"])
+
         tex_hv = [
             "\\begin{tabular}{lcccc}",
             "\\toprule",
             "\\makecell{\\textbf{Frontier / Evaluation Protocol}} & \\makecell{\\textbf{Candidate}\\\\\\textbf{Pool ($N$)}} & \\makecell{\\textbf{Non-Dom.}\\\\\\textbf{Points}} & \\makecell{\\textbf{HV at $[0.60, 250]$}\\\\\\scriptsize(Mean $\\pm$ SD)} & \\makecell{\\textbf{HV at $[0.65, 275]$}\\\\\\scriptsize(Mean $\\pm$ SD)} \\\\",
             "\\midrule",
             "\\multicolumn{5}{l}{\\textbf{Panel A: Development Candidate Frontiers (Distinct Evaluation Protocols Noted per Row)}} \\\\",
-            f"\\makecell[l]{{Multi-Objective TPE Candidates\\\\(Single Split 42, 30-Call Search)}} & $140 \\times 20$ & $9.35 \\pm 2.1$ & ${dev_060['mo_tpe_hypervolume_distribution']['mean']:.4f} \\pm {dev_060['mo_tpe_hypervolume_distribution']['standard_deviation']:.4f}$ & ${dev_065['mo_tpe_hypervolume_distribution']['mean']:.4f} \\pm {dev_065['mo_tpe_hypervolume_distribution']['standard_deviation']:.4f}$ \\\\",
-            f"\\makecell[l]{{Repeated DOE Candidate Fronts\\\\(5-Block Means Across Replicates)}} & $25 \\times 20$ & $6.10 \\pm 1.1$ & ${dev_060['repeated_doe_hypervolume_distribution']['mean']:.4f} \\pm {dev_060['repeated_doe_hypervolume_distribution']['standard_deviation']:.4f}$ & ${dev_065['repeated_doe_hypervolume_distribution']['mean']:.4f} \\pm {dev_065['repeated_doe_hypervolume_distribution']['standard_deviation']:.4f}$ \\\\",
-            f"\\makecell[l]{{Fixed Full DOE Evaluated Front\\\\(Single Split 42, 27 Configs)}} & $27$ & $4$ & ${dev_060['full_doe_evaluated_candidate_front']['value']:.4f}$ & ${dev_065['full_doe_evaluated_candidate_front']['value']:.4f}$ \\\\",
-            f"\\makecell[l]{{Historical DOE 2-Point Set\\\\(Single Split 42, $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ \\& $\\mathbf{{x}}^*_{{\\text{{SO}}}}$)}} & $2$ & $2$ & ${dev_060['doe_two_point']['value']:.4f}$ & ${dev_065['doe_two_point']['value']:.4f}$ \\\\",
+            f"\\makecell[l]{{Multi-Objective TPE Candidates\\\\(Single Split 42, 30-Call Search)}} & $140 \\times 20$ & ${motpe_nd.mean():.2f} \\pm {motpe_nd.std(ddof=1):.1f}$ & ${dev_060['mo_tpe_hypervolume_distribution']['mean']:.4f} \\pm {dev_060['mo_tpe_hypervolume_distribution']['standard_deviation']:.4f}$ & ${dev_065['mo_tpe_hypervolume_distribution']['mean']:.4f} \\pm {dev_065['mo_tpe_hypervolume_distribution']['standard_deviation']:.4f}$ \\\\",
+            f"\\makecell[l]{{Repeated DOE Candidate Fronts\\\\(5-Block Means Across Replicates)}} & $25 \\times 20$ & ${rdoe_nd.mean():.2f} \\pm {rdoe_nd.std(ddof=1):.1f}$ & ${dev_060['repeated_doe_hypervolume_distribution']['mean']:.4f} \\pm {dev_060['repeated_doe_hypervolume_distribution']['standard_deviation']:.4f}$ & ${dev_065['repeated_doe_hypervolume_distribution']['mean']:.4f} \\pm {dev_065['repeated_doe_hypervolume_distribution']['standard_deviation']:.4f}$ \\\\",
+            f"\\makecell[l]{{Fixed Full DOE Evaluated Front\\\\(Single Split 42, 27 Configs)}} & $27$ & ${fdoe_nd}$ & ${dev_060['full_doe_evaluated_candidate_front']['value']:.4f}$ & ${dev_065['full_doe_evaluated_candidate_front']['value']:.4f}$ \\\\",
+            f"\\makecell[l]{{Historical DOE 2-Point Set\\\\(Single Split 42, $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ \\& $\\mathbf{{x}}^*_{{\\text{{SO}}}}$)}} & $2$ & ${hdoe_nd}$ & ${dev_060['doe_two_point']['value']:.4f}$ & ${dev_065['doe_two_point']['value']:.4f}$ \\\\",
             f"\\makecell[l]{{Difference: Fixed Full DOE Front\\\\\\quad $-$ MO-TPE Mean (Split 42)}} & --- & --- & ${dev_060['full_doe_evaluated_candidate_front']['value'] - dev_060['mo_tpe_hypervolume_distribution']['mean']:+.4f}$ ($p < 0.0001$) & ${dev_065['full_doe_evaluated_candidate_front']['value'] - dev_065['mo_tpe_hypervolume_distribution']['mean']:+.4f}$ ($p < 0.0001$) \\\\",
             "\\midrule",
             "\\multicolumn{5}{l}{\\textbf{Panel B: Holdout Non-Dominated Set (122 Records, 95 Configs, 20 Seeds)}} \\\\",
-            f"\\makecell[l]{{Non-Dominated Set\\\\(12 Distinct Configs)}} & $122$ & $12$ & ${test_060['all_frozen_selections']['value']:.4f}$ & ${test_065['all_frozen_selections']['value']:.4f}$ \\\\",
+            f"\\makecell[l]{{Non-Dominated Set\\\\(12 Distinct Configs)}} & $122$ & ${holdout_nd}$ & ${test_060['all_frozen_selections']['value']:.4f}$ & ${test_065['all_frozen_selections']['value']:.4f}$ \\\\",
             "\\quad $\\llcorner$ Repeated DOE MO Selections & $20$ & $3$ & --- & --- \\\\",
             "\\quad $\\llcorner$ Multi-Objective TPE Selections & $20$ & $3$ & --- & --- \\\\",
             "\\quad $\\llcorner$ Constrained TPE Selections & $20$ & $5$ & --- & --- \\\\",
