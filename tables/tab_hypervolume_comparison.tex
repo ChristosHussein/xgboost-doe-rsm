@@ -1,13 +1,13 @@
 \begin{tabular}{lcccc}
 \toprule
-\makecell{\textbf{Frontier / Domain}} & \makecell{\textbf{Candidate}\\\textbf{Pool ($N$)}} & \makecell{\textbf{Non-Dom.}\\\textbf{Points}} & \makecell{\textbf{HV at $[0.60, 250]$}\\\scriptsize(Mean $\pm$ SD)} & \makecell{\textbf{HV at $[0.65, 275]$}\\\scriptsize(Mean $\pm$ SD)} \\
+\makecell{\textbf{Frontier / Evaluation Protocol}} & \makecell{\textbf{Candidate}\\\textbf{Pool ($N$)}} & \makecell{\textbf{Non-Dom.}\\\textbf{Points}} & \makecell{\textbf{HV at $[0.60, 250]$}\\\scriptsize(Mean $\pm$ SD)} & \makecell{\textbf{HV at $[0.65, 275]$}\\\scriptsize(Mean $\pm$ SD)} \\
 \midrule
-\multicolumn{5}{l}{\textbf{Panel A: Development Candidate Frontiers (Split 42, 30-Call Protocol)}} \\
-\makecell[l]{Multi-Objective TPE Candidates\\(Split 42)} & $140 \times 20$ & $9.35 \pm 2.1$ & $18.3834 \pm 0.3301$ & $30.0535 \pm 0.4123$ \\
-\makecell[l]{Repeated DOE Candidate Fronts\\(Block Means)} & $25 \times 20$ & $6.10 \pm 1.1$ & $15.6128 \pm 0.7268$ & $26.6847 \pm 0.8786$ \\
-\makecell[l]{Full Evaluated DOE Front\\(Split 42)} & $27$ & $4$ & $16.8585$ & $28.1430$ \\
-\makecell[l]{Historical DOE 2-Point Set\\(Split 42)} & $2$ & $2$ & $16.0363$ & $26.9168$ \\
-\makecell[l]{Difference: Full DOE Front\\\quad $-$ MO-TPE Mean (Split 42)} & --- & --- & $-1.5249$ ($p < 0.0001$) & $-1.9105$ ($p < 0.0001$) \\
+\multicolumn{5}{l}{\textbf{Panel A: Development Candidate Frontiers (Distinct Evaluation Protocols Noted per Row)}} \\
+\makecell[l]{Multi-Objective TPE Candidates\\(Single Split 42, 30-Call Search)} & $140 \times 20$ & $9.35 \pm 2.1$ & $18.3834 \pm 0.3301$ & $30.0535 \pm 0.4123$ \\
+\makecell[l]{Repeated DOE Candidate Fronts\\(5-Block Means Across Replicates)} & $25 \times 20$ & $6.10 \pm 1.1$ & $15.6128 \pm 0.7268$ & $26.6847 \pm 0.8786$ \\
+\makecell[l]{Fixed Full DOE Evaluated Front\\(Single Split 42, 27 Configs)} & $27$ & $4$ & $16.8585$ & $28.1430$ \\
+\makecell[l]{Historical DOE 2-Point Set\\(Single Split 42, $\mathbf{x}^*_{\text{MO}}$ \& $\mathbf{x}^*_{\text{SO}}$)} & $2$ & $2$ & $16.0363$ & $26.9168$ \\
+\makecell[l]{Difference: Fixed Full DOE Front\\\quad $-$ MO-TPE Mean (Split 42)} & --- & --- & $-1.5249$ ($p < 0.0001$) & $-1.9105$ ($p < 0.0001$) \\
 \midrule
 \multicolumn{5}{l}{\textbf{Panel B: Holdout Non-Dominated Set (122 Records, 95 Configs, 20 Seeds)}} \\
 \makecell[l]{Non-Dominated Set\\(12 Distinct Configs)} & $122$ & $12$ & $17.6714$ & $28.9900$ \\
