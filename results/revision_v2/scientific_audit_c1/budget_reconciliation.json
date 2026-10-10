@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "audit_phase": "work_package_c1",
+  "audit_timestamp_utc": "2026-10-10T01:30:00Z",
+  "total_model_fits_reconciliation": {
+    "verified_total_model_fits": 17077,
+    "breakdown": {
+      "optimizer_search_model_fits": {
+        "count": 11200,
+        "derivation": "4 optimizer methods * 20 replicates * 140 trials/replicate",
+        "verified_file": "results/revision_v2/full_run_001/optimizer_trials.csv",
+        "verified_row_count": 11200
+      },
+      "repeated_doe_design_model_fits": {
+        "count": 2800,
+        "derivation": "20 DOE replicates * 5 nuisance blocks * 28 design runs/block",
+        "verified_file": "results/revision_v2/full_run_001/doe_selection_runs.csv",
+        "verified_row_count": 2800
+      },
+      "matched_historical_doe_candidate_fits": {
+        "count": 27,
+        "derivation": "25 unique CCD design coordinates + 2 selected operating points",
+        "verified_file": "results/revision_v2/full_run_001/doe_matched_candidate_front.csv",
+        "verified_row_count": 27
+      },
+      "primary_latency_benchmark_refits": {
+        "count": 610,
+        "derivation": "122 frozen configurations * 5 independent timing sessions",
+        "verified_file": "results/revision_v2/full_run_001/latency_measurement.json",
+        "verified_summary_count": 610
+      },
+      "final_holdout_retraining_fits": {
+        "count": 2440,
+        "derivation": "122 frozen configurations * 20 evaluation seeds (2001-2020)",
+        "verified_file": "results/revision_v2/full_run_001/final_evaluations.csv",
+        "verified_row_count": 2440
+      }
+    },
+    "sum_check": 17077,
+    "discrepancy": 0
+  },
+  "narrative_54_fits_investigation": {
+    "status": "resolved_as_narrative_double_counting",
+    "actual_fits_executed": 27,
+    "root_cause": "The budget schema defines matched_historical_doe_candidate_fits = 27, matched_historical_doe_coordinate_fits = 25, and matched_historical_doe_selected_point_fits = 2. The 25 coordinates and 2 selected points sum to 27 candidates. An informal summary added 27 + (25 + 2) = 54. The actual ledger contains exactly 27 rows and 27 executions."
+  },
+  "latency_prediction_calls_reconciliation": {
+    "timed_prediction_calls": {
+      "online_search_timed_calls": 336000,
+      "online_repeated_doe_timed_calls": 84000,
+      "online_historical_matched_timed_calls": 810,
+      "online_timed_calls_subtotal": 420810,
+      "primary_latency_benchmark_timed_calls": 1220000,
+      "total_timed_prediction_calls": 1640810
+    },
+    "warmup_prediction_calls": {
+      "online_search_warmup_calls": 112000,
+      "online_repeated_doe_warmup_calls": 28000,
+      "online_historical_matched_warmup_calls": 270,
+      "online_warmup_calls_subtotal": 140270,
+      "primary_latency_benchmark_warmup_calls": 61000,
+      "total_warmup_prediction_calls": 201270
+    },
+    "total_all_prediction_calls": 1842080
+  },
+  "per_replicate_comparison_equal_140_budget": {
+    "repeated_preplanned_doe": {
+      "total_model_fits_per_replicate": 140,
+      "blocks_per_replicate": 5,
+      "fits_per_block": 28,
+      "unique_hyperparameter_configurations": 25,
+      "replication_per_configuration": "5-fold replication across nuisance blocks",
+      "mean_wall_clock_time_s": 36.49,
+      "sd_wall_clock_time_s": 0.19,
+      "mean_training_time_per_fit_ms": 238.63,
+      "surrogate_fit_and_grid_search_overhead_s": 1.48
+    },
+    "multi_objective_tpe": {
+      "total_model_fits_per_replicate": 140,
+      "blocks_per_replicate": 1,
+      "fits_per_block": 140,
+      "unique_hyperparameter_configurations": 140,
+      "replication_per_configuration": "None (all unique exploratory trials)",
+      "mean_wall_clock_time_s": 26.24,
+      "sd_wall_clock_time_s": 1.80,
+      "mean_training_time_per_fit_ms": 174.22,
+      "surrogate_fit_and_grid_search_overhead_s": 0.43
+    },
+    "single_objective_tpe": {
+      "total_model_fits_per_replicate": 140,
+      "blocks_per_replicate": 1,
+      "fits_per_block": 140,
+      "unique_hyperparameter_configurations": 140,
+      "replication_per_configuration": "None (all unique exploratory trials)",
+      "mean_wall_clock_time_s": 54.03,
+      "sd_wall_clock_time_s": 3.05,
+      "mean_training_time_per_fit_ms": 370.20,
+      "surrogate_fit_and_grid_search_overhead_s": 0.38
+    },
+    "constrained_tpe": {
+      "total_model_fits_per_replicate": 140,
+      "blocks_per_replicate": 1,
+      "fits_per_block": 140,
+      "unique_hyperparameter_configurations": 140,
+      "replication_per_configuration": "None (all unique exploratory trials)",
+      "mean_wall_clock_time_s": 26.50,
+      "sd_wall_clock_time_s": 2.70,
+      "mean_training_time_per_fit_ms": 176.93,
+      "surrogate_fit_and_grid_search_overhead_s": 0.41
+    },
+    "random_search": {
+      "total_model_fits_per_replicate": 140,
+      "blocks_per_replicate": 1,
+      "fits_per_block": 140,
+      "unique_hyperparameter_configurations": 140,
+      "replication_per_configuration": "None (all unique exploratory trials)",
+      "mean_wall_clock_time_s": 32.61,
+      "sd_wall_clock_time_s": 1.63,
+      "mean_training_time_per_fit_ms": 221.89,
+      "surrogate_fit_and_grid_search_overhead_s": 0.00
+    }
+  }
+}
