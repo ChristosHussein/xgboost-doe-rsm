@@ -5,7 +5,7 @@
 **Base Commit:** `120fd4da95efa8e5d6e0b6a7e6fd074028d89f06`  
 **Historical Baseline Tag:** `v1.0.0` (`cd63135d2b70a0ee324555c11b67a541b32b98a4`)  
 **Date:** October 10, 2026  
-**Status:** Work Package C complete; full empirical protocol executed, audited, and verified; ready for user review prior to manuscript compilation.
+**Status:** Work Packages C, C.1, D, and D.1 fully complete; 22-page publication PDF built and verified; all 115 tests passing; ready for final review.
 
 ---
 
@@ -205,11 +205,24 @@ Work Package C.1 (Independent Scientific Consistency Audit & Publication Evidenc
 
 ## 9. Work Package D Final Closeout Summary
 
-Work Package D (Final Scientific Manuscript Revision & Publication Build) is officially complete:
+Work Package D (Final Scientific Manuscript Revision & Publication Build) achieved scientific and empirical integration:
 1. **Manuscript Revised (`report.tex`):** Abstract, experimental architecture, response surface limitations, Phase 5 benchmarks, discussion, reproducibility, and conclusion revised to incorporate prospective Revision-v2 evidence ($17,077$ fits, $1,640,810$ predictions, 20 replicates) with qualified scientific claims.
-2. **Automated Artifact Pipeline:** `scripts/generate_report_artifacts.py` programmatically populates 275 macros in `results/macros.tex`, Table 5 (`tables/tab_benchmarks.tex`), and Table 6 (`tables/tab_hypervolume_comparison.tex`). Zero hardcoded numbers in `report.tex`, enforced by `tests/test_no_hardcoded_numbers.py`.
-3. **PDF Build (`report.pdf`):** Compiled successfully via Tectonic 0.17.0 (14 pages, 4.04 MB, exit code 0).
-4. **Validation Ledger:** Detailed documentation produced in `docs/d_final_validation.md`.
+2. **Automated Artifact Pipeline:** `scripts/generate_report_artifacts.py` programmatically populates LaTeX macros in `results/macros.tex`, Table 5 (`tables/tab_benchmarks.tex`), and Table 6 (`tables/tab_hypervolume_comparison.tex`). Zero hardcoded numbers in `report.tex`, enforced by automated tests.
+3. **Validation Ledger:** Detailed documentation produced in `docs/d_final_validation.md`.
 
-**FINAL STATUS:** Work Packages A, B, C, C.1, and D are fully complete and verified. PR #2 remains unmerged on branch `codex/scientific-revision`. All changes are ready for final user review and CI verification.
+---
+
+## 10. Work Package D.1 Final Closeout Summary
+
+Work Package D.1 (Final Manuscript Corrections, Figure Validation, and Publication QA) is officially complete:
+1. **Frozen Configuration Count & Manifest Naming:** Corrected to 122 selection records representing 95 distinct configuration hashes, yielding 2,440 final evaluation rows in `final_evaluations.csv` serialized in `finalized_selections.json`. Non-dominated set on holdout comprises exactly 12 distinct configurations.
+2. **Removal of Equivalence Language:** Replaced "Multi-Objective Equivalence" and "statistically indistinguishable" with "Multi-Objective Performance Comparison" and "no statistically significant difference ($p = 0.38$)".
+3. **Holdout Terminology:** Clarified epistemological separation between historical exploratory test logging and Revision-v2 cryptographic holdout isolation.
+4. **Figure 4 & Figure 5 Refinement:** Figure 4 updated with 140 individual block runs, 25 block means $\pm 1\,\text{SD}$, configuration-mean Pareto front, and highlighted optima. Figure 5 right panel regenerated with genuine holdout test RMSE (`test_rmse_mean`) and 95% CIs across 20 retraining seeds.
+5. **Hypervolume Scope & Abstract Condensation:** Qualified development candidate hypervolumes (18.3834 vs 16.8585 on split 42); condensed Abstract to ~280 words covering core elements without ANOVA bloat.
+6. **Table & PDF Layout Polish:** Eliminated `\resizebox` around Tables 4, 5, 6; compiled final 22-page publication PDF (`report.pdf`) with clean reference placement and zero orphan pages.
+7. **Automated Verification:** Added 6 new verification tests in `tests/test_no_hardcoded_numbers.py`. All 115 test suite tests and all 7 scientific consistency checks pass 100% green.
+8. **Documentation Ledger:** Produced `docs/d1_final_publication_review.md`; updated `docs/d_final_validation.md` and `REPORT.md`.
+
+**FINAL STATUS:** Work Packages A, B, C, C.1, D, and D.1 are fully complete and verified. PR #2 remains unmerged on branch `codex/scientific-revision`. Ready for final CI confirmation and review.
 

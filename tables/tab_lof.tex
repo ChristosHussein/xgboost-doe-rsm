@@ -2,7 +2,7 @@
 \toprule
 \textbf{Source of Variation / Model} & \textbf{SS} & \textbf{DF} & \textbf{MS} & \bm{$F$} & \makecell{\bm{$p$}\\\textbf{value}} & \makecell{\textbf{Reference /}\\\textbf{RMS Misfit}} \\
 \midrule
-\multicolumn{7}{l}{\textbf{Decomposition of Second-Order Model Residual ($Y_1$: Validation RMSE, Full CCD)}} \\
+\multicolumn{7}{l}{\textbf{Decomposition of Second-Order Residual ($Y_1$: Validation RMSE)}} \\
 Structural Lack of Fit & $0.008850$ & $10$ & $0.000885$ & $323.10$ & $< 10^{-15}$ & vs. Center PE \\
 Treatment $\times$ Block Interaction & $0.001538$ & $96$ & $1.60 \times 10^{-5}$ & $5.85$ & $0.0002$ & vs. Center PE \\
 Genuine Center Pure Error & $0.000041$ & $15$ & $2.74 \times 10^{-6}$ & --- & --- & Base Replicate \\
@@ -10,12 +10,12 @@ Genuine Center Pure Error & $0.000041$ & $15$ & $2.74 \times 10^{-6}$ & --- & --
 Total Model Residual & $0.010429$ & $121$ & $8.62 \times 10^{-5}$ & --- & --- & $\text{RMS} = 0.0093$ \\
 Saturated Additive Baseline & $0.001579$ & $111$ & $1.42 \times 10^{-5}$ & $62.21^*$ & $< 10^{-15}$ & ($^*$LoF vs. Additive) \\
 \midrule
-\multicolumn{7}{l}{\textbf{Restricted Domain Sensitivity ($Y_1$: $x_1 \ge -0.5$, $\eta \ge 0.033$, $N=95$)}} \\
+\multicolumn{7}{l}{\textbf{Restricted Domain ($Y_1$: $x_1 \ge -0.5$, $\eta \ge 0.033$, $N=95$)}} \\
 Structural Lack of Fit & $0.000324$ & $2$ & $0.000162$ & $10.11$ & $0.0001$ & $\text{RMS} = 0.0127$ \\
 Additive Baseline Residual & $0.001203$ & $75$ & $1.60 \times 10^{-5}$ & --- & --- & Saturated Base \\
 Total Restricted Residual & $0.001528$ & $77$ & $1.98 \times 10^{-5}$ & --- & --- & $\text{RMS} = 0.0045$ \\
 \midrule
-\multicolumn{7}{l}{\textbf{Latency Residual Decomposition and Adequacy ($Y_2$: Single-Sample Latency, $\mu\text{s}$)}} \\
+\multicolumn{7}{l}{\textbf{Latency Residual Decomposition ($Y_2$: Latency, $\mu\text{s}$)}} \\
 Structural Lack of Fit & $3322.37$ & $10$ & $332.24$ & $1.20$ & $0.3625$ & vs. Center PE ($\text{RMS}=18.23$) \\
 Treatment $\times$ Block Interaction & $27844.93$ & $96$ & $290.05$ & $1.05$ & $0.4906$ & vs. Center PE \\
 Genuine Center Pure Error & $4148.89$ & $15$ & $276.59$ & --- & --- & Base Replicate \\

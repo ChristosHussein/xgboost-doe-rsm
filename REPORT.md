@@ -1,7 +1,8 @@
 # Sequential Response Surface Methodology and Central Composite Design for Multi-Objective Hyperparameter Optimization in Gradient Boosted Trees under Stochastic Nuisance Blocking
 
-**Author:** Antigravity Autonomous Scientific Engine  
-**Theoretical Reference:** Douglas C. Montgomery, *Design and Analysis of Experiments* (10th Edition, Chapters 5, 9, 10, and 14)  
+**Authors:** [Author Names to be Confirmed Prior to Publication]  
+**Institutional Affiliation:** [Institutional Affiliations to be Confirmed Prior to Publication]  
+**Theoretical Reference:** Douglas C. Montgomery, *Design and Analysis of Experiments* (9th Edition, 2017, Chapters 5, 9, 10, and 14)  
 **Dataset:** California Housing (`sklearn.datasets.fetch_california_housing`, live fetch, 20,640 records)  
 **Model Architecture:** Extreme Gradient Boosted Trees (`xgboost.XGBRegressor`, $n_{\text{estimators}} = 100$)  
 **Experimental Paradigm:** 100% Genuine Empirical Execution (Zero Synthetic/Dummy Data Policy)
@@ -324,7 +325,7 @@ Surrogate predictions were validated via confirmation trials across fresh seeds 
 - **Single-Objective Optimum $\mathbf{x}^*_{\text{SO}}$ (Depth 7):** Empirical validation RMSE ($0.4700 \pm 0.0093$) exceeded the Satterthwaite prediction interval ($[0.4354, 0.4612]$) due to structural surrogate optimism ($+0.0217$ RMSE bias), showing that quadratic interpolation across sampled depths $\{3, 6, 9\}$ fails to track the diminishing returns of deeper trees.
 
 ### 8.2 Prospective Full Benchmark Campaign ($N=20$ Search Replicates, 140 Fits/Rep)
-We evaluated five optimization strategies under strictly equal evaluation budgets (140 model fits per search replicate) across $N = 20$ independent search replicates, executing exactly **$17,077$ total model fits** and **$1,640,810$ timed inferences**. Winning hyperparameter configurations ($122$ unique configurations) were frozen and evaluated across $20$ fresh retraining seeds on the external holdout test set ($N = 4,128$) under dedicated single-threaded latency profiling:
+We evaluated five optimization strategies under strictly equal evaluation budgets (140 model fits per search replicate) across $N = 20$ independent search replicates, executing exactly **$17,077$ total model fits** and **$1,640,810$ timed inferences**. Winning hyperparameter configurations from the 20 search replicates (122 selection records representing 95 distinct configuration hashes, yielding 2,440 final evaluation rows) were serialized into an immutable manifest (`finalized_selections.json`) and evaluated across 20 fresh retraining seeds on the external holdout test set ($N = 4,128$) under dedicated single-threaded latency profiling:
 
 | Optimization Method | Search Basis | Val RMSE Mean $\pm$ SD$_{\text{search}}$ | Holdout Test RMSE Mean $\pm$ SD$_{\text{search}}$ | Retrain $\sigma_{\text{eval}}$ | Predict Latency ($\mu\text{s} \pm \text{SD}$) | Benchmark Feasible ($\le 145\,\mu\text{s}$) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -341,7 +342,7 @@ We evaluated five optimization strategies under strictly equal evaluation budget
 
 ### 8.3 Pareto Hypervolume Analysis
 - **Development Split 42 (Candidate Fronts):** Under the 30-call search protocol, MO-TPE candidate fronts attained a mean hypervolume of $18.3834 \pm 0.3301$ (reference $[0.60, 250.0]$), significantly exceeding the full evaluated DOE candidate frontier ($16.8585$, difference $-1.5249, p < 0.0001$). Under reference $[0.65, 275.0]$, MO-TPE achieved $30.0535 \pm 0.4123$ vs $28.1430$ for DOE ($p < 0.0001$). This evidence supports higher candidate hypervolume for MO-TPE on this development split without implying universal algorithmic superiority.
-- **Holdout Test Set (Evaluated Selections):** Evaluating the 122 frozen evaluated configurations across 20 fresh seeds yields a 12-point non-dominated set (hypervolume $17.6714$ at $[0.60, 250.0]$ and $28.9900$ at $[0.65, 275.0]$). This set is the non-dominated set *among the 122 frozen evaluated configurations*, formed by 3 Repeated DOE MO selections, 3 MO-TPE selections, 5 Constrained TPE selections, and 1 SO-TPE selection.
+- **Holdout Test Set (Evaluated Selections):** Evaluating the 122 frozen selection records (representing 95 distinct configuration hashes) across 20 fresh seeds yields a 12-point non-dominated set of distinct configurations (hypervolume $17.6714$ at $[0.60, 250.0]$ and $28.9900$ at $[0.65, 275.0]$). This set is the non-dominated set *among the evaluated frozen configurations*, formed by 3 Repeated DOE MO selections, 3 MO-TPE selections, 5 Constrained TPE selections, and 1 SO-TPE selection.
 
 ---
 
@@ -350,8 +351,8 @@ We evaluated five optimization strategies under strictly equal evaluation budget
 1. **Complementary Strengths of DOE and Bayesian Optimization:**
    - **Classical DOE/RSM:** Excels at structured variance decomposition, formal curvature hypothesis testing ($F = 57,469$), lack-of-fit testing ($F = 8.13$), stochastic nuisance blocking ($\sigma_{\text{block}} \approx 0.0077$), and deterministic selection stability (between-search $\text{SD} = 0.00000$).
    - **Adaptive TPE:** Excels at unconstrained objective exploration across complex non-convex response surfaces, discovering the numerically lowest observed mean Test RMSE ($0.46691$) without structural polynomial bias.
-2. **Multi-Objective Equivalence in Deployable Latency Regimes:**
-   When constrained to operational latency thresholds ($\le 145\,\mu\text{s}$), Repeated DOE MO ($\mathbf{x}^*_{\text{MO}}$) achieves Test RMSE of $0.48997$ at $122.3\,\mu\text{s}$, statistically indistinguishable ($p = 0.38$) from Multi-Objective TPE ($0.49255$ at $121.5\,\mu\text{s}$).
+2. **Multi-Objective Performance Comparison in Deployable Latency Regimes:**
+   When evaluated in operational latency regimes ($\le 145\,\mu\text{s}$), Repeated DOE MO ($\mathbf{x}^*_{\text{MO}}$) achieves Test RMSE of $0.48997$ at $122.3\,\mu\text{s}$, showing no statistically significant difference ($p = 0.38$) from Multi-Objective TPE ($0.49255$ at $121.5\,\mu\text{s}$).
 3. **Response Surface Limitations and Local Guidance:**
    Second-order polynomial surrogates are local approximations with structural lack of fit on boosting loss surfaces. While they reliably isolate dominant factor effects and identify robust operating regions, practitioners should validate intermediate-depth optima empirically to guard against surrogate optimism.
 4. **Latency Measurement Rigor:**
@@ -360,7 +361,7 @@ We evaluated five optimization strategies under strictly equal evaluation budget
 ---
 
 ## 10. References
-1. Montgomery, Douglas C. *Design and Analysis of Experiments*. 10th Edition, John Wiley & Sons, 2019.
+1. Montgomery, Douglas C. *Design and Analysis of Experiments*. 9th Edition, John Wiley & Sons, 2017.
    - Chapter 5: Factorial Designs
    - Chapter 9: Response Surface Methods and Designs
    - Chapter 10: Robust Parameter Design and Process Robustness Studies
