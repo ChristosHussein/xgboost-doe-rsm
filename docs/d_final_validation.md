@@ -19,7 +19,7 @@ The objective of Work Package D was to revise the complete scientific manuscript
 ### Core Integrity Commitments Maintained:
 1. **Preservation of Raw Experimental Artifacts:** The full $17,077$-fit benchmark experiment preserved in `results/revision_v2/full_run_001/` was not rerun or modified.
 2. **Preservation of Historical Baseline:** The historical $v1.0.0$ baseline snapshot was fully preserved and documented in parallel with the prospective Revision-v2 evidence.
-3. **Automated Artifact Pipeline:** All $275$ LaTeX macros in `results/macros.tex` and all publication tables in `tables/` were generated directly from raw result files via `scripts/generate_report_artifacts.py`. Zero manual adjustments or hardcoded values were introduced into `report.tex`.
+3. **Automated Artifact Pipeline:** All $283$ LaTeX macros in `results/macros.tex` and all publication tables in `tables/` were generated directly from raw result files via `scripts/generate_report_artifacts.py`. Zero manual adjustments or hardcoded values were introduced into `report.tex`.
 4. **Evidence-Driven Claims:** All narrative descriptions, statistical tests, and Pareto front characterizations strictly reflect the audited findings and claim boundaries established in Work Package C.1.
 
 ---
@@ -45,11 +45,11 @@ The revised manuscript incorporates all verified findings and claim boundaries e
 - **Manuscript Formulation:** The manuscript qualifies this as supporting a higher observed candidate-front hypervolume on this specific development split under the 30-call search latency protocol, explicitly clarifying that this does not establish universal algorithmic superiority because complete search frontiers were not re-evaluated across independent holdout partitions.
 
 ### 2.5 Constrained TPE Feasibility Dynamics (Claim C8)
-- **Empirical Evidence:** Constrained TPE registered 20/20 feasibility during search under online 30-call timing, but 9/20 ($45\%$) feasibility under the 1,000-call benchmark protocol. Depth 6 selections ($136.62 \pm 3.12\,\mu\text{s}$) were 9/9 feasible, while depth 7 selections ($150.54 \pm 2.85\,\mu\text{s}$) were 0/11 feasible.
+- **Empirical Evidence:** Constrained TPE registered 20/20 feasibility during search under online 30-call timing, but 9/20 ($45\%$) feasibility under the 1,000-call benchmark protocol. Depth 6 selections ($136.70 \pm 0.82\,\mu\text{s}$) were 9/9 feasible, while depth 7 selections ($150.45 \pm 0.67\,\mu\text{s}$) were 0/11 feasible.
 - **Manuscript Formulation:** The manuscript presents noisy 30-call search measurements, protocol differences (30 calls without warmup vs 1,000 calls with warmup), and optimizer selection effects as plausible contributing factors rather than asserting a single proven cause.
 
 ### 2.6 Structural Response Surface Limitations
-- **Second-Order Adequacy:** The manuscript explicitly preserves the full DOE methodology (randomized complete block screening, curvature testing, canonical analysis, lack-of-fit decomposition) while detailing the structural limitations of quadratic surrogates on boosting loss surfaces ($F_{\text{LoF}} = 8.13, p < 10^{-7}$, RMS misfit $0.0297$).
+- **Second-Order Adequacy:** The manuscript explicitly preserves the full DOE methodology (randomized complete block screening, curvature testing, canonical analysis, lack-of-fit decomposition) while detailing the structural limitations of quadratic surrogates on boosting loss surfaces ($F_{\text{LoF}} = 62.21, p = 7.78 \times 10^{-41}$ vs. additive baseline; $F_{\text{LoF}} = 323.10, p < 10^{-15}$ vs. center pure error; RMS misfit $0.0297$).
 - **Surrogate Optimism:** The structural surrogate optimism at depth 7 ($+0.0217$ RMSE bias) is prominently explained: quadratic interpolation between sampled design depths $\{3, 6, 9\}$ fails to track the diminishing returns of deeper trees.
 
 ---
@@ -58,7 +58,7 @@ The revised manuscript incorporates all verified findings and claim boundaries e
 
 ### 3.1 Automated Generator (`scripts/generate_report_artifacts.py`)
 The generator was extended to load both historical Phase 1–4 experimental records and prospective Revision-v2 full-budget results (`results/revision_v2/full_run_001/`):
-- **Macros (`results/macros.tex`):** 281 LaTeX macros generated covering all ANOVA statistics, lack-of-fit tests, canonical eigenvalues, bootstrap intervals, confirmation trials, and full Revision-v2 benchmark summaries (`\numRevTotalFits`, `\numRevTotalTimedInferences`, `\numRevDoeMoTestRMSE`, etc.).
+- **Macros (`results/macros.tex`):** 283 LaTeX macros generated covering all ANOVA statistics, lack-of-fit tests, canonical eigenvalues, bootstrap intervals, confirmation trials, and full Revision-v2 benchmark summaries (`\numRevTotalFits`, `\numRevTotalTimedInferences`, `\numRevDoeMoTestRMSE`, etc.).
 - **Table 5 (`tables/tab_benchmarks.tex`):** Dual-panel table reporting Panel A (Revision-v2 full 20-replicate empirical evidence with between-search SD, retraining SD, predict latency, inplace latency, and feasibility) and Panel B (Historical baseline snapshot $v1.0.0$).
 - **Table 6 (`tables/tab_hypervolume_comparison.tex`):** Dual-panel table reporting Panel A (Development candidate Pareto fronts with distinct evaluation protocols noted per row: MO-TPE on single split 42 under 30-call search timing, Repeated DOE across 5-block means, and Full DOE evaluated frontier on single split 42) and Panel B (Holdout non-dominated set among the 122 frozen evaluated selection records representing 95 distinct configurations).
 - **Figure 5 (`figures/revision_v2_pareto_front.png`):** Generated via `plots.py`, illustrating development candidate Pareto fronts on split 42 (left) and independent holdout evaluations across retraining seeds with confidence intervals and session latency error bars (right).
@@ -78,7 +78,7 @@ Every unit test and consistency check was executed and confirmed passing:
 ```powershell
 # 1. Complete test suite execution
 python -m pytest -q
-# Result: 117 passed, 4 warnings in 4.37s
+# Result: 118 passed, 4 warnings in 4.37s
 
 # 2. Automated scientific consistency audit
 python scripts/audit_scientific_consistency.py
@@ -102,7 +102,7 @@ python scripts/audit_scientific_consistency.py
 | Compiled PDF | `report.pdf` | Complete | 22-page publication PDF compiled via Tectonic |
 | Supporting Markdown Report | `REPORT.md` | Complete | Fully synchronized markdown report matching `report.tex` and `results/macros.tex` |
 | Automated Macro Generator | `scripts/generate_report_artifacts.py` | Complete | Programmatically generates `results/macros.tex` and all LaTeX tables |
-| Report Macros | `results/macros.tex` | Complete | 281 macros sourcing all numbers directly from code and raw data |
+| Report Macros | `results/macros.tex` | Complete | 283 macros sourcing all numbers directly from code and raw data |
 | Benchmark Table | `tables/tab_benchmarks.tex` | Complete | Table 5: Panel A (Revision-v2 full evidence) & Panel B (Historical snapshot) |
 | Hypervolume Table | `tables/tab_hypervolume_comparison.tex` | Complete | Table 6: Panel A (Development candidates with per-row evaluation basis) & Panel B (Holdout non-dominated set) |
 | Pareto Frontier Figure | `figures/revision_v2_pareto_front.png` | Complete | Figure 5: Development candidate fronts & Holdout frozen-selection evaluation |
