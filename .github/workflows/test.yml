@@ -38,6 +38,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Run verification test suite
+      - name: Run verification test suite and reporting integrity checks
         run: |
           python -m pytest -q
+          python scripts/audit_scientific_consistency.py
+          python scripts/generate_report_artifacts.py --check
+          python scripts/generate_research_reporting.py --check
+          git diff --exit-code results/ config.yaml
