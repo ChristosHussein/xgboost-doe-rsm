@@ -12,11 +12,19 @@ Assert-based mathematical and algorithmic self-check:
 import numpy as np
 import pandas as pd
 from pipeline import (
-    code_factors, decode_factors,
-    generate_phase1_design, generate_phase2_axial_design,
-    ETA_MIN, ETA_MAX, DEPTH_MIN, DEPTH_MAX, SUBSAMPLE_MIN, SUBSAMPLE_MAX, LAMBDA_MIN, LAMBDA_MAX
+    encode_factors, decode_factors,
+    generate_design_plan, CONFIG
 )
 from analysis import derringer_suich_desirability
+
+ETA_MIN = CONFIG["factors"]["x1"]["min"]
+ETA_MAX = CONFIG["factors"]["x1"]["max"]
+DEPTH_MIN = CONFIG["factors"]["x2"]["min"]
+DEPTH_MAX = CONFIG["factors"]["x2"]["max"]
+SUBSAMPLE_MIN = CONFIG["factors"]["x3"]["min"]
+SUBSAMPLE_MAX = CONFIG["factors"]["x3"]["max"]
+LAMBDA_MIN = CONFIG["factors"]["x4"]["min"]
+LAMBDA_MAX = CONFIG["factors"]["x4"]["max"]
 
 def test_factor_coding_reversibility():
     """Verifies that decode(code(xi)) == xi and code(decode(x)) == x across corners, centers, and random values."""
@@ -29,36 +37,39 @@ def test_factor_coding_reversibility():
     ]
     for x in test_coded:
         eta, depth, subsample, reg_lambda = decode_factors(x)
-        assert ETA_MIN <= eta <= ETA_MAX, f"eta {eta} outside [{ETA_MIN}, {ETA_MAX}]"
-        assert DEPTH_MIN <= depth <= DEPTH_MAX, f"depth {depth} outside [{DEPTH_MIN}, {DEPTH_MAX}]"
-        assert SUBSAMPLE_MIN <= subsample <= SUBSAMPLE_MAX, f"subsample {subsample} outside [{SUBSAMPLE_MIN}, {SUBSAMPLE_MAX}]"
-        assert LAMBDA_MIN <= reg_lambda <= LAMBDA_MAX, f"lambda {reg_lambda} outside [{LAMBDA_MIN}, {LAMBDA_MAX}]"
+        assert ETA_MIN - 1e-9 <= eta <= ETA_MAX + 1e-9, f"eta {eta} outside [{ETA_MIN}, {ETA_MAX}]"
+        assert DEPTH_MIN - 1e-9 <= depth <= DEPTH_MAX + 1e-9, f"depth {depth} outside [{DEPTH_MIN}, {DEPTH_MAX}]"
+        assert SUBSAMPLE_MIN - 1e-9 <= subsample <= SUBSAMPLE_MAX + 1e-9, f"subsample {subsample} outside [{SUBSAMPLE_MIN}, {SUBSAMPLE_MAX}]"
+        assert LAMBDA_MIN - 1e-9 <= reg_lambda <= LAMBDA_MAX + 1e-9, f"lambda {reg_lambda} outside [{LAMBDA_MIN}, {LAMBDA_MAX}]"
         
-        x_rec = code_factors(eta, depth, subsample, reg_lambda)
+        x_rec = encode_factors(eta, depth, subsample, reg_lambda)
         np.testing.assert_allclose(x, x_rec, atol=1e-5, err_msg="Factor coding failed roundtrip recovery!")
     print("[OK] Factor coding reversibility verified.")
 
 def test_design_matrix_properties():
     """Verifies factorial dimensions, center point replication, and orthogonality of corner runs."""
     print("Testing design matrix dimensions and orthogonality...")
-    p1_runs = generate_phase1_design()
+    runs = generate_design_plan()
+    assert len(runs) == 140, f"Expected 140 runs, got {len(runs)}"
+    
+    df_runs = pd.DataFrame(runs)
+    p1_runs = df_runs[df_runs["phase"].str.startswith("Phase1")]
     assert len(p1_runs) == 100, f"Expected 100 Phase 1 runs, got {len(p1_runs)}"
     
-    p2_runs = generate_phase2_axial_design()
+    p2_runs = df_runs[df_runs["phase"].str.startswith("Phase2")]
     assert len(p2_runs) == 40, f"Expected 40 Phase 2 runs, got {len(p2_runs)}"
     
-    df_p1 = pd.DataFrame(p1_runs)
     # Check 16 corners + 4 center runs per block
     for b in [1, 2, 3, 4, 5]:
-        b_df = df_p1[df_p1["block"] == b]
+        b_df = p1_runs[p1_runs["block"] == b]
         assert len(b_df) == 20, f"Block {b} should have 20 runs, got {len(b_df)}"
-        n_fact = (b_df["point_type"] == "Factorial").sum()
-        n_center = (b_df["point_type"] == "Center").sum()
+        n_fact = (b_df["phase"] == "Phase1_Factorial").sum()
+        n_center = (b_df["phase"] == "Phase1_Center").sum()
         assert n_fact == 16, f"Block {b} should have 16 factorial points, got {n_fact}"
         assert n_center == 4, f"Block {b} should have 4 center points, got {n_center}"
 
     # Check orthogonality of 2^4 factorial portion
-    corners_df = df_p1[(df_p1["block"] == 1) & (df_p1["point_type"] == "Factorial")]
+    corners_df = df_runs[(df_runs["block"] == 1) & (df_runs["phase"] == "Phase1_Factorial")]
     X_fact = corners_df[["x1", "x2", "x3", "x4"]].values
     XtX = X_fact.T @ X_fact
     # Off-diagonal elements must be exactly 0

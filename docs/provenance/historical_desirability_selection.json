@@ -1,0 +1,325 @@
+{
+  "schema_version": 1,
+  "classification": "historical_data_reanalysis_no_new_xgboost_evaluations",
+  "baseline_ref": "v1.0.0",
+  "baseline_commit": "cd63135d2b70a0ee324555c11b67a541b32b98a4",
+  "input_sha256": {
+    "v1.0.0:config.yaml": "ab8c99fb17dcc5a32763e8f8d7bdbc3c16c50eb14c24fb784c93079c4ace3af9",
+    "v1.0.0:results/runs.csv": "87486cb5691c92d3861379f6b45026ecbd1a20897e6bd57ddda5b423e26efeac",
+    "v1.0.0:results/confirmation.json": "d8f6b88627a1cc6e3a925ad7af5e0dec6272a44c0df843a8982073ab48139b03",
+    "scripts/audit_desirability_selection.py": "9205caff9b219a7e049a9745190a12a24326a63528874fb32ad769934e22a9d1"
+  },
+  "stated_grid": {
+    "candidate_count": 588,
+    "x1_levels": [
+      -1.0,
+      -0.9,
+      -0.8,
+      -0.7,
+      -0.6,
+      -0.5,
+      -0.3999999999999999,
+      -0.29999999999999993,
+      -0.19999999999999996,
+      -0.09999999999999998,
+      0.0,
+      0.10000000000000009,
+      0.20000000000000018,
+      0.30000000000000004,
+      0.40000000000000013,
+      0.5,
+      0.6000000000000001,
+      0.7000000000000002,
+      0.8,
+      0.9000000000000001,
+      1.0
+    ],
+    "integer_depth_levels": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "x3_levels": [
+      0.0,
+      1.0
+    ],
+    "x4_levels": [
+      0.0,
+      1.0
+    ],
+    "enumeration_order": "x1, x3, x4, integer depth"
+  },
+  "standard_specification": {
+    "L1": 0.45,
+    "U1": 0.7,
+    "L2": 100.0,
+    "U2": 180.0,
+    "w1": 1.0,
+    "w2": 1.0
+  },
+  "selection_audit": {
+    "candidate_count": 588,
+    "membership": {
+      "is_member": false,
+      "nearest_candidate_index": 519,
+      "nearest_candidate": [
+        0.8,
+        -0.6666666666666666,
+        1.0,
+        0.0
+      ],
+      "maximum_absolute_coordinate_difference": 0.08116946,
+      "absolute_tolerance": 1e-09
+    },
+    "mathematical_grid_maximum": {
+      "candidate_index": 575,
+      "coordinate": [
+        1.0,
+        -0.6666666666666666,
+        1.0,
+        0.0
+      ],
+      "desirability": 0.6952181747318353,
+      "tie_count": 1,
+      "tie_breaking_rule": "lowest deterministic enumeration index",
+      "validation_rmse": 0.48664555163819173,
+      "predict_latency_us": 134.69245528381649,
+      "rmse_desirability": 0.8534177934472331,
+      "latency_desirability": 0.5663443089522939
+    },
+    "selected_coordinate_classification": "post_search_coordinate_not_generated_by_stated_grid"
+  },
+  "selected_engineering_compromise": {
+    "coordinate": [
+      0.8499708,
+      -0.66666667,
+      1.0,
+      -0.08116946
+    ],
+    "predicted_validation_rmse": 0.480425799210874,
+    "predicted_latency_us": 138.10877303482908,
+    "rmse_desirability": 0.8782968031565039,
+    "latency_desirability": 0.5236403370646364,
+    "composite_desirability": 0.6781678509393263,
+    "source": "hard-coded historical confirmation coordinate",
+    "continuous_optimization_or_interpolation_record": "No executable v1 provenance establishes a continuous optimizer, interpolation, or quantitative robustness rule for this coordinate."
+  },
+  "empirically_best_observed_configuration": {
+    "point_id": 14,
+    "coordinate": [
+      1.0,
+      -1.0,
+      1.0,
+      1.0
+    ],
+    "mean_validation_rmse": 0.5017773256114779,
+    "mean_latency_us": 134.7356,
+    "desirability": 0.6697921477067277
+  },
+  "boundary_statement": "A face-centered CCD boundary is observed within the declared domain; it is not extrapolation solely because it lies on a face.",
+  "common_latency_calibration_shift_sensitivity": {
+    "offset_magnitude_us": 11.645749999999992,
+    "basis": "Common additive shift equal to the median historical within-run latency IQR. This is a calibration-shift stress test, not a candidate standard error, prediction interval, or estimate of timing uncertainty.",
+    "results": [
+      {
+        "scenario": "standard",
+        "latency_offset_us": -11.645749999999992,
+        "coordinate": [
+          1.0,
+          -0.6666666666666666,
+          1.0,
+          0.0
+        ],
+        "desirability": 0.7794625961699131,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "standard",
+        "latency_offset_us": 0.0,
+        "coordinate": [
+          1.0,
+          -0.6666666666666666,
+          1.0,
+          0.0
+        ],
+        "desirability": 0.6952181747318353,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "standard",
+        "latency_offset_us": 11.645749999999992,
+        "coordinate": [
+          1.0,
+          -0.6666666666666666,
+          1.0,
+          0.0
+        ],
+        "desirability": 0.5992450935360158,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "latency_weight_2",
+        "latency_offset_us": -11.645749999999992,
+        "coordinate": [
+          1.0,
+          -0.6666666666666666,
+          1.0,
+          0.0
+        ],
+        "desirability": 0.7562635025098483,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "latency_weight_2",
+        "latency_offset_us": 0.0,
+        "coordinate": [
+          1.0,
+          -0.6666666666666666,
+          1.0,
+          0.0
+        ],
+        "desirability": 0.6492933053124113,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "latency_weight_2",
+        "latency_offset_us": 11.645749999999992,
+        "coordinate": [
+          1.0,
+          -0.6666666666666666,
+          1.0,
+          0.0
+        ],
+        "desirability": 0.5326215710355219,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "rmse_weight_2",
+        "latency_offset_us": -11.645749999999992,
+        "coordinate": [
+          1.0,
+          -0.6666666666666666,
+          1.0,
+          1.0
+        ],
+        "desirability": 0.8053454160513842,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "rmse_weight_2",
+        "latency_offset_us": 0.0,
+        "coordinate": [
+          1.0,
+          -0.6666666666666666,
+          1.0,
+          0.0
+        ],
+        "desirability": 0.744391335199288,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "rmse_weight_2",
+        "latency_offset_us": 11.645749999999992,
+        "coordinate": [
+          1.0,
+          -0.6666666666666666,
+          1.0,
+          0.0
+        ],
+        "desirability": 0.6742022885570278,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "strict_latency",
+        "latency_offset_us": -11.645749999999992,
+        "coordinate": [
+          1.0,
+          -0.6666666666666666,
+          1.0,
+          0.0
+        ],
+        "desirability": 0.46122195202413757,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "strict_latency",
+        "latency_offset_us": 0.0,
+        "coordinate": [
+          1.0,
+          -1.0,
+          1.0,
+          0.0
+        ],
+        "desirability": 0.2205747267849676,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "strict_latency",
+        "latency_offset_us": 11.645749999999992,
+        "coordinate": [
+          -1.0,
+          -1.0,
+          0.0,
+          0.0
+        ],
+        "desirability": 0.0,
+        "tie_count": 588,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "strict_accuracy",
+        "latency_offset_us": -11.645749999999992,
+        "coordinate": [
+          0.8,
+          -0.3333333333333333,
+          1.0,
+          1.0
+        ],
+        "desirability": 0.7812093318526525,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "strict_accuracy",
+        "latency_offset_us": 0.0,
+        "coordinate": [
+          0.8,
+          -0.3333333333333333,
+          1.0,
+          1.0
+        ],
+        "desirability": 0.729251258405197,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      },
+      {
+        "scenario": "strict_accuracy",
+        "latency_offset_us": 11.645749999999992,
+        "coordinate": [
+          0.9000000000000001,
+          -0.3333333333333333,
+          1.0,
+          1.0
+        ],
+        "desirability": 0.6690428939896338,
+        "tie_count": 1,
+        "tie_breaking_rule": "lowest deterministic enumeration index"
+      }
+    ]
+  }
+}
