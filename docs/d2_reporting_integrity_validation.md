@@ -61,7 +61,7 @@ scripts/reporting_data.py (40-File SHA-256 Check + Schema Validation + Row-Level
 | **Constrained TPE Feasibility Split** | `optimizer_replicates.csv`, `final_summary.csv` | 20/20 search feasible ($\le 145\,\mu\text{s}$, 30 calls); 9/20 benchmark feasible (1,000 calls): 9/9 depth 6 feasible ($136.70 \pm 0.82\,\mu\text{s}$), 0/11 depth 7 feasible ($150.45 \pm 0.67\,\mu\text{s}$) | Exact count & latency match |
 | **Paired & Welch Statistical Comparisons** | `final_summary.csv` | `paired_comparisons.json` (Repeated DOE MO vs MO-TPE diff $-0.002582$, Welch $t = -0.8849, p = 0.3826$, paired $t = -0.9658, p = 0.3463$) | Max absolute difference $< 10^{-6}$ |
 | **2D Pareto Hypervolumes** | `optimizer_trials.csv`, `doe_selection_runs.csv`, `doe_matched_candidate_front.csv`, `final_summary.csv` | `hypervolume.json` at reference points $[0.60, 250.0]$ and $[0.65, 275.0]$ across all 4 development protocols and the 12-point holdout non-dominated frontier (3 DOE MO, 3 MO-TPE, 5 cTPE, 1 SO-TPE) | Max absolute difference $< 10^{-9}$ |
-| **Computational Budget & Latency Overhead** | `computational_budget.json`, `latency_measurement.json`, `latency_interface_overhead.json` | 17,077 model fits, 1,640,810 timed predictions, $32.27 \pm 0.90\,\mu\text{s}$ DataFrame wrapper overhead ($21.21 \pm 2.41\%$) | Max absolute difference $< 10^{-9}$ |
+| **Computational Budget & Latency Overhead** | `computational_budget.json`, `latency_measurement.json`, `latency_interface_overhead.json` | 17,077 model fits, 1,640,810 timed predictions, $32.19 \pm 1.46\,\mu\text{s}$ wrapper overhead across 610 session measurements | Max absolute difference $< 10^{-9}$ |
 
 ---
 

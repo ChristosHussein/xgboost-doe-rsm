@@ -59,8 +59,8 @@ The audit operated under strict scientific integrity principles:
 ### Module E: Statistical Inference & Publication Claim Ledger (`docs/c1_statistical_inference.md`)
 - **DOE MO vs MO-TPE Test RMSE:** On the holdout test set, Repeated DOE MO achieved a mean Test RMSE of $0.48997 \pm 0.00732$ versus $0.49255 \pm 0.01080$ for MO-TPE. The difference ($-0.00258$) is not statistically significant ($p = 0.3826$ Welch two-sample, $p = 0.3463$ paired).
 - **Constrained TPE Benchmark Feasibility:** Constrained TPE registered $100\%$ search-time feasibility ($20/20 \le 145\,\mu\text{s}$) under its 30-call online protocol, but only $45\%$ ($9/20$) feasibility under the primary 1,000-call benchmark protocol.
-  - All 9 depth-6 configurations remained fully feasible ($136.62\,\mu\text{s}$ benchmark mean).
-  - All 11 depth-7 configurations exceeded the threshold ($150.54\,\mu\text{s}$ benchmark mean).
+  - All 9 depth-6 configurations remained fully feasible ($136.70\,\mu\text{s}$ benchmark mean).
+  - All 11 depth-7 configurations exceeded the threshold ($150.45\,\mu\text{s}$ benchmark mean).
   - The discrepancy is attributed to possible explanatory factors (online sampling variability in 30-call estimates, protocol differences, and selection effects near the constraint boundary) rather than conclusively asserted root causes.
 
 ---
