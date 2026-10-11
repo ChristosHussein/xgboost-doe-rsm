@@ -1,0 +1,49 @@
+name: Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+  pull_request:
+    branches:
+      - main
+      - 'codex/**'
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.11']
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run verification test suite and reporting integrity checks
+        run: |
+          python -m pytest -q
+          python scripts/audit_scientific_consistency.py
+          python scripts/generate_report_artifacts.py --check
+          python scripts/generate_research_reporting.py --check
+          git diff --exit-code results/ config.yaml
+          git diff --exit-code 842b531611ded9ff8495b88bf0c12790efe56b69 -- config.yaml results/revision_v2/full_run_001/
+          git diff --exit-code v1.0.0 -- results/anova_ccd_latency.csv results/benchmark.csv results/benchmark_evals_trajectories.csv results/benchmark_optimizer_incumbents.csv results/benchmark_summary.json results/confirmation.json results/confirmation_runs.csv results/confirmation_runs_single_obj.csv results/depth_opt_table.csv results/desirability_sensitivity.csv results/diagnostics.json results/env.json results/icc.json results/latency_modeling.json results/latency_models_comparison.csv results/lof.json results/phase1.json results/phase3.json results/ridge_table.csv results/runs.csv

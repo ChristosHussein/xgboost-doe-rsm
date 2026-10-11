@@ -1,233 +1,235 @@
-"""
-scripts/run_confirmation.py - Task 6: Confirmation experiment at recommended optima.
-Runs m=10 trials across fresh, disjoint seeds.
-Evaluates:
-  1. Multi-Objective Desirability Optimum x* (depth 4).
-  2. Single-Objective Cube Optimum x_single* (depth 7).
-Prediction interval explicitly incorporates block variance:
-  Var(y_bar_m - y_hat) = MSE * (1/m + h) + sigma2_block * (1/m + 1/5)
+"""Gated final evaluation for already-frozen configuration selections.
+
+The historical v1 confirmation implementation remains available at tag
+``v1.0.0``. This revision entry point cannot construct or alter selections and
+does not expose the external holdout until a tamper-evident finalized-selection
+manifest has been supplied.
 """
 
+from __future__ import annotations
+
+import argparse
+import hashlib
 import json
 import os
+import platform
+import subprocess
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Iterable
 
-# Ensure root directory is on sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import numpy as np
-import pandas as pd
-from scipy import stats
-import statsmodels.api as sm
-import yaml
+from final_evaluation import FinalTestEvaluator, load_finalized_selection
 
-from pipeline import CaliforniaHousingDataManager, evaluate_model, decode_factors, pin_cpu_affinity, CONFIG
 
-CONFIRMATION_SEEDS = CONFIG["seeds"]["confirmation_seeds"]
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
-def execute_confirmation():
-    pin_cpu_affinity()
-    os.makedirs("results", exist_ok=True)
-    df_runs = pd.read_csv("results/runs.csv")
 
-    with open("results/icc.json", "r", encoding="utf-8") as f:
-        icc = json.load(f)
-    s2b_y1 = icc["Y1"].get("s2b_anova", icc["Y1"].get("s2b_reml", 0.0))
-    s2b_y2 = icc["Y2"].get("s2b_anova", icc["Y2"].get("s2b_reml", 0.0))
+def _git_revision() -> str:
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    ).stdout.strip()
 
-    Q = ["x1", "x2", "x3", "x4"]
-    X = pd.DataFrame(index=df_runs.index)
-    for q in Q: X[q] = df_runs[q]
-    for q in Q: X[q + "_sq"] = df_runs[q] ** 2
-    for i in range(4):
-        for j in range(i + 1, 4):
-            X[f"{Q[i]}_{Q[j]}"] = df_runs[Q[i]] * df_runs[Q[j]]
-    blk = pd.get_dummies(df_runs["block"], prefix="blk", drop_first=True).astype(float)
-    X = sm.add_constant(pd.concat([X, blk], axis=1))
 
-    fit_y1 = sm.OLS(df_runs["val_rmse"], X).fit()
-    fit_y2 = sm.OLS(df_runs["latency_us_median"], X).fit()
-    XtXi = np.linalg.inv(X.T @ X)
+def _validate_evaluation_payload(
+    payload: dict[str, Any],
+    *,
+    selection_id: str,
+    expected_config_sha256: str,
+    manifest_git_revision: str,
+    evaluation_seeds: list[int],
+) -> None:
+    if payload.get("selection_id") != selection_id:
+        raise ValueError("evaluator returned a different selection_id")
+    if payload.get("config_sha256") != expected_config_sha256:
+        raise ValueError("evaluator returned a configuration hash not frozen in the manifest")
+    if payload.get("manifest_git_revision") != manifest_git_revision:
+        raise ValueError("evaluator returned a different manifest Git revision")
+    rows = payload.get("per_seed")
+    if not isinstance(rows, list):
+        raise ValueError("evaluator payload lacks a per_seed failure ledger")
+    returned_seeds = [row.get("evaluation_seed") for row in rows]
+    if returned_seeds != evaluation_seeds:
+        raise ValueError("evaluator seed coverage differs from the frozen evaluation seeds")
+    if any(row.get("status") not in {"completed", "failed"} for row in rows):
+        raise ValueError("every evaluator row must have completed or failed status")
+    completed = sum(row["status"] == "completed" for row in rows)
+    expected_status = (
+        "completed"
+        if completed == len(rows)
+        else ("failed" if completed == 0 else "partial")
+    )
+    if payload.get("status") != expected_status:
+        raise ValueError("evaluator aggregate status disagrees with its per-seed ledger")
 
-    m = len(CONFIRMATION_SEEDS)
-    df_res = fit_y1.df_resid
-    t_crit = float(stats.t.ppf(0.975, df_res))
 
-    data_mgr = CaliforniaHousingDataManager()
-
-    # 1. Multi-Objective Optimum x* (Depth 4)
-    x_star = np.array([0.8499708, -0.66666667, 1.0, -0.08116946])
-    eta_star, depth_star, sub_star, lam_star = decode_factors(x_star)
-    x1, x2, x3, x4 = x_star
-    x_row_mo = np.array([1.0, x1, x2, x3, x4,
-                         x1**2, x2**2, x3**2, x4**2,
-                         x1*x2, x1*x3, x1*x4, x2*x3, x2*x4, x3*x4,
-                         0.2, 0.2, 0.2, 0.2])
-    h_mo = float(x_row_mo @ XtXi @ x_row_mo)
-
-    yh_y1_mo = float(x_row_mo @ fit_y1.params.values)
-    var_pi_y1_mo = fit_y1.mse_resid * (1.0 / m + h_mo) + s2b_y1 * (1.0 / m + 0.2)
-    half_y1_mo = t_crit * float(np.sqrt(var_pi_y1_mo))
-    pi_y1_mo = (yh_y1_mo - half_y1_mo, yh_y1_mo + half_y1_mo)
-
-    yh_y2_mo = float(x_row_mo @ fit_y2.params.values)
-    var_pi_y2_mo = fit_y2.mse_resid * (1.0 / m + h_mo) + s2b_y2 * (1.0 / m + 0.2)
-    half_y2_mo = t_crit * float(np.sqrt(var_pi_y2_mo))
-    pi_y2_mo = (yh_y2_mo - half_y2_mo, yh_y2_mo + half_y2_mo)
-
-    # 2. Single-Objective Optimum (Depth 7)
-    with open("results/phase3.json", "r", encoding="utf-8") as f:
-        p3 = json.load(f)
-    x_single = np.array(p3["constrained_optimum_cube"]["x"])
-    eta_so, depth_so, sub_so, lam_so = decode_factors(x_single)
-    x1, x2, x3, x4 = x_single
-    x_row_so = np.array([1.0, x1, x2, x3, x4,
-                         x1**2, x2**2, x3**2, x4**2,
-                         x1*x2, x1*x3, x1*x4, x2*x3, x2*x4, x3*x4,
-                         0.2, 0.2, 0.2, 0.2])
-    h_so = float(x_row_so @ XtXi @ x_row_so)
-
-    yh_y1_so = float(x_row_so @ fit_y1.params.values)
-    var_pi_y1_so = fit_y1.mse_resid * (1.0 / m + h_so) + s2b_y1 * (1.0 / m + 0.2)
-    half_y1_so = t_crit * float(np.sqrt(var_pi_y1_so))
-    pi_y1_so = (yh_y1_so - half_y1_so, yh_y1_so + half_y1_so)
-
-    yh_y2_so = float(x_row_so @ fit_y2.params.values)
-    var_pi_y2_so = fit_y2.mse_resid * (1.0 / m + h_so) + s2b_y2 * (1.0 / m + 0.2)
-    half_y2_so = t_crit * float(np.sqrt(var_pi_y2_so))
-    pi_y2_so = (yh_y2_so - half_y2_so, yh_y2_so + half_y2_so)
-
-    print(f"Running confirmation at x* across {m} fresh seeds...")
-    records_mo = []
-    records_so = []
-
-    for seed in CONFIRMATION_SEEDS:
-        eval_mo = evaluate_model(
-            eta=eta_star,
-            depth=depth_star,
-            subsample=sub_star,
-            reg_lambda=lam_star,
-            seed=seed,
-            data_mgr=data_mgr,
-            measure_latency_details=True
-        )
-        records_mo.append({
-            "seed": seed,
-            "val_rmse": eval_mo["val_rmse"],
-            "test_rmse": eval_mo["test_rmse"],
-            "latency_us_median": eval_mo["latency_us_median"],
-            "latency_us_iqr": eval_mo["latency_us_iqr"],
-            "inplace_latency_us_median": eval_mo["inplace_latency_us_median"],
-            "fit_time_s": eval_mo["fit_time_s"],
-        })
-
-        eval_so = evaluate_model(
-            eta=eta_so,
-            depth=depth_so,
-            subsample=sub_so,
-            reg_lambda=lam_so,
-            seed=seed,
-            data_mgr=data_mgr,
-            measure_latency_details=True
-        )
-        records_so.append({
-            "seed": seed,
-            "val_rmse": eval_so["val_rmse"],
-            "test_rmse": eval_so["test_rmse"],
-            "latency_us_median": eval_so["latency_us_median"],
-            "latency_us_iqr": eval_so["latency_us_iqr"],
-            "inplace_latency_us_median": eval_so["inplace_latency_us_median"],
-            "fit_time_s": eval_so["fit_time_s"],
-        })
-
-    df_conf_mo = pd.DataFrame(records_mo)
-    df_conf_so = pd.DataFrame(records_so)
-    df_conf_mo.to_csv("results/confirmation_runs.csv", index=False)
-    df_conf_so.to_csv("results/confirmation_runs_single_obj.csv", index=False)
-
-    emp_val_m_mo = float(df_conf_mo["val_rmse"].mean())
-    emp_val_s_mo = float(df_conf_mo["val_rmse"].std())
-    emp_test_m_mo = float(df_conf_mo["test_rmse"].mean())
-    emp_test_s_mo = float(df_conf_mo["test_rmse"].std())
-    emp_lat_m_mo = float(df_conf_mo["latency_us_median"].mean())
-    emp_lat_s_mo = float(df_conf_mo["latency_us_median"].std())
-    emp_inplat_m_mo = float(df_conf_mo["inplace_latency_us_median"].mean())
-    emp_inplat_s_mo = float(df_conf_mo["inplace_latency_us_median"].std())
-
-    emp_val_m_so = float(df_conf_so["val_rmse"].mean())
-    emp_val_s_so = float(df_conf_so["val_rmse"].std())
-    emp_test_m_so = float(df_conf_so["test_rmse"].mean())
-    emp_test_s_so = float(df_conf_so["test_rmse"].std())
-    emp_lat_m_so = float(df_conf_so["latency_us_median"].mean())
-    emp_lat_s_so = float(df_conf_so["latency_us_median"].std())
-
-    inside_val_mo = bool(pi_y1_mo[0] <= emp_val_m_mo <= pi_y1_mo[1])
-    inside_lat_mo = bool(pi_y2_mo[0] <= emp_lat_m_mo <= pi_y2_mo[1])
-
-    inside_val_so = bool(pi_y1_so[0] <= emp_val_m_so <= pi_y1_so[1])
-    inside_lat_so = bool(pi_y2_so[0] <= emp_lat_m_so <= pi_y2_so[1])
-
-    summary = {
-        "x_star_coded": x_star.tolist(),
-        "x_star_natural": {
-            "eta": eta_star, "depth": depth_star, "subsample": sub_star, "reg_lambda": lam_star
-        },
-        "leverage_h": h_mo,
-        "Y1_Val_RMSE": {
-            "predicted_mean": yh_y1_mo,
-            "prediction_interval_95": [float(pi_y1_mo[0]), float(pi_y1_mo[1])],
-            "empirical_mean": emp_val_m_mo,
-            "empirical_std": emp_val_s_mo,
-            "inside_pi": inside_val_mo,
-        },
-        "Y1_Test_RMSE": {
-            "empirical_mean": emp_test_m_mo,
-            "empirical_std": emp_test_s_mo,
-        },
-        "Y2_Latency": {
-            "predicted_mean": yh_y2_mo,
-            "prediction_interval_95": [float(pi_y2_mo[0]), float(pi_y2_mo[1])],
-            "empirical_mean": emp_lat_m_mo,
-            "empirical_std": emp_lat_s_mo,
-            "empirical_inplace_mean": emp_inplat_m_mo,
-            "empirical_inplace_std": emp_inplat_s_mo,
-            "inside_pi": inside_lat_mo,
-        },
-        "Single_Objective_Optimum": {
-            "x_coded": x_single.tolist(),
-            "x_natural": {
-                "eta": eta_so, "depth": depth_so, "subsample": sub_so, "reg_lambda": lam_so
-            },
-            "leverage_h": h_so,
-            "predicted_val_rmse": yh_y1_so,
-            "prediction_interval_95_val": [float(pi_y1_so[0]), float(pi_y1_so[1])],
-            "empirical_val_rmse": emp_val_m_so,
-            "empirical_val_std": emp_val_s_so,
-            "empirical_test_rmse": emp_test_m_so,
-            "empirical_test_std": emp_test_s_so,
-            "predicted_latency": yh_y2_so,
-            "prediction_interval_95_lat": [float(pi_y2_so[0]), float(pi_y2_so[1])],
-            "empirical_latency": emp_lat_m_so,
-            "empirical_latency_std": emp_lat_s_so,
-            "inside_pi_val": inside_val_so,
-            "inside_pi_lat": inside_lat_so,
-        }
+def _failed_evaluation(
+    *,
+    selection_id: str,
+    config_sha256: str,
+    manifest_git_revision: str,
+    evaluation_seeds: list[int],
+    error: Exception,
+) -> dict[str, Any]:
+    message = f"{type(error).__name__}: {error}"
+    return {
+        "selection_id": selection_id,
+        "config_sha256": config_sha256,
+        "manifest_git_revision": manifest_git_revision,
+        "status": "failed",
+        "per_seed": [
+            {
+                "evaluation_seed": seed,
+                "status": "failed",
+                "val_rmse": None,
+                "test_rmse": None,
+                "error": message,
+            }
+            for seed in evaluation_seeds
+        ],
     }
 
-    with open("results/confirmation.json", "w", encoding="utf-8") as f:
-        json.dump(summary, f, indent=2)
 
-    print("\n--- Confirmation Summary (DOE x*, Depth 4) ---")
-    print(f"Empirical Val RMSE: {emp_val_m_mo:.4f} +/- {emp_val_s_mo:.4f} (PI: [{pi_y1_mo[0]:.4f}, {pi_y1_mo[1]:.4f}] -> Pass: {inside_val_mo})")
-    print(f"Empirical Test RMSE: {emp_test_m_mo:.4f} +/- {emp_test_s_mo:.4f}")
-    print(f"Empirical Latency: {emp_lat_m_mo:.2f} +/- {emp_lat_s_mo:.2f} us (PI: [{pi_y2_mo[0]:.2f}, {pi_y2_mo[1]:.2f}] -> Pass: {inside_lat_mo})")
+def _write_atomic_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_text(
+        json.dumps(payload, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
+    temporary.replace(path)
 
-    print("\n--- Confirmation Summary (DOE Single-Obj, Depth 7) ---")
-    print(f"Empirical Val RMSE: {emp_val_m_so:.4f} +/- {emp_val_s_so:.4f} (Predicted: {yh_y1_so:.4f}, bias: {emp_val_m_so - yh_y1_so:+.4f})")
-    print(f"Empirical Test RMSE: {emp_test_m_so:.4f} +/- {emp_test_s_so:.4f}")
-    print(f"Empirical Latency: {emp_lat_m_so:.2f} +/- {emp_lat_s_so:.2f} us")
 
-    return summary
+def execute_confirmation(
+    manifest_path: str | Path,
+    output_path: str | Path,
+    *,
+    evaluation_seeds: Iterable[int] | None = None,
+    selection_ids: Iterable[str] | None = None,
+    evaluator: Any | None = None,
+) -> dict[str, Any]:
+    """Evaluate only configurations already frozen in ``manifest_path``."""
+    manifest_path = Path(manifest_path)
+    output_path = Path(output_path)
+    if output_path.exists():
+        raise FileExistsError(f"Refusing to overwrite final-evaluation artifact: {output_path}")
+
+    manifest = load_finalized_selection(manifest_path)
+    frozen_ids = [item["selection_id"] for item in manifest["configurations"]]
+    requested_ids = list(selection_ids) if selection_ids is not None else frozen_ids
+    unknown = sorted(set(requested_ids) - set(frozen_ids))
+    if unknown:
+        raise KeyError(f"Selections were not frozen in the manifest: {unknown}")
+    if len(requested_ids) != len(set(requested_ids)):
+        raise ValueError("selection_ids must not contain duplicates")
+
+    frozen_evaluation = manifest["final_evaluation"]
+    frozen_seeds = [int(seed) for seed in frozen_evaluation["evaluation_seeds"]]
+    if evaluation_seeds is not None:
+        requested_seeds = [int(seed) for seed in evaluation_seeds]
+        if requested_seeds != frozen_seeds:
+            raise ValueError(
+                "Requested evaluation seeds do not exactly match the frozen manifest"
+            )
+    seeds = frozen_seeds
+
+    final_evaluator = evaluator or FinalTestEvaluator()
+    expected_by_id = {
+        item["selection_id"]: item for item in manifest["configurations"]
+    }
+    evaluations = []
+    for selection_id in requested_ids:
+        configuration = expected_by_id[selection_id]
+        try:
+            if not hasattr(final_evaluator, "evaluation_protocol"):
+                raise TypeError("evaluator does not expose evaluation_protocol")
+            if final_evaluator.evaluation_protocol != frozen_evaluation["protocol"]:
+                raise ValueError("evaluator protocol does not match the frozen manifest")
+            result = final_evaluator.evaluate(
+                manifest_path,
+                selection_id,
+                evaluation_seeds=seeds,
+            )
+            _validate_evaluation_payload(
+                result,
+                selection_id=selection_id,
+                expected_config_sha256=configuration["config_sha256"],
+                manifest_git_revision=manifest["git_revision"],
+                evaluation_seeds=seeds,
+            )
+        except Exception as exc:
+            result = _failed_evaluation(
+                selection_id=selection_id,
+                config_sha256=configuration["config_sha256"],
+                manifest_git_revision=manifest["git_revision"],
+                evaluation_seeds=seeds,
+                error=exc,
+            )
+        evaluations.append(result)
+    completed = sum(item["status"] == "completed" for item in evaluations)
+    artifact = {
+        "schema_version": 2,
+        "classification": "gated_final_evaluation",
+        "status": (
+            "completed"
+            if completed == len(evaluations)
+            else ("failed" if completed == 0 else "partial")
+        ),
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "finalized_selection_manifest": str(manifest_path),
+        "finalized_selection_manifest_sha256": _sha256(manifest_path),
+        "manifest_git_revision": manifest["git_revision"],
+        "evaluation_code_git_revision": _git_revision(),
+        "selection_ids": requested_ids,
+        "evaluation_seeds": seeds,
+        "evaluation_protocol": frozen_evaluation["protocol"],
+        "runtime": {
+            "python": sys.version,
+            "platform": platform.platform(),
+        },
+        "holdout_scope": (
+            "External holdout metrics are emitted only after manifest validation; "
+            "they are not returned to development-stage search code."
+        ),
+        "evaluations": evaluations,
+    }
+    _write_atomic_json(output_path, artifact)
+    return artifact
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Evaluate a tamper-evident finalized-selection manifest on the holdout."
+    )
+    parser.add_argument("--manifest", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--selection-id",
+        action="append",
+        dest="selection_ids",
+        help="Frozen selection to evaluate; repeat as needed. Defaults to every frozen selection.",
+    )
+    parser.add_argument(
+        "--seed",
+        action="append",
+        type=int,
+        dest="evaluation_seeds",
+        help="Evaluation seed; repeat as needed. Defaults to the configured full seed set.",
+    )
+    args = parser.parse_args()
+    execute_confirmation(
+        args.manifest,
+        args.output,
+        evaluation_seeds=args.evaluation_seeds,
+        selection_ids=args.selection_ids,
+    )
+
 
 if __name__ == "__main__":
-    execute_confirmation()
+    main()
