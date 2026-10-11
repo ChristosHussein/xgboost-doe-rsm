@@ -504,6 +504,7 @@ class ReportingDataset:
     final_summary_df: pd.DataFrame
     optimizer_summary: Dict[str, Any]
     doe_selection_summary: Dict[str, Any]
+    doe_selection_protocol: Dict[str, Any]
     latency_measurement: Dict[str, Any]
     latency_interface_overhead: Dict[str, Any]
     hypervolume: Dict[str, Any]
@@ -516,6 +517,13 @@ class ReportingDataset:
     total_selection_records: int
     distinct_config_hashes: int
     total_evaluation_rows: int
+    doe_grid_size: int
+    doe_so_hist_hash16: str
+    doe_mo_hist_hash16: str
+    doe_so_rep_hash16: str
+    doe_so_rep_eta: float
+    doe_so_rep_grid_index: int
+    doe_mo_rep_unique_hashes: int
     between_session_latency_sd_mean: float
     interface_overhead_mean: float
     interface_overhead_sd: float
@@ -541,6 +549,7 @@ class ReportingDataset:
     hv_summary: Dict[str, Any]
     holdout_nondominated_by_optimizer: Dict[str, int]
     holdout_pareto_bootstrap: Dict[str, Any]
+
 
 
 
@@ -980,7 +989,29 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
 
     # Work Package F: Curvature sensitivity analyses across alternative error structures
     fit_p1_cell = ols("val_rmse ~ C(block) + C(point_id)", data=df_p1).fit()
-    ss_block_adj_pooled = float(fit_p1_cell.ssr)
+    ss_pe_coord_unadj = float(
+        df_p1.groupby("point_id")["val_rmse"]
+        .apply(lambda s: ((s - s.mean()) ** 2).sum())
+        .sum()
+    )
+    df_pe_coord_unadj = int(len(df_p1) - df_p1["point_id"].nunique())  # 83 df
+    ms_pe_coord_unadj = ss_pe_coord_unadj / df_pe_coord_unadj
+    f_pe_coord_unadj = ss_curv / ms_pe_coord_unadj
+
+    p1_grand_mean = float(df_p1["val_rmse"].mean())
+    ss_block_p1 = float(
+        sum(
+            len(grp) * ((float(grp["val_rmse"].mean()) - p1_grand_mean) ** 2)
+            for _, grp in df_p1.groupby("block")
+        )
+    )
+    ss_block_adj_pooled = float(ss_pe_coord_unadj - ss_block_p1)
+    _assert_close(
+        ss_block_adj_pooled,
+        float(fit_p1_cell.ssr),
+        atol=1e-12,
+        label="Phase 1 block-adjusted pooled SS",
+    )
     df_block_adj_pooled = int(fit_p1_cell.df_resid)  # 79 df = 64 df TxB + 15 df center PE
     ms_block_adj_pooled = ss_block_adj_pooled / df_block_adj_pooled
     f_block_adj_pooled = ss_curv / ms_block_adj_pooled
@@ -1006,14 +1037,6 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
     ci95_block_paired_low = float(diff_fc - t_crit_blk * se_block_paired)
     ci95_block_paired_high = float(diff_fc + t_crit_blk * se_block_paired)
 
-    ss_pe_coord_unadj = float(
-        df_p1.groupby("point_id")["val_rmse"]
-        .apply(lambda s: ((s - s.mean()) ** 2).sum())
-        .sum()
-    )
-    df_pe_coord_unadj = int(len(df_p1) - df_p1["point_id"].nunique())  # 83 df
-    ms_pe_coord_unadj = ss_pe_coord_unadj / df_pe_coord_unadj
-    f_pe_coord_unadj = ss_curv / ms_pe_coord_unadj
 
     df_p1_ind = df_p1.copy()
     df_p1_ind["is_center"] = (df_p1_ind["phase"] == "Phase1_Center").astype(float)
@@ -1205,10 +1228,30 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
 
     optimizer_summary = _load_json(rev_dir / "optimizer_summary.json")
     doe_selection_summary = _load_json(rev_dir / "doe_selection_summary.json")
+    doe_selection_protocol = _load_json(rev_dir / "doe_selection_protocol.json")
     latency_measurement = _load_json(rev_dir / "latency_measurement.json")
     latency_interface_overhead = _load_json(rev_dir / "latency_interface_overhead.json")
     hypervolume = _load_json(rev_dir / "hypervolume.json")
     paired_comparisons = _load_json_list(rev_dir / "paired_comparisons.json")
+
+    sel_by_id = {str(x["selection_id"]): x for x in finalized_selections}
+    doe_grid_size = int(doe_selection_protocol["candidate_count"])
+    if doe_grid_size != 1323:
+        raise ReportingDataError(f"Expected 1323 candidates in doe_selection_protocol.json, got {doe_grid_size}")
+    doe_so_hist_hash16 = str(sel_by_id["doe-so-historical"]["config_sha256"])[:16]
+    doe_mo_hist_hash16 = str(sel_by_id["doe-mo-historical"]["config_sha256"])[:16]
+    doe_so_rep0 = sel_by_id["doe-so-rep-0"]
+    doe_so_rep_hash16 = str(doe_so_rep0["config_sha256"])[:16]
+    doe_so_rep_eta = float(doe_so_rep0["hyperparameters"]["learning_rate"])
+    doe_so_rep_grid_index = int(doe_so_rep0["source_grid_index"])
+    doe_mo_rep_unique_hashes = len(
+        {
+            str(x["config_sha256"])
+            for x in finalized_selections
+            if str(x["optimizer"]) == "repeated_preplanned_doe_multi_objective"
+        }
+    )
+
 
     # Reconstruct latency measurements from latency_measurement.json (5 sessions x 122 selections = 610)
     _require_keys(latency_measurement, ["summaries", "sessions"], "latency_measurement.json")
@@ -1855,6 +1898,7 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
         final_summary_df=final_summary_df,
         optimizer_summary=optimizer_summary,
         doe_selection_summary=doe_selection_summary,
+        doe_selection_protocol=doe_selection_protocol,
         latency_measurement=latency_measurement,
         latency_interface_overhead=latency_interface_overhead,
         hypervolume=hypervolume,
@@ -1866,6 +1910,13 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
         total_selection_records=total_selection_records,
         distinct_config_hashes=distinct_config_hashes,
         total_evaluation_rows=total_evaluation_rows,
+        doe_grid_size=doe_grid_size,
+        doe_so_hist_hash16=doe_so_hist_hash16,
+        doe_mo_hist_hash16=doe_mo_hist_hash16,
+        doe_so_rep_hash16=doe_so_rep_hash16,
+        doe_so_rep_eta=doe_so_rep_eta,
+        doe_so_rep_grid_index=doe_so_rep_grid_index,
+        doe_mo_rep_unique_hashes=doe_mo_rep_unique_hashes,
         between_session_latency_sd_mean=between_session_latency_sd_mean,
         interface_overhead_mean=interface_overhead_mean,
         interface_overhead_sd=interface_overhead_sd,
@@ -1914,10 +1965,16 @@ def build_scientific_results_manifest(ds: ReportingDataset) -> Dict[str, Any]:
     ) -> None:
         if verification_status not in {"RECONSTRUCTED", "SOURCE-TRACED"}:
             raise ReportingDataError(f"Invalid verification_status: {verification_status}")
+        if isinstance(value, float):
+            canonical_val: Any = round(float(value), 8)
+        elif isinstance(value, list):
+            canonical_val = [round(float(x), 8) if isinstance(x, float) else x for x in value]
+        else:
+            canonical_val = value
         metrics.append(
             {
                 "metric_id": metric_id,
-                "value": value,
+                "value": canonical_val,
                 "formatted_value": formatted_value,
                 "precision": precision,
                 "input_artifact_path": input_artifact_path,
@@ -1930,6 +1987,7 @@ def build_scientific_results_manifest(ds: ReportingDataset) -> Dict[str, Any]:
                 "target_documents": list(target_documents),
             }
         )
+
 
     docs_all = ["REPORT.md", "report.tex", "results/macros.tex"]
     docs_bm = ["REPORT.md", "report.tex", "results/macros.tex", "tables/tab_benchmarks.tex"]
