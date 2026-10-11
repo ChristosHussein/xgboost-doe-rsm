@@ -14,6 +14,7 @@ malformed, or inconsistent with saved summary JSONs.
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import os
 import sys
@@ -70,6 +71,104 @@ PROSPECTIVE_OPTIMIZER_ORDER: Tuple[str, ...] = (
     "single_objective_tpe",
     "random_search",
 )
+
+# Trusted LF-normalized SHA-256 baseline digests for config.yaml, all v1.0.0 results/*
+# artifacts, and results/revision_v2/full_run_001/provenance.json (which itself locks all
+# 18 full_run_001 artifact_sha256 digests).
+CANONICAL_EVIDENCE_SHA256: Dict[str, str] = {
+    "config.yaml": "72bbd8809d134e02222acca2feb3c59d982f3cc67bb8c0420faaec245a83687a",
+    "results/anova_ccd_latency.csv": "94988845e974e9731fc1b15001f33b321ddf34da6c64f4b188aa013cdf7d1363",
+    "results/benchmark.csv": "688293629c22378a1d8e196840db986ade0ecb90c71d7a877f299df3b719f978",
+    "results/benchmark_evals_trajectories.csv": "6079327e67227f4cb9f52f5afed4227a88a9df9d112f9ab5a5af64783f2f0b83",
+    "results/benchmark_optimizer_incumbents.csv": "0862ce271650d44a5503c66376abc8cbc2956bc1968202fdab79ff308d8cbecd",
+    "results/benchmark_summary.json": "46684ccc22acbfa8c5c87b85d69a9108d9558d622791c600f199650d7a754c2a",
+    "results/confirmation.json": "d8f6b88627a1cc6e3a925ad7af5e0dec6272a44c0df843a8982073ab48139b03",
+    "results/confirmation_runs.csv": "ee148833ce2706f7d9c41278814242b1a4b10cca6e6ce3b6c15a99f3454545fd",
+    "results/confirmation_runs_single_obj.csv": "11e81023aa3b1c3424e5f611bf9e53ddaf2b29d90055a024348e4b8b23c9c790",
+    "results/depth_opt_table.csv": "3459057cf26140d7793d90c1874d8fd23331a5f96666a7aaba84cdad4b1b7e13",
+    "results/desirability_sensitivity.csv": "2fbef32f610e08820c222f72b1a1a29168ef1cc5418f77da0152b92beb2dc15b",
+    "results/diagnostics.json": "d3dd29d140af85ae117ad8d8c5860cefefc2c96db662e4c397fc62e4bd26a52b",
+    "results/env.json": "77186264be0ae86523a81d6d6a674cfe16d58fcacc848a013ecec17bb59d6658",
+    "results/icc.json": "39daff0651273fbcbe6c1d02906fadc8b5fbf6dc2ddc0f0a5730b665ed09430f",
+    "results/latency_modeling.json": "b8bdd3d508604701d0525aee43d843f207cc850b5c8f700a291d15a8dd13f9f9",
+    "results/latency_models_comparison.csv": "d2a3db8dfc389b7c496561ba706863e59074f0b647233b2208801c6a70833529",
+    "results/lof.json": "126a39b0bc0771e9ebb116e49b954cbbae5cdcf35b6073942de62a893ff0d037",
+    "results/phase1.json": "7434774b16f6d5ad953890cb2dfb34959fea6f3c049296a1f09784dee253df25",
+    "results/phase3.json": "0a7d01b228c84d381721497d144120a4d3792205910c50e8f9c489ce8b3e303b",
+    "results/ridge_table.csv": "478701c5f5a0e7a59955f544557eb88cf005435ba4172b22fa0ef6a121265e74",
+    "results/runs.csv": "87486cb5691c92d3861379f6b45026ecbd1a20897e6bd57ddda5b423e26efeac",
+    "results/revision_v2/full_run_001/provenance.json": "7aee3cc1523c2d5ec136fd6f9205eee92365031c7ef214ffe7d8544ab26c4b9b",
+}
+
+
+def _file_matches_sha256(path: Path, expected_hex: str) -> bool:
+    if not path.is_file():
+        return False
+    raw = path.read_bytes()
+    lf = raw.replace(b"\r\n", b"\n")
+    crlf = lf.replace(b"\n", b"\r\n")
+    return expected_hex in (
+        hashlib.sha256(raw).hexdigest(),
+        hashlib.sha256(lf).hexdigest(),
+        hashlib.sha256(crlf).hexdigest(),
+    )
+
+
+def verify_canonical_evidence_hashes(root_dir: Optional[Path | str] = None) -> int:
+    """Verify cryptographic SHA-256 digests of all 40 canonical experimental evidence files.
+
+    Checks both the trusted baseline SHA-256 table (CANONICAL_EVIDENCE_SHA256) and
+    every artifact_sha256 / baseline_input_sha256 / runtime_source_sha256 entry in
+    results/revision_v2/full_run_001/provenance.json. Raises ReportingDataError on any mismatch.
+    Returns the total number of verified canonical evidence files.
+    """
+    base = Path(root_dir).resolve() if root_dir is not None else ROOT_DIR
+    verified_count = 0
+
+    for rel_path, expected_sha in CANONICAL_EVIDENCE_SHA256.items():
+        target = base / rel_path
+        if not _file_matches_sha256(target, expected_sha):
+            raise ReportingDataError(
+                f"Cryptographic evidence hash mismatch for {rel_path} (expected {expected_sha})"
+            )
+        verified_count += 1
+
+    prov_path = base / "results" / "revision_v2" / "full_run_001" / "provenance.json"
+    prov = _load_json(prov_path)
+    _require_keys(
+        prov,
+        ["artifact_sha256", "baseline_input_sha256", "runtime_source_sha256"],
+        "provenance.json",
+    )
+
+    artifact_hashes = prov["artifact_sha256"]
+    if len(artifact_hashes) != 18:
+        raise ReportingDataError(
+            f"Expected 18 artifact_sha256 entries in provenance.json, got {len(artifact_hashes)}"
+        )
+    for name, expected_sha in artifact_hashes.items():
+        target = base / "results" / "revision_v2" / "full_run_001" / name
+        if not _file_matches_sha256(target, str(expected_sha)):
+            raise ReportingDataError(
+                f"Cryptographic evidence hash mismatch for results/revision_v2/full_run_001/{name} "
+                f"against provenance.json (expected {expected_sha})"
+            )
+        verified_count += 1
+
+    for key, expected_sha in prov["baseline_input_sha256"].items():
+        rel = key.split(":", 1)[-1]
+        if not _file_matches_sha256(base / rel, str(expected_sha)):
+            raise ReportingDataError(
+                f"Cryptographic baseline_input_sha256 mismatch for {rel} (expected {expected_sha})"
+            )
+
+    cfg_sha = prov["runtime_source_sha256"].get("config.yaml")
+    if not cfg_sha or not _file_matches_sha256(base / "config.yaml", str(cfg_sha)):
+        raise ReportingDataError(
+            f"Cryptographic runtime_source_sha256 mismatch for config.yaml (expected {cfg_sha})"
+        )
+
+    return verified_count
 
 
 def _require_file(path: Path) -> Path:
@@ -1336,6 +1435,9 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
                 feasible_145=bool(pred_lat <= 145.0),
             )
         )
+
+    # 7. Verify cryptographic SHA-256 digests of all 40 canonical evidence artifacts
+    verify_canonical_evidence_hashes(base)
 
     return ReportingDataset(
         root_dir=base,

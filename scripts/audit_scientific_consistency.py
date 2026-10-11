@@ -403,6 +403,23 @@ def audit_scientific_consistency(
     results["factor_hypercube"] = audit_factor_hypercube_geometry(run_dir_path)
     if verbose:
         print("[PASS] 7. Factor Domain Geometry: all configurations in [0.01, 0.30] x [3, 9] x [0.5, 1.0] x [0.1, 10.0].")
+
+    # 8. Cryptographic Evidence Integrity (when auditing canonical run directory)
+    repo_root = Path(__file__).resolve().parent.parent
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    canonical_run_dir = (repo_root / "results" / "revision_v2" / "full_run_001").resolve()
+    if run_dir_path == canonical_run_dir:
+        from scripts.reporting_data import ReportingDataError, verify_canonical_evidence_hashes
+        try:
+            verified_files = verify_canonical_evidence_hashes(repo_root)
+        except ReportingDataError as exc:
+            raise ScientificConsistencyError(str(exc)) from exc
+        results["cryptographic_evidence_files_verified"] = verified_files
+        if verbose:
+            print(f"[PASS] 8. Cryptographic Evidence Integrity: all {verified_files} canonical artifact SHA-256 digests verified.")
+
+    if verbose:
         print("=" * 80)
         print("ALL SCIENTIFIC CONSISTENCY CHECKS PASSED SUCCESSFULLY.")
         print("=" * 80)

@@ -159,6 +159,13 @@ def render_report_sections(ds: ReportingDataset) -> Dict[str, str]:
     x4_min, x4_max = float(f_cfg["x4"]["min"]), float(f_cfg["x4"]["max"])
     x4_cent = float(np.sqrt(x4_min * x4_max))
 
+    x1_ln_mid = 0.5 * (np.log(x1_min) + np.log(x1_max))
+    x1_ln_half = 0.5 * (np.log(x1_max) - np.log(x1_min))
+    x2_half = (x2_max - x2_min) // 2
+    x3_half = 0.5 * (x3_max - x3_min)
+    x4_ln_mid = int(round(0.5 * (np.log(x4_min) + np.log(x4_max))))
+    x4_ln_half = 0.5 * (np.log(x4_max) - np.log(x4_min))
+
     sections["SECTION_1_FACTORS_AND_BLOCKS"] = "\n".join(
         [
             "### 1.1 Hyperparameter Space & Natural-to-Coded Transformations",
@@ -173,7 +180,7 @@ def render_report_sections(ds: ReportingDataset) -> Dict[str, str]:
             f"| **$x_4$ (Factor D)** | `reg_lambda` | $\\lambda$ | $\\xi_4 = \\ln(\\lambda)$ | ${x4_min:.4f}$ | ${x4_cent:.4f}$ | ${x4_max:.4f}$ |",
             "",
             "The dimensionless coded variables $x_i \\in [-1, +1]$ are defined by:",
-            "$$x_1 = \\frac{\\ln(\\eta) - (-2.9046)}{1.7006}, \\quad x_2 = \\frac{d - 6}{3}, \\quad x_3 = \\frac{s - 0.75}{0.25}, \\quad x_4 = \\frac{\\ln(\\lambda) - 0}{2.3026}$$",
+            f"$$x_1 = \\frac{{\\ln(\\eta) - ({x1_ln_mid:.4f})}}{{{x1_ln_half:.4f}}}, \\quad x_2 = \\frac{{d - {x2_cent}}}{{{x2_half}}}, \\quad x_3 = \\frac{{s - {x3_cent:.2f}}}{{{x3_half:.2f}}}, \\quad x_4 = \\frac{{\\ln(\\lambda) - {x4_ln_mid}}}{{{x4_ln_half:.4f}}}$$",
             "",
             "### 1.2 Nuisance Blocking (RCBD) and Dual Responses",
             "",
@@ -224,6 +231,19 @@ def render_report_sections(ds: ReportingDataset) -> Dict[str, str]:
                 f"| {src_label} | ${ss:.6f}$ | ${df_v}$ | ${ms:.6f}$ | ${fv:.2f}$ | {p_str} | ${eta_v:.4f}$ |"
             )
 
+    df_p1_runs = ds.runs_df[ds.runs_df["phase"].astype(str).str.contains("1")].copy()
+    df_p1_runs["coord"] = list(
+        zip(df_p1_runs["x1"], df_p1_runs["x2"], df_p1_runs["x3"], df_p1_runs["x4"])
+    )
+    ss_pe_all = float(
+        df_p1_runs.groupby("coord")["val_rmse"]
+        .apply(lambda s: ((s - s.mean()) ** 2).sum())
+        .sum()
+    )
+    df_pe_all = int(len(df_p1_runs) - df_p1_runs["coord"].nunique())
+    ms_pe_all = ss_pe_all / df_pe_all
+    f_curv_all = float(p1["ss_curvature"]) / ms_pe_all
+
     p1_rows.extend(
         [
             "",
@@ -237,7 +257,7 @@ def render_report_sections(ds: ReportingDataset) -> Dict[str, str]:
             f"- **Within-Block Center Pure Error**: $\\text{{SS}}_{{\\text{{PE, center}}}} = {ld['ss_pure_center_y1']:.6f}$, $\\text{{df}}_{{\\text{{PE}}}} = {p1['df_pe_center']}$, $\\text{{MS}}_{{\\text{{PE, center}}}} = {_fmt_sci_md(p1['ms_pe_center'])}$",
             "- **Curvature $F$-Statistic**:",
             f"$$F_{{\\text{{Curv}}}} = \\frac{{\\text{{SS}}_{{\\text{{Curv}}}}}}{{\\text{{MS}}_{{\\text{{PE, center}}}}}} = \\frac{{{p1['ss_curvature']:.6f}}}{{{_fmt_sci_md(p1['ms_pe_center'])}}} = {p1['f_curvature']:,.2f} \\quad (p < 10^{{-15}})$$",
-            "*(Note: If evaluated against overall pure error pooled across all replicated design coordinates, $\\text{df} = 83, \\text{MS}_{\\text{PE, All}} = 6.98 \\times 10^{-5}$, the $F$-statistic is $F \\approx 4,140, p < 10^{-15}$. Both confirm severe quadratic curvature requiring Phase 2 CCD augmentation.)*",
+            f"*(Note: If evaluated against overall pure error pooled across all replicated design coordinates, $\\text{{df}} = {df_pe_all}, \\text{{MS}}_{{\\text{{PE, All}}}} = {_fmt_sci_md(ms_pe_all)}$, the $F$-statistic is $F \\approx {f_curv_all:,.0f}, p < 10^{{-15}}$. Both confirm severe quadratic curvature requiring Phase 2 CCD augmentation.)*",
         ]
     )
     sections["SECTION_2_PHASE1"] = "\n".join(p1_rows)
@@ -302,6 +322,7 @@ def render_report_sections(ds: ReportingDataset) -> Dict[str, str]:
     p_blk_y2 = float(an_ccd_y2.loc["C(block)", "PR(>F)"])
     ms_e_p1 = float(an_p1.loc["Residual", "sum_sq"] / an_p1.loc["Residual", "df"])
     ms_e_p2 = float(an_ccd_y1.loc["Residual", "sum_sq"] / an_ccd_y1.loc["Residual", "df"])
+    mse_reduction_factor = int(round(ms_e_p1 / ms_e_p2))
     f_blk_p1 = float(an_p1.loc["C(block)", "F"])
     p_blk_p1 = float(an_p1.loc["C(block)", "PR(>F)"])
 
@@ -323,7 +344,7 @@ def render_report_sections(ds: ReportingDataset) -> Dict[str, str]:
             "",
             "### 3.2 Variance Shielding and Block Intraclass Correlation (ICC)",
             "",
-            f"In Phase 1, unmodeled quadratic curvature inflated the residual mean square ($\\text{{MS}}_E = {ms_e_p1:.6f}$), masking block differences ($F = {f_blk_p1:.2f}, p = {p_blk_p1:.4f}$). In Phase 2, accounting for quadratic terms reduces $\\text{{MS}}_E$ by $40\\times$ to ${ms_e_p2:.6f}$, exposing highly significant seed-to-seed variance ($F = {f_block_ccd:.2f}, p < 0.0001$). The **Block Intraclass Correlation Coefficient** is:",
+            f"In Phase 1, unmodeled quadratic curvature inflated the residual mean square ($\\text{{MS}}_E = {ms_e_p1:.6f}$), masking block differences ($F = {f_blk_p1:.2f}, p = {p_blk_p1:.4f}$). In Phase 2, accounting for quadratic terms reduces $\\text{{MS}}_E$ by ${mse_reduction_factor}\\times$ to ${ms_e_p2:.6f}$, exposing highly significant seed-to-seed variance ($F = {f_block_ccd:.2f}, p < 0.0001$). The **Block Intraclass Correlation Coefficient** is:",
             f"$$\\text{{ICC}} = \\frac{{\\sigma^2_{{\\text{{block}}}}}}{{\\sigma^2_{{\\text{{block}}}} + \\sigma^2_\\epsilon}} = {icc['Y1']['icc_anova']:.4f} \\quad ({icc_anova_pct:.2f}\\%, \\quad \\text{{ICC}}_{{\\text{{REML}}}} = {icc_reml:.4f}, \\quad \\sigma_{{\\text{{block}}}} \\approx {sigma_block:.4f}\\text{{ RMSE}})$$",
             "",
             "### 3.3 Exact Multi-Scale Lack-of-Fit Decomposition and Residual Diagnostics",
@@ -404,6 +425,10 @@ def render_report_sections(ds: ReportingDataset) -> Dict[str, str]:
     )
 
     # 7. SECTION_6_PHASE5
+    se_so_depth = float(
+        ds.depth_opt_df[ds.depth_opt_df["depth"] == int(cube["depth"])]["se"].iloc[0]
+    )
+    so_bias_se_mult = float(round(so_bias, 4) / round(se_so_depth, 4))
     sections["SECTION_6_PHASE5"] = "\n".join(
         [
             f"Both DOE candidate coordinates ($\\mathbf{{x}}^*_{{\\text{{MO}}}}$ at depth {mo_nat['depth']} and $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ at depth {cube['depth']}) were evaluated across **$m = {n_conf}$ fresh random seeds** ($\\mathcal{{S}}_{{\\text{{conf}}}} = \\{{{conf_seeds_str}\\}}$, matching `config.yaml` and `results/confirmation_runs.csv`) against Satterthwaite-adjusted 95% prediction intervals ($\\nu_{{\\text{{eff}}}} = {mo_val['nu_eff']:.1f}$ for $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ at $h_0 = {conf['leverage_h']:.4f}$; $\\nu_{{\\text{{eff}}}} = {so_conf['nu_eff']:.1f}$ for $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ at $h_0 = {so_conf['leverage_h']:.4f}$):",
@@ -419,7 +444,7 @@ def render_report_sections(ds: ReportingDataset) -> Dict[str, str]:
             f"| Holdout Test RMSE | — | — | ${so_conf['empirical_test_rmse']:.4f} \\pm {so_conf['empirical_test_std']:.4f}$ | Holdout Test Set |",
             f"| Inference Latency ($\\mu\\text{{s}}$) | ${so_conf['predicted_latency']:.1f}$ (${so_conf['predicted_latency']:.2f}$) | $[{so_conf['prediction_interval_95_lat'][0]:.1f}, {so_conf['prediction_interval_95_lat'][1]:.1f}]$ ($[{so_conf['prediction_interval_95_lat'][0]:.2f}, {so_conf['prediction_interval_95_lat'][1]:.2f}]$) | ${so_conf['empirical_latency']:.1f} \\pm {so_conf['empirical_latency_std']:.1f}$ (${so_conf['empirical_latency']:.2f} \\pm {so_conf['empirical_latency_std']:.2f}$) | **Borderline** (At Lower PI) |",
             "",
-            f"At $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ (depth {mo_nat['depth']}), both validation RMSE (${mo_val['empirical_mean']:.4f} \\pm {mo_val['empirical_std']:.4f}$) and single-sample inference latency (${mo_lat['empirical_mean']:.2f} \\pm {mo_lat['empirical_std']:.2f}\\,\\mu\\text{{s}}$) fall directly inside their Satterthwaite 95% prediction intervals. At $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ (depth {cube['depth']}), empirical validation RMSE (${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$) lies ${so_above_pi:.4f}$ above the upper prediction interval bound (${so_conf['prediction_interval_95_val'][1]:.4f}$), confirming that quadratic interpolation across depths $\\{{3, 6, 9\\}}$ overestimates accuracy gains at depth {cube['depth']} by ${so_bias:+.4f}$ RMSE ($6.8\\times \\text{{SE}}(\\hat{{y}})$), while empirical latency (${so_conf['empirical_latency']:.1f} \\pm {so_conf['empirical_latency_std']:.1f}\\,\\mu\\text{{s}}$) sits on the lower bound of its 95% prediction interval ($[{so_conf['prediction_interval_95_lat'][0]:.1f}, {so_conf['prediction_interval_95_lat'][1]:.1f}]\\,\\mu\\text{{s}}$).",
+            f"At $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ (depth {mo_nat['depth']}), both validation RMSE (${mo_val['empirical_mean']:.4f} \\pm {mo_val['empirical_std']:.4f}$) and single-sample inference latency (${mo_lat['empirical_mean']:.2f} \\pm {mo_lat['empirical_std']:.2f}\\,\\mu\\text{{s}}$) fall directly inside their Satterthwaite 95% prediction intervals. At $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ (depth {cube['depth']}), empirical validation RMSE (${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$) lies ${so_above_pi:.4f}$ above the upper prediction interval bound (${so_conf['prediction_interval_95_val'][1]:.4f}$), confirming that quadratic interpolation across depths $\\{{3, 6, 9\\}}$ overestimates accuracy gains at depth {cube['depth']} by ${so_bias:+.4f}$ RMSE (${so_bias_se_mult:.1f}\\times \\text{{SE}}(\\hat{{y}})$), while empirical latency (${so_conf['empirical_latency']:.1f} \\pm {so_conf['empirical_latency_std']:.1f}\\,\\mu\\text{{s}}$) sits on the lower bound of its 95% prediction interval ($[{so_conf['prediction_interval_95_lat'][0]:.1f}, {so_conf['prediction_interval_95_lat'][1]:.1f}]\\,\\mu\\text{{s}}$).",
         ]
     )
 
@@ -601,6 +626,71 @@ def _extract_marked_sections(md_text: str) -> Tuple[Dict[str, str], str]:
     return found, outside_text
 
 
+def _allowed_report_tex_specification_floats(ds: ReportingDataset) -> set[str]:
+    """Build the exact source-derived set of design/specification constants permitted as literals in report.tex."""
+    f_cfg = ds.config["factors"]
+    x1_min, x1_max = float(f_cfg["x1"]["min"]), float(f_cfg["x1"]["max"])
+    x1_cent = float(np.sqrt(x1_min * x1_max))
+    x3_min, x3_max = float(f_cfg["x3"]["min"]), float(f_cfg["x3"]["max"])
+    x3_cent = 0.5 * (x3_min + x3_max)
+    x4_min, x4_max = float(f_cfg["x4"]["min"]), float(f_cfg["x4"]["max"])
+    x4_cent = float(np.sqrt(x4_min * x4_max))
+
+    d_cfg = ds.config["desirability"]
+    y1_l, y1_u = float(d_cfg["Y1_RMSE"]["L"]), float(d_cfg["Y1_RMSE"]["U"])
+    y2_l, y2_u = float(d_cfg["Y2_Latency"]["L"]), float(d_cfg["Y2_Latency"]["U"])
+
+    r1_rmse, r1_lat = ds.hv_ref_primary
+    r2_rmse, r2_lat = ds.hv_ref_secondary
+
+    allowed = {
+        # Factor bounds & centers from config.yaml
+        f"{x1_min:.2f}",
+        f"{x1_max:.2f}",
+        f"{x1_min:.4f}",
+        f"{x1_cent:.4f}",
+        f"{x1_max:.4f}",
+        f"{abs(np.log(x1_min)):.4f}",
+        f"{abs(np.log(x1_max)):.4f}",
+        f"{x3_min:.2f}",
+        f"{x3_max:.2f}",
+        f"{x3_min:.4f}",
+        f"{x3_cent:.4f}",
+        f"{x3_max:.4f}",
+        f"{x4_min:.2f}",
+        f"{x4_max:.2f}",
+        f"{x4_min:.4f}",
+        f"{x4_cent:.4f}",
+        f"{x4_max:.4f}",
+        f"{abs(np.log(x4_min)):.4f}",
+        f"{abs(np.log(x4_max)):.4f}",
+        # Desirability specification bounds & grid levels from config.yaml
+        f"{y1_l:.3f}",
+        f"{y1_u:.3f}",
+        f"{y2_l:.1f}",
+        f"{y2_u:.1f}",
+        "0.20",
+        "0.25",
+        "0.30",
+        # Hypervolume reference points from config.yaml
+        f"{r1_rmse:.2f}",
+        f"{r1_lat:.1f}",
+        f"{r2_rmse:.2f}",
+        f"{r2_lat:.1f}",
+        # Methodological / statistical thresholds & restricted-domain cutoff
+        "0.0",
+        "1.0",
+        "0.5",
+        "0.033",
+        "0.05",
+        "0.025",
+        "0.0001",
+        "0.005",
+        "0.015",
+    }
+    return allowed
+
+
 def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[str]:
     """Perform manuscript-level numerical and methodological auditing across REPORT.md and report.tex (Task 9)."""
     if ds is None:
@@ -666,16 +756,47 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
         if f"[{r2_rmse:.2f}, {r2_lat:.0f}]" not in doc_content and f"[{r2_rmse:.2f}, {r2_lat:.1f}]" not in doc_content:
             errors.append(f"Secondary hypervolume reference point [{r2_rmse:.2f}, {r2_lat:.1f}] missing from {doc_name}")
 
-    # 4. Verify all \num... and \vecB... and \matB... macros used in report.tex are defined in results/macros.tex
+    # 4. Verify all \num... and \vecB... and \matB... and \eigVec... macros used in report.tex are defined in results/macros.tex
     defined_macros = dict(
         re.findall(r"\\newcommand\{\\([A-Za-z]+)\}\{(.+)\}", macros_text)
     )
-    used_macros = set(re.findall(r"\\((?:num|vecB|matB|env)[A-Za-z]+)\b", tex_text))
+    used_macros = set(re.findall(r"\\((?:num|vecB|matB|eigVec|env)[A-Za-z]+)\b", tex_text))
     undefined = sorted(used_macros - set(defined_macros.keys()))
     if undefined:
         errors.append(f"Macros used in report.tex but undefined in results/macros.tex: {undefined}")
 
-    # 5. Check that no unsupported TOST equivalence claims appear when rmse_equivalence_margin is None
+    # 5. Enforce that no empirical result floating-point numbers are hardcoded in report.tex prose
+    allowed_tex_floats = _allowed_report_tex_specification_floats(ds)
+    unpermitted_tex_floats: List[str] = []
+    for line_no, raw_line in enumerate(tex_text.splitlines(), start=1):
+        stripped = raw_line.strip()
+        if stripped.startswith("%"):
+            continue
+        # Strip inline LaTeX comments
+        line_clean = re.sub(r"(?<!\\)%.*$", "", raw_line)
+        # Strip LaTeX layout/formatting commands and explicit software version tags
+        line_clean = re.sub(r"\\renewcommand\{\\arraystretch\}\{[0-9.]+\}", "", line_clean)
+        line_clean = re.sub(
+            r"\b(?:v1\.0\.0|Python\s+3\.11(?:\.9)?|XGBoost\s+3\.2(?:\.0)?|Scikit-Learn\s+1\.8(?:\.0)?|Statsmodels\s+0\.15(?:\.0)?|Scipy\s+1\.17(?:\.1)?|Optuna\s+5\.0(?:\.0)?)\b",
+            "",
+            line_clean,
+            flags=re.IGNORECASE,
+        )
+        for m in re.finditer(r"(?<![A-Za-z\\])\d+\.\d+(?![A-Za-z])", line_clean):
+            # Ignore layout lengths like 0.48\textwidth, 0.35em, 1.2pt
+            tail = line_clean[m.start() : m.end() + 18]
+            if re.match(r"^\d+\.\d+\s*\\?(?:textwidth|linewidth|columnwidth|em|pt|mm|cm|in|ex)\b", tail):
+                continue
+            val_str = m.group(0)
+            if val_str not in allowed_tex_floats:
+                unpermitted_tex_floats.append(f"L{line_no}: {val_str}")
+    if unpermitted_tex_floats:
+        errors.append(
+            "Hardcoded empirical floating-point numbers found in report.tex prose "
+            f"(must use generated macros from results/macros.tex): {unpermitted_tex_floats}"
+        )
+
+    # 6. Check that no unsupported TOST equivalence claims appear when rmse_equivalence_margin is None
     if ds.config["revision_v2"].get("rmse_equivalence_margin") is None:
         forbidden_equiv = re.compile(r"\b(?:TOST\s+confirmed|statistically\s+equivalent|formal\s+equivalence\s+established)\b", re.IGNORECASE)
         for doc_name, doc_content in [("REPORT.md", md_text), ("report.tex", tex_text)]:
