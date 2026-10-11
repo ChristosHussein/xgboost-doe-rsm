@@ -148,7 +148,7 @@
     },
     {
       "metric_id": "phase1.curvature_f_stat",
-      "value": 105432.31230101374,
+      "value": 105432.31230101,
       "formatted_value": "105,432.31",
       "precision": "2dp",
       "input_artifact_path": "results/runs.csv",
@@ -166,7 +166,7 @@
     },
     {
       "metric_id": "phase1.factorial_mean_rmse",
-      "value": 0.6332819659204028,
+      "value": 0.63328197,
       "formatted_value": "0.6333",
       "precision": "4dp",
       "input_artifact_path": "results/runs.csv",
@@ -184,7 +184,7 @@
     },
     {
       "metric_id": "phase1.center_mean_rmse",
-      "value": 0.49893489841649624,
+      "value": 0.4989349,
       "formatted_value": "0.4989",
       "precision": "4dp",
       "input_artifact_path": "results/runs.csv",
@@ -202,7 +202,7 @@
     },
     {
       "metric_id": "phase2.ccd_rsquared",
-      "value": 0.9951021740673103,
+      "value": 0.99510217,
       "formatted_value": "0.9951",
       "precision": "4dp",
       "input_artifact_path": "results/runs.csv",
@@ -220,7 +220,7 @@
     },
     {
       "metric_id": "phase2.block_icc_anova",
-      "value": 0.4068516665405714,
+      "value": 0.40685167,
       "formatted_value": "0.4069",
       "precision": "4dp",
       "input_artifact_path": "results/icc.json",
@@ -238,7 +238,7 @@
     },
     {
       "metric_id": "phase2.lof_f_vs_additive",
-      "value": 62.2139164077348,
+      "value": 62.21391641,
       "formatted_value": "62.21",
       "precision": "2dp",
       "input_artifact_path": "results/lof.json",
@@ -257,7 +257,7 @@
     },
     {
       "metric_id": "phase2.lof_f_vs_center_pe",
-      "value": 323.1028300766081,
+      "value": 323.10283008,
       "formatted_value": "323.10",
       "precision": "2dp",
       "input_artifact_path": "results/runs.csv",
@@ -276,7 +276,7 @@
     },
     {
       "metric_id": "phase4.composite_desirability",
-      "value": 0.6781678509393265,
+      "value": 0.67816785,
       "formatted_value": "0.6782",
       "precision": "4dp",
       "input_artifact_path": "results/confirmation.json",
@@ -294,7 +294,7 @@
     },
     {
       "metric_id": "phase5.mo_emp_val_rmse_mean",
-      "value": 0.485286343413258,
+      "value": 0.48528634,
       "formatted_value": "0.4853",
       "precision": "4dp",
       "input_artifact_path": "results/confirmation_runs.csv",
@@ -313,7 +313,7 @@
     },
     {
       "metric_id": "phase5.mo_emp_test_rmse_mean",
-      "value": 0.4887737967416993,
+      "value": 0.4887738,
       "formatted_value": "0.4888",
       "precision": "4dp",
       "input_artifact_path": "results/confirmation_runs.csv",
@@ -332,7 +332,7 @@
     },
     {
       "metric_id": "phase5.mo_emp_latency_mean",
-      "value": 142.33135000000001,
+      "value": 142.33135,
       "formatted_value": "142.33",
       "precision": "2dp (1dp in compact table)",
       "input_artifact_path": "results/confirmation_runs.csv",
@@ -351,7 +351,7 @@
     },
     {
       "metric_id": "phase5.so_emp_val_rmse_mean",
-      "value": 0.4700001392267918,
+      "value": 0.47000014,
       "formatted_value": "0.4700",
       "precision": "4dp",
       "input_artifact_path": "results/confirmation_runs_single_obj.csv",
@@ -370,7 +370,7 @@
     },
     {
       "metric_id": "phase5.so_emp_test_rmse_mean",
-      "value": 0.4691237634152463,
+      "value": 0.46912376,
       "formatted_value": "0.4691",
       "precision": "4dp",
       "input_artifact_path": "results/confirmation_runs_single_obj.csv",
@@ -479,7 +479,7 @@
     },
     {
       "metric_id": "rev_v2.repeated_preplanned_doe_multi_objective.val_rmse_mean",
-      "value": 0.48528326445817055,
+      "value": 0.48528326,
       "formatted_value": "0.48528",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -498,7 +498,7 @@
     },
     {
       "metric_id": "rev_v2.repeated_preplanned_doe_multi_objective.test_rmse_mean",
-      "value": 0.4899685870204262,
+      "value": 0.48996859,
       "formatted_value": "0.48997",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -517,7 +517,7 @@
     },
     {
       "metric_id": "rev_v2.repeated_preplanned_doe_multi_objective.predict_latency_mean",
-      "value": 122.28652500000001,
+      "value": 122.286525,
       "formatted_value": "122.29",
       "precision": "2dp (1dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
@@ -536,7 +536,7 @@
     },
     {
       "metric_id": "rev_v2.repeated_preplanned_doe_multi_objective.inplace_latency_mean",
-      "value": 89.73482500000001,
+      "value": 89.734825,
       "formatted_value": "89.73",
       "precision": "2dp",
       "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
@@ -574,7 +574,7 @@
     },
     {
       "metric_id": "rev_v2.multi_objective_tpe.val_rmse_mean",
-      "value": 0.4881452313404395,
+      "value": 0.48814523,
       "formatted_value": "0.48815",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -593,7 +593,7 @@
     },
     {
       "metric_id": "rev_v2.multi_objective_tpe.test_rmse_mean",
-      "value": 0.49255060443348164,
+      "value": 0.4925506,
       "formatted_value": "0.49255",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -612,7 +612,7 @@
     },
     {
       "metric_id": "rev_v2.multi_objective_tpe.predict_latency_mean",
-      "value": 121.45837499999998,
+      "value": 121.458375,
       "formatted_value": "121.46",
       "precision": "2dp (1dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
@@ -631,7 +631,7 @@
     },
     {
       "metric_id": "rev_v2.multi_objective_tpe.inplace_latency_mean",
-      "value": 88.83672500000002,
+      "value": 88.836725,
       "formatted_value": "88.84",
       "precision": "2dp",
       "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
@@ -669,7 +669,7 @@
     },
     {
       "metric_id": "rev_v2.constrained_tpe.val_rmse_mean",
-      "value": 0.46996212415554134,
+      "value": 0.46996212,
       "formatted_value": "0.46996",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -688,7 +688,7 @@
     },
     {
       "metric_id": "rev_v2.constrained_tpe.test_rmse_mean",
-      "value": 0.4703616673631309,
+      "value": 0.47036167,
       "formatted_value": "0.47036",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -726,7 +726,7 @@
     },
     {
       "metric_id": "rev_v2.constrained_tpe.inplace_latency_mean",
-      "value": 112.06902500000001,
+      "value": 112.069025,
       "formatted_value": "112.07",
       "precision": "2dp",
       "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
@@ -764,7 +764,7 @@
     },
     {
       "metric_id": "rev_v2.repeated_preplanned_doe_single_objective.val_rmse_mean",
-      "value": 0.4687228150842292,
+      "value": 0.46872282,
       "formatted_value": "0.46872",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -783,7 +783,7 @@
     },
     {
       "metric_id": "rev_v2.repeated_preplanned_doe_single_objective.test_rmse_mean",
-      "value": 0.4685906357355905,
+      "value": 0.46859064,
       "formatted_value": "0.46859",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -859,7 +859,7 @@
     },
     {
       "metric_id": "rev_v2.single_objective_tpe.val_rmse_mean",
-      "value": 0.4674998493247863,
+      "value": 0.46749985,
       "formatted_value": "0.46750",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -878,7 +878,7 @@
     },
     {
       "metric_id": "rev_v2.single_objective_tpe.test_rmse_mean",
-      "value": 0.46691342801161284,
+      "value": 0.46691343,
       "formatted_value": "0.46691",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -897,7 +897,7 @@
     },
     {
       "metric_id": "rev_v2.single_objective_tpe.predict_latency_mean",
-      "value": 188.92567499999998,
+      "value": 188.925675,
       "formatted_value": "188.93",
       "precision": "2dp (1dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
@@ -954,7 +954,7 @@
     },
     {
       "metric_id": "rev_v2.random_search.val_rmse_mean",
-      "value": 0.4686859044562741,
+      "value": 0.4686859,
       "formatted_value": "0.46869",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -973,7 +973,7 @@
     },
     {
       "metric_id": "rev_v2.random_search.test_rmse_mean",
-      "value": 0.4695321039992114,
+      "value": 0.4695321,
       "formatted_value": "0.46953",
       "precision": "5dp (4dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -992,7 +992,7 @@
     },
     {
       "metric_id": "rev_v2.random_search.predict_latency_mean",
-      "value": 181.11767500000002,
+      "value": 181.117675,
       "formatted_value": "181.12",
       "precision": "2dp (1dp in compact table)",
       "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
@@ -1011,7 +1011,7 @@
     },
     {
       "metric_id": "rev_v2.random_search.inplace_latency_mean",
-      "value": 149.05272499999998,
+      "value": 149.052725,
       "formatted_value": "149.05",
       "precision": "2dp",
       "input_artifact_path": "results/revision_v2/full_run_001/latency_measurement.json",
@@ -1049,7 +1049,7 @@
     },
     {
       "metric_id": "rev_v2.comparison.doe_mo_vs_motpe_test_rmse_diff",
-      "value": -0.0025820174130553597,
+      "value": -0.00258202,
       "formatted_value": "-0.00258",
       "precision": "5dp",
       "input_artifact_path": "results/revision_v2/full_run_001/paired_comparisons.json",
@@ -1067,7 +1067,7 @@
     },
     {
       "metric_id": "rev_v2.hv.motpe_dev_060_mean",
-      "value": 18.383424576020012,
+      "value": 18.38342458,
       "formatted_value": "18.3834",
       "precision": "4dp",
       "input_artifact_path": "results/revision_v2/full_run_001/optimizer_trials.csv",
@@ -1086,7 +1086,7 @@
     },
     {
       "metric_id": "rev_v2.hv.rdoe_dev_060_mean",
-      "value": 15.612770809055679,
+      "value": 15.61277081,
       "formatted_value": "15.6128",
       "precision": "4dp",
       "input_artifact_path": "results/revision_v2/full_run_001/doe_selection_runs.csv",
@@ -1105,7 +1105,7 @@
     },
     {
       "metric_id": "rev_v2.hv.full_doe_dev_060",
-      "value": 16.858506433880063,
+      "value": 16.85850643,
       "formatted_value": "16.8585",
       "precision": "4dp",
       "input_artifact_path": "results/revision_v2/full_run_001/doe_matched_candidate_front.csv",
@@ -1124,7 +1124,7 @@
     },
     {
       "metric_id": "rev_v2.hv.holdout_frozen_060",
-      "value": 17.6713582379725,
+      "value": 17.67135824,
       "formatted_value": "17.6714",
       "precision": "4dp",
       "input_artifact_path": "results/revision_v2/full_run_001/final_summary.csv",
@@ -1143,7 +1143,7 @@
     },
     {
       "metric_id": "rev_v2.hv.holdout_bootstrap_seed_060_mean",
-      "value": 17.6923134594675,
+      "value": 17.69231346,
       "formatted_value": "17.6923",
       "precision": "4dp",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -1162,7 +1162,7 @@
     },
     {
       "metric_id": "rev_v2.hv.holdout_bootstrap_joint_060_mean",
-      "value": 17.688994642868533,
+      "value": 17.68899464,
       "formatted_value": "17.6890",
       "precision": "4dp",
       "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
@@ -1181,7 +1181,7 @@
     },
     {
       "metric_id": "phase1.curvature_f_block_adj_pooled",
-      "value": 20235.41158394235,
+      "value": 20235.41158394,
       "formatted_value": "20,235.41",
       "precision": "2dp",
       "input_artifact_path": "results/runs.csv",
@@ -1199,7 +1199,7 @@
     },
     {
       "metric_id": "phase1.curvature_f_block_paired",
-      "value": 7342.692204240753,
+      "value": 7342.69220424,
       "formatted_value": "7,342.69",
       "precision": "2dp",
       "input_artifact_path": "results/runs.csv",
@@ -1235,7 +1235,7 @@
     },
     {
       "metric_id": "latency.hist_runs_interface_overhead_mean",
-      "value": 40.882042857142864,
+      "value": 40.88204286,
       "formatted_value": "40.88",
       "precision": "2dp",
       "input_artifact_path": "results/runs.csv",

@@ -214,12 +214,18 @@ def _create_isolated_workspace(tmp_path: Path, root_dir: Path) -> Path:
     for fname in ["config.yaml", "REPORT.md", "report.tex"]:
         shutil.copy2(root_dir / fname, ws / fname)
 
-    # Copy docs/generated
+    # Copy docs/generated and Work Package F/F.1 audit documents
     (ws / "docs" / "generated").mkdir(parents=True, exist_ok=True)
     shutil.copy2(
         root_dir / "docs" / "generated" / "scientific_results_manifest.json",
         ws / "docs" / "generated" / "scientific_results_manifest.json",
     )
+    for doc_name in [
+        "scientific_claims_audit.md",
+        "f_scientific_review_validation.md",
+        "proposed_followup_experiments.md",
+    ]:
+        shutil.copy2(root_dir / "docs" / doc_name, ws / "docs" / doc_name)
 
     # Copy tables
     shutil.copytree(root_dir / "tables", ws / "tables")
@@ -362,6 +368,51 @@ def test_mutation_stale_latex_or_missing_marker_or_untraced_float_fails(tmp_path
     assert any("Unsupported equivalence claim" in e for e in errors_equiv)
 
 
+def test_mutation_corrupted_audit_docs_or_nonexistent_paths_fail_closed(tmp_path, canonical_dataset):
+    """Negative test: mutating empirical numbers or injecting nonexistent file paths in Work Package F audit docs must fail closed."""
+    ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
+    ds_ws = load_reporting_dataset(ws)
+
+    # 1. Corrupt Curvature SS 0.288786 -> 2.6602 in docs/scientific_claims_audit.md
+    claims_path = ws / "docs" / "scientific_claims_audit.md"
+    orig_claims = claims_path.read_text(encoding="utf-8")
+    assert "0.288786" in orig_claims
+    claims_path.write_text(orig_claims.replace("0.288786", "2.6602", 1), encoding="utf-8")
+    ok_c, msg_c = check_research_reporting(ds_ws)
+    assert not ok_c
+    assert "scientific_claims_audit.md" in msg_c
+    assert "2.6602" in msg_c
+    claims_path.write_text(orig_claims, encoding="utf-8")
+
+    # 2. Corrupt DOE MO test RMSE 0.48997 -> 0.48373 in docs/f_scientific_review_validation.md
+    val_path = ws / "docs" / "f_scientific_review_validation.md"
+    orig_val = val_path.read_text(encoding="utf-8")
+    assert "0.48997" in orig_val
+    val_path.write_text(orig_val.replace("0.48997", "0.48373", 1), encoding="utf-8")
+    ok_v, msg_v = check_research_reporting(ds_ws)
+    assert not ok_v
+    assert "f_scientific_review_validation.md" in msg_v
+    assert "0.48373" in msg_v
+    val_path.write_text(orig_val, encoding="utf-8")
+
+    # 3. Corrupt Constrained TPE test RMSE 0.47036 -> 0.46111 in docs/proposed_followup_experiments.md
+    followup_path = ws / "docs" / "proposed_followup_experiments.md"
+    orig_fup = followup_path.read_text(encoding="utf-8")
+    assert "0.47036" in orig_fup
+    followup_path.write_text(orig_fup.replace("0.47036", "0.46111", 1), encoding="utf-8")
+    ok_f, msg_f = check_research_reporting(ds_ws)
+    assert not ok_f
+    assert "proposed_followup_experiments.md" in msg_f
+    assert "0.46111" in msg_f
+    followup_path.write_text(orig_fup, encoding="utf-8")
+
+    # 4. Inject a nonexistent backticked path (`docs/canonical_evidence_hashes.json`) into docs/scientific_claims_audit.md
+    claims_path.write_text(orig_claims + "\nSee `docs/canonical_evidence_hashes.json`.\n", encoding="utf-8")
+    errs_path = audit_manuscript_integrity(ds_ws)
+    assert any("docs/canonical_evidence_hashes.json" in e for e in errs_path)
+    claims_path.write_text(orig_claims, encoding="utf-8")
+
+
 def test_cryptographic_evidence_hash_protection_fails_on_tampered_artifact(tmp_path, canonical_dataset):
     """Negative test: tampering with any frozen canonical evidence file fails SHA-256 verification."""
     ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
@@ -384,16 +435,19 @@ def test_cryptographic_evidence_hash_protection_fails_on_tampered_artifact(tmp_p
 
 
 def test_work_package_f_scientific_audit_reconstructions_and_deliverables(canonical_dataset):
-    """Verifies Work Package F scientific reconstructions, sensitivity analyses, and deliverables."""
+    """Verifies Work Package F/F.1 scientific reconstructions, sensitivity analyses, and deliverables."""
     ds = canonical_dataset
     root = ds.root_dir
 
-    # Task 2 & 5: Chronology and low-eta boundary budget accounting
+    # Task 2 & 5: Chronology, 1,323-point grid provenance, and low-eta boundary budget accounting
     assert ds.doe_axial_before_run100 == 30
     assert ds.doe_low_eta_run_count == 45
     assert ds.doe_low_eta_run_pct == pytest.approx(32.142857, abs=1e-4)
     assert ds.doe_low_eta_mean_rmse == pytest.approx(0.7545, abs=1e-3)
     assert ds.doe_high_eta_mean_rmse == pytest.approx(0.5055, abs=1e-3)
+    assert ds.doe_grid_size == 1323
+    assert ds.doe_so_rep_grid_index == 1052
+    assert ds.doe_mo_rep_unique_hashes == 12
 
     # Task 3: Curvature sensitivity across 7 error denominators
     cs = ds.curvature_sensitivity
@@ -438,13 +492,18 @@ def test_work_package_f_scientific_audit_reconstructions_and_deliverables(canoni
     claims_doc = (root / "docs" / "scientific_claims_audit.md").read_text(encoding="utf-8")
     assert "SUPPORTED" in claims_doc and "NEEDS QUALIFICATION" in claims_doc and "UNSUPPORTED" in claims_doc
     assert "Claim C-22" in claims_doc
+    assert "0.288786" in claims_doc and "0.48997" in claims_doc and "17.6714" in claims_doc
 
     followup_doc = (root / "docs" / "proposed_followup_experiments.md").read_text(encoding="utf-8")
     assert "PROPOSED FUTURE WORK" in followup_doc
-    assert "Proposal A" in followup_doc and "Proposal B" in followup_doc and "Proposal C" in followup_doc
+    for proto in ["Protocol A", "Protocol B", "Protocol C", "Protocol D", "Protocol E"]:
+        assert proto in followup_doc
 
     val_doc = (root / "docs" / "f_scientific_review_validation.md").read_text(encoding="utf-8")
     assert val_doc.strip().endswith("**READY FOR INDEPENDENT SCIENTIFIC REVIEW**")
+
+    f1_val_doc = (root / "docs" / "f1_final_audit_validation.md").read_text(encoding="utf-8")
+    assert f1_val_doc.strip().endswith("READY FOR INDEPENDENT MERGE REVIEW")
 
     assert (root / "tables" / "tab_computational_budget.tex").is_file()
 
