@@ -400,7 +400,7 @@ def render_report_sections(ds: ReportingDataset) -> Dict[str, str]:
             "",
             "Residual adequacy diagnostics for $Y_1$ (explicitly distinguishing grouping factors):",
             f"- **Normality**: Shapiro-Wilk $W = {diag['shapiro_W']:.4f}, p = {diag['shapiro_p']:.4f}$ on the 140 second-order OLS residuals (consistent with Gaussian residuals once polynomial terms are fitted).",
-            f"- **Homoscedasticity Across Grouping Factors vs. Fitted Values**: Mean-centered Levene test across the **5 seed blocks** (`block` $1 \\dots 5$) yields $W = {diag['levene_stat']:.4f}, p = {diag['levene_p']:.4f}$, confirming equal residual variance across data-split blocks. Median-centered Levene (Brown-Forsythe) test across the **25 distinct design coordinates** yields $W = {diag['brown_forsythe_points_stat']:.4f}, p = {diag['brown_forsythe_points_p']:.4f}$, because within each coordinate the 5 block residuals share similar spread after block adjustment. By contrast, the Breusch-Pagan test against continuous fitted values $\\hat{{y}}$ is highly significant ($\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p < 0.0001$), because deterministic cell-mean polynomial misfit ($\\bar{{y}}_{{i\\cdot}} - \\hat{{y}}_i$) is concentrated at the high-RMSE $\\eta = 0.01$ boundary rather than uniform across $\\hat{{y}}$. We therefore report White/MacKinnon-White HC3 heteroscedasticity-robust standard errors alongside OLS $F$-tests in Table 3.1.",
+            f"- **Homoscedasticity Across Grouping Factors vs. Fitted Values**: Mean-centered Levene test across the **5 seed blocks** (`block` $1 \\dots 5$) yields $W = {diag['levene_stat']:.4f}, p = {diag['levene_p']:.4f}$, confirming equal residual variance across data-split blocks. Median-centered Levene (Brown-Forsythe) test across the **25 distinct design coordinates** yields $W = {diag['brown_forsythe_points_stat']:.4f}, p = {diag['brown_forsythe_points_p']:.4f}$, because within each coordinate the 5 block residuals share similar spread after block adjustment. The Breusch-Pagan test against continuous fitted values $\\hat{{y}}$ provides evidence of heteroscedasticity ($\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p < 0.0001$), because deterministic cell-mean polynomial misfit ($\\bar{{y}}_{{i\\cdot}} - \\hat{{y}}_i$) is concentrated at the high-RMSE $\\eta = 0.01$ boundary rather than uniform across $\\hat{{y}}$. HC3 heteroscedasticity-consistent standard errors are used separately for coefficient inference and do not eliminate model misspecification.",
             f"- **Independence & Influence**: Durbin-Watson $DW = {diag['durbin_watson']:.4f}$, Ljung-Box $Q = {diag['ljung_box_stat']:.2f}, p = {diag['ljung_box_p']:.4f}$, Runs test $p = {diag['runs_test_p']:.4f}$, maximum Cook's distance $D_{{\\max}} = {diag['max_cooks_d']:.3f} < 1.0$.",
         ]
     )
@@ -1619,7 +1619,7 @@ def build_changelog_claim_specifications(ds: Optional[ReportingDataset] = None) 
                 ),
             ],
             "canonical_cell": "**`[CURRENT CANONICAL: config.yaml, results/runs.csv]` Fixed External Holdout: 4,128 rows (20% of 20,640) strictly isolated; Development pool: 16,512 rows (80%) partitioned 75/25 into 12,384 training and 4,128 validation samples per block seed**",
-            "rationale_cell": "Guarantees zero test leakage; evaluation on fresh seeds measures genuine generalization on data never seen during design or tuning.",
+            "rationale_cell": "Revision-v2 enforced programmatic holdout isolation during optimization and candidate selection. However, earlier historical experiments had already exposed results from the same holdout dataset; therefore, the holdout cannot be described as completely untouched across the research project's full history.",
         },
         {
             "quantity": "**ICC (Block Effect on RMSE)**",
@@ -1750,11 +1750,11 @@ def build_changelog_claim_specifications(ds: Optional[ReportingDataset] = None) 
                 (
                     "diagnostics_normality_homoscedasticity",
                     "results/diagnostics.json",
-                    f"Shapiro-Wilk $W = {diag['shapiro_W']:.4f}, p = {diag['shapiro_p']:.4f}$; Block Levene $W = {diag['levene_stat']:.4f}, p = {diag['levene_p']:.4f}$; Coordinate Brown-Forsythe $W = {diag['brown_forsythe_points_stat']:.4f}, p = {diag['brown_forsythe_points_p']:.4f}$; Breusch-Pagan $\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p = {diag['breusch_pagan_p']*1e8:.2f}\\times 10^{{-8}}$ ($p < 0.0001$ under HC3)",
+                    f"Shapiro-Wilk $W = {diag['shapiro_W']:.4f}, p = {diag['shapiro_p']:.4f}$; Block Levene $W = {diag['levene_stat']:.4f}, p = {diag['levene_p']:.4f}$; Coordinate Brown-Forsythe $W = {diag['brown_forsythe_points_stat']:.4f}, p = {diag['brown_forsythe_points_p']:.4f}$; Breusch-Pagan $\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p = {diag['breusch_pagan_p']*1e8:.2f}\\times 10^{{-8}}$",
                 ),
             ],
-            "canonical_cell": f"**`[CURRENT v1.0.0 CANONICAL: results/diagnostics.json]` Shapiro-Wilk $W = {diag['shapiro_W']:.4f}, p = {diag['shapiro_p']:.4f}$; Block Levene $W = {diag['levene_stat']:.4f}, p = {diag['levene_p']:.4f}$; Coordinate Brown-Forsythe $W = {diag['brown_forsythe_points_stat']:.4f}, p = {diag['brown_forsythe_points_p']:.4f}$; Breusch-Pagan $\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p = {diag['breusch_pagan_p']*1e8:.2f}\\times 10^{{-8}}$ ($p < 0.0001$ under HC3)**",
-            "rationale_cell": "Block Levene confirms variance stability across blocks while Breusch-Pagan detects continuous scale compression at higher learning rates; HC3 robust SEs confirm all primary ANOVA effects.",
+            "canonical_cell": f"**`[CURRENT v1.0.0 CANONICAL: results/diagnostics.json]` Shapiro-Wilk $W = {diag['shapiro_W']:.4f}, p = {diag['shapiro_p']:.4f}$; Block Levene $W = {diag['levene_stat']:.4f}, p = {diag['levene_p']:.4f}$; Coordinate Brown-Forsythe $W = {diag['brown_forsythe_points_stat']:.4f}, p = {diag['brown_forsythe_points_p']:.4f}$; Breusch-Pagan $\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p = {diag['breusch_pagan_p']*1e8:.2f}\\times 10^{{-8}}$**",
+            "rationale_cell": "The Breusch-Pagan test provides evidence of heteroscedasticity. HC3 heteroscedasticity-consistent standard errors are used separately for coefficient inference.",
         },
         {
             "quantity": "**Independence / Serial Drift**",
@@ -1771,7 +1771,7 @@ def build_changelog_claim_specifications(ds: Optional[ReportingDataset] = None) 
                 ),
             ],
             "canonical_cell": f"**`[CURRENT v1.0.0 CANONICAL: results/diagnostics.json]` Durbin-Watson $\\text{{DW}} = {diag['durbin_watson']:.4f}$; Ljung-Box $Q(5) = {diag['ljung_box_stat']:.2f}, p = {diag['ljung_box_p']:.4f}$; Runs test $p = {diag['runs_test_p']:.4f}$**",
-            "rationale_cell": "Triple confirmation of zero serial autocorrelation or thermal execution drift across randomized run order.",
+            "rationale_cell": "These diagnostics did not detect statistically significant serial dependence in the tested residual sequence. They do not establish the absence of all temporal dependence or independently verify the absence of hardware thermal drift.",
         },
         {
             "quantity": "**Canonical Eigenvalues & Ridge**",

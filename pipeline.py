@@ -139,7 +139,9 @@ class CaliforniaHousingDataManager:
     - Development pool (80%, 16,512 rows) partitioned per split seed into:
         - 75% Train (12,384 rows = 60% of total 20,640)
         - 25% Validation (4,128 rows = 20% of total 20,640)
-    - Zero data leakage: External holdout test set is never seen during training or tuning.
+    - Revision-v2 programmatic isolation: External holdout labels are inaccessible during
+      optimization and candidate selection, although the same holdout dataset was exposed
+      by historical experiments earlier in the research project.
     """
 
     def __init__(self, external_test_seed: int = 42):

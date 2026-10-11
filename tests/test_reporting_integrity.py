@@ -706,8 +706,8 @@ def test_changelog_context_bound_claims_and_negative_mutations(tmp_path, canonic
     # Negative Test 4: Add a new numerical claim to the Changelog without a source mapping -> MUST FAIL
     # Case 4a: Unmapped numerical claim appended inside an existing row
     mut_unmapped_in_row = orig_changelog.replace(
-        "Guarantees zero test leakage;",
-        "Guarantees zero test leakage (auxiliary holdout drift 0.00412);",
+        "Revision-v2 enforced programmatic holdout isolation during optimization and candidate selection.",
+        "Revision-v2 enforced programmatic holdout isolation during optimization and candidate selection (auxiliary holdout drift 0.00412).",
         1,
     )
     changelog_path.write_text(mut_unmapped_in_row, encoding="utf-8")

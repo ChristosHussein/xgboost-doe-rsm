@@ -141,7 +141,7 @@ python -m pytest -q
 python scripts/audit_scientific_consistency.py
 # Result: ALL 7 SCIENTIFIC CONSISTENCY CHECKS PASSED SUCCESSFULLY:
 # [PASS] 1. Computational Budget: 17,077 fits, 1,640,810 timed predictions verified.
-# [PASS] 2. Holdout Test Isolation: 0 test leaks, 2,440 final evaluations, 0 hash mismatches.
+# [PASS] 2. Revision-v2 Holdout Isolation: 0 detected pre-freeze accesses in the revised pipeline, 2,440 final evaluations, 0 hash mismatches; the same holdout dataset had already been exposed by historical experiments.
 # [PASS] 3. Pareto Hypervolume: MO-TPE 18.3834 vs Full DOE 16.8585 on split 42 (diff: -1.5249).
 # [PASS] 4. Selection Stability: DOE SO 20/20 identical (between-search SD=0.00000, retraining SD=0.00304).
 # [PASS] 5. Constrained TPE Feasibility: 20/20 search feasible, exactly 9/20 benchmark feasible.
