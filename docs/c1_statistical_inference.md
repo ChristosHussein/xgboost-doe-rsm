@@ -14,8 +14,8 @@ This audit rigorously verifies every statistical test, effect size calculation, 
 ### Key Inferential Conclusions:
 1. **No Statistical Superiority for DOE MO over MO-TPE:** The observed Test RMSE difference between Repeated DOE MO ($0.48997$) and MO-TPE ($0.49255$) is only **$0.00258$** ($0.52\%$). Under a defensible unpaired Welch two-sample $t$-test across the independent search replicates, **$t = -0.885, p = 0.3826$** ($95\%$ CI: $[-0.00851, +0.00335]$); under a paired-by-index test, **$t = -0.966, p = 0.3463$**. This difference is **not statistically significant**. Any claim that DOE MO is statistically superior to MO-TPE on accuracy is **unsupported** and must be classified as purely descriptive.
 2. **Constrained TPE Feasibility Discrepancy Explained:** Constrained TPE achieved **$20/20$ ($100\%$) feasibility during online search**, but only **$9/20$ ($45\%$) feasibility under the independent primary benchmark protocol**:
-   - Every selection with $\text{max\_depth} = 6$ ($9/9$) remained fully feasible in benchmark timing (mean latency: $136.62\,\mu\text{s}$).
-   - Every selection with $\text{max\_depth} = 7$ ($11/11$) slipped under the $145\,\mu\text{s}$ constraint during noisy 30-call search measurements (mean search latency: $140.94\,\mu\text{s}$), but genuinely averaged **$150.54\,\mu\text{s}$** under the 5-session 1,000-call benchmark protocol.
+   - Every selection with $\text{max\_depth} = 6$ ($9/9$) remained fully feasible in benchmark timing (mean latency: $136.70\,\mu\text{s}$).
+   - Every selection with $\text{max\_depth} = 7$ ($11/11$) slipped under the $145\,\mu\text{s}$ constraint during noisy 30-call search measurements (mean search latency: $140.94\,\mu\text{s}$), but genuinely averaged **$150.45\,\mu\text{s}$** under the 5-session 1,000-call benchmark protocol.
    - The true benchmark feasibility proportion is **$45.0\%$ ($95\%$ Wilson score interval: $[25.8\%, 65.8\%]$)**.
 3. **No Retraining Seed Pseudo-Replication:** Retraining seeds ($2001$–$2020$) represent conditional fits of frozen configurations on a shared development partition and holdout test set. They do not constitute independent method-level search replicates. All inferential comparisons must use the independent search replicates ($N=20$) as the experimental unit.
 
@@ -66,7 +66,7 @@ Evaluating the $N=20$ independent search replicates for each optimization strate
 ### Possible Explanatory Factors for the Feasibility Discrepancy:
 The 9/20 (45%) benchmark feasibility outcome is directly verified by data, but the precise mechanism cannot be conclusively attributed to a single cause. Plausible contributing factors include:
 - **Measurement Protocol Differences:** Online search evaluated latency using 30 timed calls per trial in an unpinned process context, whereas benchmark evaluation utilized 5 independent thread-pinned sessions of 1,000 timed calls each.
-- **Online Sampling Variability:** Depth 7 configurations registered a mean of $140.94\,\mu\text{s}$ during search measurements, but averaged $150.54\,\mu\text{s}$ under the 1,000-call benchmark protocol.
+- **Online Sampling Variability:** Depth 7 configurations registered a mean of $140.94\,\mu\text{s}$ during search measurements, but averaged $150.45\,\mu\text{s}$ under the 5-session 1,000-call benchmark protocol.
 - **Selection Effects:** When an optimizer searches near a constraint boundary, configurations that fluctuate downward during evaluation are more likely to be accepted as feasible.
 These factors are possible explanations rather than conclusively established causes.
 

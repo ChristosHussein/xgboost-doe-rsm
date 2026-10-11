@@ -31,9 +31,14 @@ from scripts.generate_report_artifacts import (
 from scripts.generate_research_reporting import (
     SECTION_IDS,
     audit_manuscript_integrity,
+    build_scientific_artifact_registry,
     check_research_reporting,
+    clear_custom_scientific_artifacts,
+    discover_scientific_and_documentation_files,
+    register_custom_scientific_artifact,
     render_report_markdown,
     render_report_sections,
+    verify_scientific_artifact_registry,
 )
 from scripts.reporting_data import (
     EXPECTED_BLOCK_SEEDS,
@@ -210,27 +215,26 @@ def _create_isolated_workspace(tmp_path: Path, root_dir: Path) -> Path:
     ws = tmp_path / "workspace"
     ws.mkdir(parents=True, exist_ok=True)
 
-    # Copy top-level files
-    for fname in ["config.yaml", "REPORT.md", "report.tex"]:
+    # Copy top-level files discovered by the repository-wide artifact registry
+    for fname in [
+        "config.yaml",
+        "REPORT.md",
+        "report.tex",
+        "report.pdf",
+        "CHANGELOG.md",
+        "CODEX_REVIEW.md",
+        "plots.py",
+        "results_summary.json",
+    ]:
         shutil.copy2(root_dir / fname, ws / fname)
 
-    # Copy docs/generated and Work Package F/F.1 audit documents
-    (ws / "docs" / "generated").mkdir(parents=True, exist_ok=True)
-    shutil.copy2(
-        root_dir / "docs" / "generated" / "scientific_results_manifest.json",
-        ws / "docs" / "generated" / "scientific_results_manifest.json",
-    )
-    for doc_name in [
-        "scientific_claims_audit.md",
-        "f_scientific_review_validation.md",
-        "proposed_followup_experiments.md",
-    ]:
-        shutil.copy2(root_dir / "docs" / doc_name, ws / "docs" / doc_name)
+    # Copy full docs/ directory (generated manifest, provenance, milestone reports, and F/F.1 audit docs)
+    shutil.copytree(root_dir / "docs", ws / "docs")
 
     # Copy tables
     shutil.copytree(root_dir / "tables", ws / "tables")
 
-    # Copy results top-level files and revision_v2/full_run_001
+    # Copy results top-level files, revision_v2/full_run_001, and revision_v2/scientific_audit_c1
     (ws / "results" / "revision_v2").mkdir(parents=True, exist_ok=True)
     for item in (root_dir / "results").iterdir():
         if item.is_file():
@@ -238,6 +242,10 @@ def _create_isolated_workspace(tmp_path: Path, root_dir: Path) -> Path:
     shutil.copytree(
         root_dir / "results" / "revision_v2" / "full_run_001",
         ws / "results" / "revision_v2" / "full_run_001",
+    )
+    shutil.copytree(
+        root_dir / "results" / "revision_v2" / "scientific_audit_c1",
+        ws / "results" / "revision_v2" / "scientific_audit_c1",
     )
     return ws
 
@@ -503,7 +511,23 @@ def test_work_package_f_scientific_audit_reconstructions_and_deliverables(canoni
     assert val_doc.strip().endswith("**READY FOR INDEPENDENT SCIENTIFIC REVIEW**")
 
     f1_val_doc = (root / "docs" / "f1_final_audit_validation.md").read_text(encoding="utf-8")
-    assert f1_val_doc.strip().endswith("READY FOR INDEPENDENT MERGE REVIEW")
+    assert f1_val_doc.strip().endswith("READY FOR FINAL MERGE REVIEW")
+    for canonical_token in [
+        "0.28878615275038744",
+        "1.4271325866e-05",
+        "20,235.41",
+        "0.48997 ± 0.00732",
+        "0.0073189235",
+        "0.49255 ± 0.01080",
+        "0.0108040718",
+        "17.6923 ± 0.0564",
+        "136.70 ± 0.82",
+        "150.45 ± 0.67",
+        "0.23244253",
+        "0.82952703",
+        "0.15150460",
+    ]:
+        assert canonical_token in f1_val_doc, f"Missing canonical token {canonical_token} in f1_final_audit_validation.md"
 
     assert (root / "tables" / "tab_computational_budget.tex").is_file()
 
@@ -512,5 +536,96 @@ def test_work_package_f_scientific_audit_reconstructions_and_deliverables(canoni
     md_text = (root / "REPORT.md").read_text(encoding="utf-8")
     assert "Pre-Planned Response Surface Methodology" in tex_text
     assert md_text.startswith("# Pre-Planned Response Surface Methodology")
+
+
+def test_scientific_artifact_registry_and_negative_coverage(tmp_path, canonical_dataset):
+    """Negative test suite proving repository-wide scientific document coverage and fail-closed verification."""
+    ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
+    ds_ws = load_reporting_dataset(ws)
+
+    # Verify baseline discovery and registry completeness (45 files: 43 scientific + 2 justified exclusions)
+    discovered = set(discover_scientific_and_documentation_files(ws))
+    registry = build_scientific_artifact_registry(ds_ws)
+    assert discovered == set(registry.keys())
+    assert len(registry) == 45
+    assert verify_scientific_artifact_registry(ds_ws) == []
+
+    # 1. Introduce a new docs/new_scientific_audit.md containing empirical results but no verification registration -> MUST FAIL
+    new_doc = ws / "docs" / "new_scientific_audit.md"
+    valid_new_content = (
+        "# New Scientific Audit Summary\n\n"
+        "- Repeated DOE MO holdout test RMSE: `0.48997` ± `0.00732`\n"
+        "- MO-TPE holdout test RMSE: `0.49255` ± `0.01080`\n"
+        "- Block-adjusted curvature F-statistic: `20,235.41` (SS = `0.288786`)\n"
+    )
+    new_doc.write_text(valid_new_content, encoding="utf-8")
+
+    reg_errs_unreg = verify_scientific_artifact_registry(ds_ws)
+    assert any(
+        "Unregistered scientific or documentation artifact discovered: 'docs/new_scientific_audit.md'" in e
+        for e in reg_errs_unreg
+    )
+    ok_unreg, msg_unreg = check_research_reporting(ds_ws)
+    assert not ok_unreg
+    assert "docs/new_scientific_audit.md" in msg_unreg
+
+    # 2. Register docs/new_scientific_audit.md, verify it passes when valid, then corrupt an empirical value -> MUST FAIL
+    try:
+        register_custom_scientific_artifact(
+            "docs/new_scientific_audit.md",
+            mechanism="claim_registry_verified",
+            source_artifacts=[
+                "results/phase1.json",
+                "results/revision_v2/full_run_001/final_summary.csv",
+            ],
+            required_claims=["0.48997", "0.00732", "0.49255", "0.01080", "20,235.41", "0.288786"],
+            allowed_context_floats=(),
+            description="Custom registered scientific audit document for negative testing.",
+        )
+        assert verify_scientific_artifact_registry(ds_ws) == []
+        ok_reg, msg_reg = check_research_reporting(ds_ws)
+        assert ok_reg, f"Expected registered valid document to pass, got: {msg_reg}"
+
+        # Now corrupt an empirical value in the registered document (0.00732 -> 0.01325)
+        new_doc.write_text(valid_new_content.replace("0.00732", "0.01325"), encoding="utf-8")
+        reg_errs_corrupt = verify_scientific_artifact_registry(ds_ws)
+        assert any("docs/new_scientific_audit.md" in e and "0.01325" in e for e in reg_errs_corrupt)
+        ok_corrupt, msg_corrupt = check_research_reporting(ds_ws)
+        assert not ok_corrupt
+        assert "docs/new_scientific_audit.md" in msg_corrupt
+        assert "0.01325" in msg_corrupt
+    finally:
+        clear_custom_scientific_artifacts()
+        if new_doc.exists():
+            new_doc.unlink()
+
+    # 3. Corrupt an empirical value in docs/f1_final_audit_validation.md -> MUST FAIL
+    f1_doc = ws / "docs" / "f1_final_audit_validation.md"
+    orig_f1 = f1_doc.read_text(encoding="utf-8")
+    assert "0.48997 ± 0.00732" in orig_f1
+    f1_doc.write_text(orig_f1.replace("0.48997 ± 0.00732", "0.48997 ± 0.01325", 1), encoding="utf-8")
+    ok_f1, msg_f1 = check_research_reporting(ds_ws)
+    assert not ok_f1
+    assert "docs/f1_final_audit_validation.md" in msg_f1
+    assert "0.01325" in msg_f1
+    f1_doc.write_text(orig_f1, encoding="utf-8")
+
+    # Also corrupt an empirical value in a claim-registry verified milestone report (docs/c1_final_assessment.md) -> MUST FAIL
+    c1_doc = ws / "docs" / "c1_final_assessment.md"
+    orig_c1 = c1_doc.read_text(encoding="utf-8")
+    c1_doc.write_text(orig_c1.replace("0.48997", "0.48373", 1), encoding="utf-8")
+    ok_c1, msg_c1 = check_research_reporting(ds_ws)
+    assert not ok_c1
+    assert "docs/c1_final_assessment.md" in msg_c1
+    assert "0.48373" in msg_c1
+    c1_doc.write_text(orig_c1, encoding="utf-8")
+
+    # 4. Corrupt a source artifact -> Existing cryptographic and reconstruction checks MUST FAIL
+    conf_json = ws / "results" / "confirmation.json"
+    orig_conf = conf_json.read_text(encoding="utf-8")
+    conf_json.write_text(orig_conf.replace("0.23244253", "0.14490000", 1), encoding="utf-8")
+    with pytest.raises(ReportingDataError, match="Cryptographic evidence hash mismatch"):
+        load_reporting_dataset(ws)
+    conf_json.write_text(orig_conf, encoding="utf-8")
 
 

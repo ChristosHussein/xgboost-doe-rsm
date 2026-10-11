@@ -410,7 +410,15 @@ def audit_scientific_consistency(
         sys.path.insert(0, str(repo_root))
     canonical_run_dir = (repo_root / "results" / "revision_v2" / "full_run_001").resolve()
     if run_dir_path == canonical_run_dir:
-        from scripts.reporting_data import ReportingDataError, verify_canonical_evidence_hashes
+        from scripts.reporting_data import (
+            ReportingDataError,
+            load_reporting_dataset,
+            verify_canonical_evidence_hashes,
+        )
+        from scripts.generate_research_reporting import (
+            build_scientific_artifact_registry,
+            verify_scientific_artifact_registry,
+        )
         try:
             verified_files = verify_canonical_evidence_hashes(repo_root)
         except ReportingDataError as exc:
@@ -418,6 +426,17 @@ def audit_scientific_consistency(
         results["cryptographic_evidence_files_verified"] = verified_files
         if verbose:
             print(f"[PASS] 8. Cryptographic Evidence Integrity: all {verified_files} canonical artifact SHA-256 digests verified.")
+
+        ds = load_reporting_dataset(repo_root)
+        reg_errors = verify_scientific_artifact_registry(ds)
+        if reg_errors:
+            raise ScientificConsistencyError(
+                "Repository-wide scientific artifact registry errors:\n" + "\n".join(reg_errors)
+            )
+        reg = build_scientific_artifact_registry(ds)
+        results["scientific_artifact_registry_count"] = len(reg)
+        if verbose:
+            print(f"[PASS] 9. Repository-Wide Scientific Artifact Registry: all {len(reg)} discovered scientific/documentation files verified.")
 
     if verbose:
         print("=" * 80)
