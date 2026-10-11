@@ -296,6 +296,147 @@ class HistoricalBenchmarkRow:
     feasible_145: bool
 
 
+_HOLD_BOOT_CACHE: Dict[Tuple[bytes, bytes], Dict[str, Any]] = {}
+
+
+def _compute_holdout_pareto_bootstrap(
+    final_evaluations_df: pd.DataFrame,
+    final_summary_df: pd.DataFrame,
+    latency_measurement: Dict[str, Any],
+    hv_ref_primary: Tuple[float, float],
+    hv_ref_secondary: Tuple[float, float],
+) -> Dict[str, Any]:
+    sids = final_summary_df["selection_id"].astype(str).tolist()
+    opt_map = dict(zip(sids, final_summary_df["optimizer"].astype(str)))
+    piv = final_evaluations_df.pivot(
+        index="selection_id", columns="evaluation_seed", values="test_rmse"
+    ).loc[sids]
+    test_mat = piv.to_numpy(dtype=float)
+    lats = final_summary_df["predict_latency_us"].to_numpy(dtype=float)
+    lat_sess_mat = np.array(
+        [
+            [
+                float(sess["summaries"][sid]["predict_latency_us"])
+                for sess in latency_measurement["sessions"]
+            ]
+            for sid in sids
+        ],
+        dtype=float,
+    )
+    cache_key = (
+        hashlib.sha256(test_mat.tobytes()).digest(),
+        hashlib.sha256(lat_sess_mat.tobytes()).digest(),
+    )
+    if cache_key in _HOLD_BOOT_CACHE:
+        return _HOLD_BOOT_CACHE[cache_key]
+
+    rng = np.random.default_rng(20261011)
+    n_boot = 2000
+    hv_060_seed: List[float] = []
+    hv_065_seed: List[float] = []
+    hv_060_joint: List[float] = []
+    hv_065_joint: List[float] = []
+    opt_keys = list(PROSPECTIVE_OPTIMIZER_ORDER) + [
+        "historical_preplanned_doe_desirability",
+        "historical_preplanned_doe_single_objective",
+    ]
+    opt_any_counts = {opt: 0 for opt in opt_keys}
+    opt_pt_counts: Dict[str, List[int]] = {opt: [] for opt in opt_keys}
+    sel_pareto_counts = np.zeros(len(sids), dtype=int)
+
+    for _ in range(n_boot):
+        seed_idx = rng.integers(0, 20, size=20)
+        boot_rmse = test_mat[:, seed_idx].mean(axis=1)
+        pts_seed = list(zip(boot_rmse, lats))
+        res_060 = hypervolume_2d_min(pts_seed, hv_ref_primary)
+        res_065 = hypervolume_2d_min(pts_seed, hv_ref_secondary)
+        hv_060_seed.append(res_060.value)
+        hv_065_seed.append(res_065.value)
+
+        pareto_set = set(res_060.pareto.points)
+        opts_present = set()
+        opt_cnt_this = {opt: 0 for opt in opt_keys}
+        seen_pts = set()
+        for idx_s, (r_v, l_v) in enumerate(pts_seed):
+            if (r_v, l_v) in pareto_set:
+                sel_pareto_counts[idx_s] += 1
+                if (r_v, l_v) not in seen_pts:
+                    seen_pts.add((r_v, l_v))
+                    opt_k = opt_map[sids[idx_s]]
+                    opt_cnt_this[opt_k] = opt_cnt_this.get(opt_k, 0) + 1
+                    opts_present.add(opt_k)
+        for opt_k in opts_present:
+            opt_any_counts[opt_k] = opt_any_counts.get(opt_k, 0) + 1
+        for opt_k in opt_keys:
+            opt_pt_counts[opt_k].append(opt_cnt_this[opt_k])
+
+        sess_idx = rng.integers(0, 5, size=5)
+        boot_lat = lat_sess_mat[:, sess_idx].mean(axis=1)
+        pts_joint = list(zip(boot_rmse, boot_lat))
+        hv_060_joint.append(hypervolume_2d_min(pts_joint, hv_ref_primary).value)
+        hv_065_joint.append(hypervolume_2d_min(pts_joint, hv_ref_secondary).value)
+
+    arr_060_s = np.asarray(hv_060_seed, dtype=float)
+    arr_065_s = np.asarray(hv_065_seed, dtype=float)
+    arr_060_j = np.asarray(hv_060_joint, dtype=float)
+    arr_065_j = np.asarray(hv_065_joint, dtype=float)
+
+    arr_nd_s = np.asarray(
+        [sum(opt_pt_counts[opt][i] for opt in opt_keys) for i in range(n_boot)],
+        dtype=float,
+    )
+    by_opt = {}
+    for opt_k in PROSPECTIVE_OPTIMIZER_ORDER:
+        cnts = np.asarray(opt_pt_counts[opt_k], dtype=float)
+        pct_val = float(opt_any_counts[opt_k] / n_boot * 100.0)
+        mean_val = float(cnts.mean())
+        by_opt[opt_k] = {
+            "present_pct": pct_val,
+            "seed_only_present_pct": pct_val,
+            "mean_pts": mean_val,
+            "seed_only_mean_points": mean_val,
+            "sd_pts": float(cnts.std(ddof=1)),
+            "min_pts": int(cnts.min()),
+            "max_pts": int(cnts.max()),
+        }
+
+    s060_ci = [float(np.percentile(arr_060_s, 2.5)), float(np.percentile(arr_060_s, 97.5))]
+    s065_ci = [float(np.percentile(arr_065_s, 2.5)), float(np.percentile(arr_065_s, 97.5))]
+    j060_ci = [float(np.percentile(arr_060_j, 2.5)), float(np.percentile(arr_060_j, 97.5))]
+    j065_ci = [float(np.percentile(arr_065_j, 2.5)), float(np.percentile(arr_065_j, 97.5))]
+
+    result = {
+        "n_boot": n_boot,
+        "seed_only_nd_mean": float(arr_nd_s.mean()),
+        "seed_only_nd_sd": float(arr_nd_s.std(ddof=1)),
+        "seed_only_060_mean": float(arr_060_s.mean()),
+        "seed_only_060_sd": float(arr_060_s.std(ddof=1)),
+        "seed_only_060_ci_low": s060_ci[0],
+        "seed_only_060_ci_high": s060_ci[1],
+        "seed_only_060_ci95": s060_ci,
+        "seed_only_065_mean": float(arr_065_s.mean()),
+        "seed_only_065_sd": float(arr_065_s.std(ddof=1)),
+        "seed_only_065_ci_low": s065_ci[0],
+        "seed_only_065_ci_high": s065_ci[1],
+        "seed_only_065_ci95": s065_ci,
+        "joint_060_mean": float(arr_060_j.mean()),
+        "joint_060_sd": float(arr_060_j.std(ddof=1)),
+        "joint_060_ci_low": j060_ci[0],
+        "joint_060_ci_high": j060_ci[1],
+        "joint_060_ci95": j060_ci,
+        "joint_065_mean": float(arr_065_j.mean()),
+        "joint_065_sd": float(arr_065_j.std(ddof=1)),
+        "joint_065_ci_low": j065_ci[0],
+        "joint_065_ci_high": j065_ci[1],
+        "joint_065_ci95": j065_ci,
+        "by_optimizer": by_opt,
+        "selections_ever_nondominated": int((sel_pareto_counts > 0).sum()),
+        "selections_always_nondominated": int((sel_pareto_counts == n_boot).sum()),
+    }
+    _HOLD_BOOT_CACHE[cache_key] = result
+    return result
+
+
 @dataclass(frozen=True)
 class ReportingDataset:
     root_dir: Path
@@ -333,6 +474,26 @@ class ReportingDataset:
     lof_decomp: Dict[str, float]
     desirability_star: Dict[str, float]
     latency_jacobian_adjustment: float
+    # Work Package F: DOE chronology, low-eta allocation & curvature sensitivity
+    doe_axial_before_run100: int
+    doe_low_eta_run_count: int
+    doe_low_eta_run_pct: float
+    doe_low_eta_mean_rmse: float
+    doe_high_eta_mean_rmse: float
+    curvature_sensitivity: Dict[str, float]
+    # Work Package F: Historical interface overheads
+    hist_runs_interface_overhead_mean: float
+    hist_runs_interface_overhead_sd: float
+    hist_runs_interface_overhead_min: float
+    hist_runs_interface_overhead_max: float
+    hist_conf_mo_interface_overhead_mean: float
+    hist_conf_mo_interface_overhead_sd: float
+    hist_conf_so_interface_overhead_mean: float
+    hist_conf_so_interface_overhead_sd: float
+    hist_bench_interface_overhead_mean: float
+    hist_bench_interface_overhead_sd: float
+    hist_bench_interface_overhead_min: float
+    hist_bench_interface_overhead_max: float
     # Revision v2 Full Experiment Artifacts
     rev_dir: Path
     run_manifest: Dict[str, Any]
@@ -350,12 +511,17 @@ class ReportingDataset:
     # Reconstructed Revision v2 summaries
     total_model_fits: int
     total_timed_inferences: int
+    total_warmup_inferences: int
+    total_all_inferences: int
     total_selection_records: int
     distinct_config_hashes: int
     total_evaluation_rows: int
     between_session_latency_sd_mean: float
     interface_overhead_mean: float
     interface_overhead_sd: float
+    interface_overhead_min: float
+    interface_overhead_max: float
+    method_timing_summary: Dict[str, Dict[str, float]]
     prospective_optimizers: Dict[str, OptimizerBenchmarkMetrics]
     historical_benchmarks: Tuple[HistoricalBenchmarkRow, ...]
     ctpe_depth6_count: int
@@ -374,6 +540,8 @@ class ReportingDataset:
     doe_mo_vs_motpe_paired_p: float
     hv_summary: Dict[str, Any]
     holdout_nondominated_by_optimizer: Dict[str, int]
+    holdout_pareto_bootstrap: Dict[str, Any]
+
 
 
 def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDataset:
@@ -800,6 +968,133 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
     }
     latency_jacobian_adjustment = float(2.0 * np.sum(np.log(runs_df["latency_us_median"])))
 
+    # Work Package F: DOE chronology & low-eta allocation
+    doe_axial_before_run100 = int(
+        (runs_df[runs_df["phase"] == "Phase2_Axial"]["run_order"] <= 100).sum()
+    )
+    low_eta_mask = runs_df["x1"] == -1.0
+    doe_low_eta_run_count = int(low_eta_mask.sum())
+    doe_low_eta_run_pct = float(doe_low_eta_run_count / len(runs_df) * 100.0)
+    doe_low_eta_mean_rmse = float(runs_df.loc[low_eta_mask, "val_rmse"].mean())
+    doe_high_eta_mean_rmse = float(runs_df.loc[~low_eta_mask, "val_rmse"].mean())
+
+    # Work Package F: Curvature sensitivity analyses across alternative error structures
+    fit_p1_cell = ols("val_rmse ~ C(block) + C(point_id)", data=df_p1).fit()
+    ss_block_adj_pooled = float(fit_p1_cell.ssr)
+    df_block_adj_pooled = int(fit_p1_cell.df_resid)  # 79 df = 64 df TxB + 15 df center PE
+    ms_block_adj_pooled = ss_block_adj_pooled / df_block_adj_pooled
+    f_block_adj_pooled = ss_curv / ms_block_adj_pooled
+
+    ss_txb_p1 = ss_block_adj_pooled - ss_pe_center_p1
+    df_txb_p1 = df_block_adj_pooled - df_pe_center_p1  # 64 df
+    ms_txb_p1 = ss_txb_p1 / df_txb_p1
+    f_txb_p1 = ss_curv / ms_txb_p1
+
+    blk_diffs = [
+        float(
+            df_p1_fact[df_p1_fact["block"] == b]["val_rmse"].mean()
+            - df_p1_cent[df_p1_cent["block"] == b]["val_rmse"].mean()
+        )
+        for b in sorted(df_p1["block"].unique())
+    ]
+    df_block_paired = len(blk_diffs) - 1  # 4 df
+    se_block_paired = float(np.std(blk_diffs, ddof=1) / np.sqrt(len(blk_diffs)))
+    t_block_paired = float(diff_fc / se_block_paired)
+    f_block_paired = float(t_block_paired**2)
+    p_block_paired = float(2.0 * (1.0 - stats.t.cdf(abs(t_block_paired), df_block_paired)))
+    t_crit_blk = float(stats.t.ppf(0.975, df_block_paired))
+    ci95_block_paired_low = float(diff_fc - t_crit_blk * se_block_paired)
+    ci95_block_paired_high = float(diff_fc + t_crit_blk * se_block_paired)
+
+    ss_pe_coord_unadj = float(
+        df_p1.groupby("point_id")["val_rmse"]
+        .apply(lambda s: ((s - s.mean()) ** 2).sum())
+        .sum()
+    )
+    df_pe_coord_unadj = int(len(df_p1) - df_p1["point_id"].nunique())  # 83 df
+    ms_pe_coord_unadj = ss_pe_coord_unadj / df_pe_coord_unadj
+    f_pe_coord_unadj = ss_curv / ms_pe_coord_unadj
+
+    df_p1_ind = df_p1.copy()
+    df_p1_ind["is_center"] = (df_p1_ind["phase"] == "Phase1_Center").astype(float)
+    fit_p1_2fi_curv = ols(
+        "val_rmse ~ C(block) + is_center + x1+x2+x3+x4 + x1:x2+x1:x3+x1:x4+x2:x3+x2:x4+x3:x4",
+        data=df_p1_ind,
+    ).fit()
+    df_2fi_curv_resid = int(fit_p1_2fi_curv.df_resid)  # 84 df
+    ms_2fi_curv_resid = float(fit_p1_2fi_curv.ssr / df_2fi_curv_resid)
+    f_2fi_curv_resid = ss_curv / ms_2fi_curv_resid
+
+    df_2fi_resid = int(fit_p1.df_resid)  # 85 df
+    ms_2fi_resid = float(fit_p1.ssr / df_2fi_resid)
+    f_2fi_resid = ss_curv / ms_2fi_resid
+    p_2fi_resid = float(1.0 - stats.f.cdf(f_2fi_resid, 1, df_2fi_resid))
+
+    curvature_sensitivity = {
+        "diff_rmse": diff_fc,
+        "pct_increase_over_center": float(diff_fc / yC_bar * 100.0),
+        "ss_curv": ss_curv,
+        "df_pe_center": float(df_pe_center_p1),
+        "ms_pe_center": ms_pe_center_p1,
+        "f_pe_center": f_curv_p1,
+        "df_block_adj_pooled": float(df_block_adj_pooled),
+        "ss_block_adj_pooled": ss_block_adj_pooled,
+        "ms_block_adj_pooled": ms_block_adj_pooled,
+        "f_block_adj_pooled": f_block_adj_pooled,
+        "df_txb_p1": float(df_txb_p1),
+        "ss_txb_p1": ss_txb_p1,
+        "ms_txb_p1": ms_txb_p1,
+        "f_txb_p1": f_txb_p1,
+        "df_block_paired": float(df_block_paired),
+        "se_block_paired": se_block_paired,
+        "t_block_paired": t_block_paired,
+        "f_block_paired": f_block_paired,
+        "p_block_paired": p_block_paired,
+        "ci95_block_paired_low": ci95_block_paired_low,
+        "ci95_block_paired_high": ci95_block_paired_high,
+        "ci95_block_paired": [ci95_block_paired_low, ci95_block_paired_high],
+        "df_pe_coord_unadj": float(df_pe_coord_unadj),
+        "ss_pe_coord_unadj": ss_pe_coord_unadj,
+        "ms_pe_coord_unadj": ms_pe_coord_unadj,
+        "f_pe_coord_unadj": f_pe_coord_unadj,
+        "df_2fi_curv_resid": float(df_2fi_curv_resid),
+        "ss_2fi_curv_resid": float(fit_p1_2fi_curv.ssr),
+        "ms_2fi_curv_resid": ms_2fi_curv_resid,
+        "f_2fi_curv_resid": f_2fi_curv_resid,
+        "df_2fi_resid": float(df_2fi_resid),
+        "ms_2fi_resid": ms_2fi_resid,
+        "f_2fi_resid": f_2fi_resid,
+        "p_2fi_resid": p_2fi_resid,
+    }
+
+    # Work Package F: Historical predict minus inplace_predict interface overheads
+    runs_ov = runs_df["latency_us_median"] - runs_df["inplace_latency_us_median"]
+    hist_runs_interface_overhead_mean = float(runs_ov.mean())
+    hist_runs_interface_overhead_sd = float(runs_ov.std(ddof=1))
+    hist_runs_interface_overhead_min = float(runs_ov.min())
+    hist_runs_interface_overhead_max = float(runs_ov.max())
+
+    conf_mo_ov = (
+        confirmation_mo_df["latency_us_median"] - confirmation_mo_df["inplace_latency_us_median"]
+    )
+    hist_conf_mo_interface_overhead_mean = float(conf_mo_ov.mean())
+    hist_conf_mo_interface_overhead_sd = float(conf_mo_ov.std(ddof=1))
+
+    conf_so_ov = (
+        confirmation_so_df["latency_us_median"] - confirmation_so_df["inplace_latency_us_median"]
+    )
+    hist_conf_so_interface_overhead_mean = float(conf_so_ov.mean())
+    hist_conf_so_interface_overhead_sd = float(conf_so_ov.std(ddof=1))
+
+    bench_ov = (
+        historical_benchmark_df["predict_latency_us_median"]
+        - historical_benchmark_df["inplace_latency_us_median"]
+    )
+    hist_bench_interface_overhead_mean = float(bench_ov.mean())
+    hist_bench_interface_overhead_sd = float(bench_ov.std(ddof=1))
+    hist_bench_interface_overhead_min = float(bench_ov.min())
+    hist_bench_interface_overhead_max = float(bench_ov.max())
+
     # 4. Load and reconstruct Revision-v2 Full Benchmark Campaign artifacts
     run_manifest = _load_json(rev_dir / "run_manifest.json")
     provenance = _load_json(rev_dir / "provenance.json")
@@ -957,6 +1252,8 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
         )
     interface_overhead_mean = float(per_session_overheads.mean())
     interface_overhead_sd = float(per_session_overheads.std(ddof=1))
+    interface_overhead_min = float(per_session_overheads.min())
+    interface_overhead_max = float(per_session_overheads.max())
     _assert_close(
         interface_overhead_mean,
         float(latency_interface_overhead["pooled_descriptive_summary"]["mean"]),
@@ -973,15 +1270,23 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
     # Reconstruct computational budget from row-level files
     optimizer_trials_df = _load_csv(
         rev_dir / "optimizer_trials.csv",
-        ["optimizer", "replicate_id", "validation_rmse", "predict_latency_us", "trial_status"],
+        ["optimizer", "replicate_id", "validation_rmse", "predict_latency_us", "trial_status", "training_time_s"],
     )
     doe_selection_runs_df = _load_csv(
         rev_dir / "doe_selection_runs.csv",
-        ["doe_replicate_id", "point_id", "validation_rmse", "predict_latency_us", "trial_status"],
+        ["doe_replicate_id", "point_id", "validation_rmse", "predict_latency_us", "trial_status", "training_time_s"],
     )
     doe_matched_front_df = _load_csv(
         rev_dir / "doe_matched_candidate_front.csv",
         ["candidate_id", "candidate_type", "validation_rmse", "predict_latency_us"],
+    )
+    optimizer_replicates_df = _load_csv(
+        rev_dir / "optimizer_replicates.csv",
+        ["optimizer", "replicate_id", "method_wall_time_s"],
+    )
+    doe_selection_replicates_df = _load_csv(
+        rev_dir / "doe_selection_replicates.csv",
+        ["doe_replicate_id", "replicate_wall_time_s"],
     )
     if len(optimizer_trials_df) != 11200:
         raise ReportingDataError(f"Expected 11200 rows in optimizer_trials.csv, got {len(optimizer_trials_df)}")
@@ -1011,6 +1316,49 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
         raise ReportingDataError(
             f"Reconstructed timed inferences ({reconstructed_timed_inferences}) != computational_budget.json ({total_timed_inferences})"
         )
+    total_warmup_inferences = int(computational_budget["latency_warmup_prediction_calls_maximum"])
+    reconstructed_warmup_inferences = (
+        (len(optimizer_trials_df) + len(doe_selection_runs_df) + len(doe_matched_front_df)) * 10
+        + total_latency_session_models * 100
+    )
+    if reconstructed_warmup_inferences != total_warmup_inferences:
+        raise ReportingDataError(
+            f"Reconstructed warmup inferences ({reconstructed_warmup_inferences}) != computational_budget.json ({total_warmup_inferences})"
+        )
+    total_all_inferences = total_timed_inferences + total_warmup_inferences
+
+    method_timing_summary: Dict[str, Dict[str, float]] = {}
+    for opt_k in ["multi_objective_tpe", "constrained_tpe", "random_search", "single_objective_tpe"]:
+        sub_rep = optimizer_replicates_df[optimizer_replicates_df["optimizer"] == opt_k]
+        sub_tr = optimizer_trials_df[optimizer_trials_df["optimizer"] == opt_k]
+        w_mean = float(sub_rep["method_wall_time_s"].mean())
+        w_sd = float(sub_rep["method_wall_time_s"].std(ddof=1))
+        w_sum = float(sub_rep["method_wall_time_s"].sum())
+        f_ms = float(sub_tr["training_time_s"].mean() * 1000.0)
+        method_timing_summary[opt_k] = {
+            "wall_s_mean": w_mean,
+            "wall_clock_s_mean": w_mean,
+            "wall_s_sd": w_sd,
+            "wall_clock_s_sd": w_sd,
+            "wall_s_sum": w_sum,
+            "fit_ms_mean": f_ms,
+            "train_ms_per_fit_mean": f_ms,
+        }
+    doe_w_mean = float(doe_selection_replicates_df["replicate_wall_time_s"].mean())
+    doe_w_sd = float(doe_selection_replicates_df["replicate_wall_time_s"].std(ddof=1))
+    doe_w_sum = float(doe_selection_replicates_df["replicate_wall_time_s"].sum())
+    doe_f_ms = float(doe_selection_runs_df["training_time_s"].mean() * 1000.0)
+    doe_timing_entry = {
+        "wall_s_mean": doe_w_mean,
+        "wall_clock_s_mean": doe_w_mean,
+        "wall_s_sd": doe_w_sd,
+        "wall_clock_s_sd": doe_w_sd,
+        "wall_s_sum": doe_w_sum,
+        "fit_ms_mean": doe_f_ms,
+        "train_ms_per_fit_mean": doe_f_ms,
+    }
+    method_timing_summary["repeated_doe"] = doe_timing_entry
+    method_timing_summary["repeated_preplanned_doe_multi_objective"] = doe_timing_entry
 
     # Reconstruct prospective optimizer summaries and cross-check against optimizer_summary.json & doe_selection_summary.json
     method_metadata = {
@@ -1335,6 +1683,14 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
     if sum(holdout_nondominated_by_optimizer.values()) != holdout_nd:
         raise ReportingDataError("Holdout non-dominated point breakdown does not sum to holdout_nd")
 
+    holdout_pareto_bootstrap = _compute_holdout_pareto_bootstrap(
+        final_evaluations_df,
+        final_summary_df,
+        latency_measurement,
+        hv_ref_primary,
+        hv_ref_secondary,
+    )
+
     hv_summary = {
         "motpe_nd_mean": float(motpe_nd.mean()),
         "motpe_nd_sd": float(motpe_nd.std(ddof=1)),
@@ -1472,6 +1828,24 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
         lof_decomp=lof_decomp,
         desirability_star=desirability_star,
         latency_jacobian_adjustment=latency_jacobian_adjustment,
+        doe_axial_before_run100=doe_axial_before_run100,
+        doe_low_eta_run_count=doe_low_eta_run_count,
+        doe_low_eta_run_pct=doe_low_eta_run_pct,
+        doe_low_eta_mean_rmse=doe_low_eta_mean_rmse,
+        doe_high_eta_mean_rmse=doe_high_eta_mean_rmse,
+        curvature_sensitivity=curvature_sensitivity,
+        hist_runs_interface_overhead_mean=hist_runs_interface_overhead_mean,
+        hist_runs_interface_overhead_sd=hist_runs_interface_overhead_sd,
+        hist_runs_interface_overhead_min=hist_runs_interface_overhead_min,
+        hist_runs_interface_overhead_max=hist_runs_interface_overhead_max,
+        hist_conf_mo_interface_overhead_mean=hist_conf_mo_interface_overhead_mean,
+        hist_conf_mo_interface_overhead_sd=hist_conf_mo_interface_overhead_sd,
+        hist_conf_so_interface_overhead_mean=hist_conf_so_interface_overhead_mean,
+        hist_conf_so_interface_overhead_sd=hist_conf_so_interface_overhead_sd,
+        hist_bench_interface_overhead_mean=hist_bench_interface_overhead_mean,
+        hist_bench_interface_overhead_sd=hist_bench_interface_overhead_sd,
+        hist_bench_interface_overhead_min=hist_bench_interface_overhead_min,
+        hist_bench_interface_overhead_max=hist_bench_interface_overhead_max,
         rev_dir=rev_dir,
         run_manifest=run_manifest,
         provenance=provenance,
@@ -1487,12 +1861,17 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
         paired_comparisons=paired_comparisons,
         total_model_fits=total_model_fits,
         total_timed_inferences=total_timed_inferences,
+        total_warmup_inferences=total_warmup_inferences,
+        total_all_inferences=total_all_inferences,
         total_selection_records=total_selection_records,
         distinct_config_hashes=distinct_config_hashes,
         total_evaluation_rows=total_evaluation_rows,
         between_session_latency_sd_mean=between_session_latency_sd_mean,
         interface_overhead_mean=interface_overhead_mean,
         interface_overhead_sd=interface_overhead_sd,
+        interface_overhead_min=interface_overhead_min,
+        interface_overhead_max=interface_overhead_max,
+        method_timing_summary=method_timing_summary,
         prospective_optimizers=prospective_optimizers,
         historical_benchmarks=tuple(historical_benchmarks_list),
         ctpe_depth6_count=ctpe_depth6_count,
@@ -1511,6 +1890,7 @@ def load_reporting_dataset(root_dir: Optional[Path | str] = None) -> ReportingDa
         doe_mo_vs_motpe_paired_p=doe_mo_vs_motpe_paired_p,
         hv_summary=hv_summary,
         holdout_nondominated_by_optimizer=holdout_nondominated_by_optimizer,
+        holdout_pareto_bootstrap=holdout_pareto_bootstrap,
     )
 
 
@@ -2036,6 +2416,105 @@ def build_scientific_results_manifest(ds: ReportingDataset) -> Dict[str, Any]:
         "RECONSTRUCTED",
         docs_hv,
     )
+    add_metric(
+        "rev_v2.hv.holdout_bootstrap_seed_060_mean",
+        ds.holdout_pareto_bootstrap["seed_only_060_mean"],
+        f"{ds.holdout_pareto_bootstrap['seed_only_060_mean']:.4f}",
+        "4dp",
+        "results/revision_v2/full_run_001/final_evaluations.csv",
+        "Paired cluster bootstrap (B=2000, seed=20261011) over 20 shared evaluation seeds at [0.60, 250.0]",
+        "external_holdout_test_domain",
+        "cluster_bootstrap_20_eval_seeds",
+        20,
+        f"SD={ds.holdout_pareto_bootstrap['seed_only_060_sd']:.4f}, 95% CI=[{ds.holdout_pareto_bootstrap['seed_only_060_ci_low']:.4f}, {ds.holdout_pareto_bootstrap['seed_only_060_ci_high']:.4f}]",
+        "RECONSTRUCTED",
+        docs_hv,
+    )
+    add_metric(
+        "rev_v2.hv.holdout_bootstrap_joint_060_mean",
+        ds.holdout_pareto_bootstrap["joint_060_mean"],
+        f"{ds.holdout_pareto_bootstrap['joint_060_mean']:.4f}",
+        "4dp",
+        "results/revision_v2/full_run_001/final_evaluations.csv",
+        "Joint paired bootstrap (B=2000, seed=20261011) over 20 evaluation seeds and 5 latency sessions at [0.60, 250.0]",
+        "external_holdout_test_domain",
+        "joint_cluster_bootstrap_seeds_and_sessions",
+        20,
+        f"SD={ds.holdout_pareto_bootstrap['joint_060_sd']:.4f}, 95% CI=[{ds.holdout_pareto_bootstrap['joint_060_ci_low']:.4f}, {ds.holdout_pareto_bootstrap['joint_060_ci_high']:.4f}]",
+        "RECONSTRUCTED",
+        docs_hv,
+    )
+    add_metric(
+        "phase1.curvature_f_block_adj_pooled",
+        ds.curvature_sensitivity["f_block_adj_pooled"],
+        f"{ds.curvature_sensitivity['f_block_adj_pooled']:,.2f}",
+        "2dp",
+        "results/runs.csv",
+        "SS_curv / MS_block_adj_pooled (79 df = 64 df TxB interaction + 15 df center PE)",
+        "development_validation_rmse",
+        "RCBD_phase1_block_adjusted_pooled_error",
+        100,
+        "F_distribution_1_79_df",
+        "RECONSTRUCTED",
+        docs_all,
+    )
+    add_metric(
+        "phase1.curvature_f_block_paired",
+        ds.curvature_sensitivity["f_block_paired"],
+        f"{ds.curvature_sensitivity['f_block_paired']:,.2f}",
+        "2dp",
+        "results/runs.csv",
+        "Block-paired curvature contrast across b=5 blocks (t^2 with 4 df)",
+        "development_validation_rmse",
+        "RCBD_phase1_block_paired_contrast",
+        5,
+        f"95% CI=[+{ds.curvature_sensitivity['ci95_block_paired_low']:.4f}, +{ds.curvature_sensitivity['ci95_block_paired_high']:.4f}] RMSE",
+        "RECONSTRUCTED",
+        docs_all,
+    )
+    add_metric(
+        "doe.low_eta_run_count",
+        ds.doe_low_eta_run_count,
+        f"{ds.doe_low_eta_run_count}/140 ({ds.doe_low_eta_run_pct:.2f}%)",
+        "exact_ratio_and_2dp_pct",
+        "results/runs.csv",
+        "sum(x1 == -1.0) across N=140 pre-planned FCCD runs",
+        "development_validation_rmse",
+        "preplanned_fccd_budget_allocation",
+        140,
+        f"mean val_rmse={ds.doe_low_eta_mean_rmse:.4f} vs {ds.doe_high_eta_mean_rmse:.4f} for x1 > -1.0",
+        "RECONSTRUCTED",
+        docs_all,
+    )
+    add_metric(
+        "latency.hist_runs_interface_overhead_mean",
+        ds.hist_runs_interface_overhead_mean,
+        f"{ds.hist_runs_interface_overhead_mean:.2f}",
+        "2dp",
+        "results/runs.csv",
+        "mean(latency_us_median - inplace_latency_us_median) across N=140 historical DOE runs",
+        "single_sample_interface_overhead_us",
+        "historical_doe_1000_calls",
+        140,
+        f"SD={ds.hist_runs_interface_overhead_sd:.2f}, range=[{ds.hist_runs_interface_overhead_min:.2f}, {ds.hist_runs_interface_overhead_max:.2f}] us",
+        "RECONSTRUCTED",
+        docs_all,
+    )
+    add_metric(
+        "rev_v2.total_warmup_inferences",
+        ds.total_warmup_inferences,
+        f"{ds.total_warmup_inferences:,}",
+        "exact_integer",
+        "results/revision_v2/full_run_001/computational_budget.json",
+        "14027 * 10 + 610 * 100 warmup prediction calls",
+        "campaign_computational_budget",
+        "full_run_001",
+        201270,
+        "exact_count",
+        "RECONSTRUCTED",
+        docs_all,
+    )
+
 
     return {
         "schema_version": "1.0.0",
