@@ -382,3 +382,76 @@ def test_cryptographic_evidence_hash_protection_fails_on_tampered_artifact(tmp_p
     with pytest.raises(ReportingDataError, match="Cryptographic evidence hash mismatch.*provenance\\.json"):
         verify_canonical_evidence_hashes(ws)
 
+
+def test_work_package_f_scientific_audit_reconstructions_and_deliverables(canonical_dataset):
+    """Verifies Work Package F scientific reconstructions, sensitivity analyses, and deliverables."""
+    ds = canonical_dataset
+    root = ds.root_dir
+
+    # Task 2 & 5: Chronology and low-eta boundary budget accounting
+    assert ds.doe_axial_before_run100 == 30
+    assert ds.doe_low_eta_run_count == 45
+    assert ds.doe_low_eta_run_pct == pytest.approx(32.142857, abs=1e-4)
+    assert ds.doe_low_eta_mean_rmse == pytest.approx(0.7545, abs=1e-3)
+    assert ds.doe_high_eta_mean_rmse == pytest.approx(0.5055, abs=1e-3)
+
+    # Task 3: Curvature sensitivity across 7 error denominators
+    cs = ds.curvature_sensitivity
+    assert cs["f_pe_center"] == pytest.approx(105432.31, abs=0.05)
+    assert cs["f_block_adj_pooled"] == pytest.approx(20235.41, abs=0.05)
+    assert cs["f_txb_p1"] == pytest.approx(17013.24, abs=0.05)
+    assert cs["f_block_paired"] == pytest.approx(7342.69, abs=0.05)
+    assert cs["t_block_paired"] == pytest.approx(85.6895, abs=1e-3)
+    assert cs["f_pe_coord_unadj"] == pytest.approx(4140.06, abs=0.05)
+    assert cs["f_2fi_curv_resid"] == pytest.approx(3251.19, abs=0.05)
+    assert cs["f_2fi_resid"] == pytest.approx(82.86, abs=0.05)
+    assert cs["ci95_block_paired_low"] == pytest.approx(0.1300, abs=1e-3)
+    assert cs["ci95_block_paired_high"] == pytest.approx(0.1387, abs=1e-3)
+
+    # Task 6: Latency interface overheads across all stages
+    assert ds.hist_runs_interface_overhead_mean == pytest.approx(40.88, abs=0.05)
+    assert ds.hist_conf_mo_interface_overhead_mean == pytest.approx(38.18, abs=0.05)
+    assert ds.hist_conf_so_interface_overhead_mean == pytest.approx(36.85, abs=0.05)
+    assert ds.hist_bench_interface_overhead_mean == pytest.approx(32.07, abs=0.05)
+    assert ds.interface_overhead_mean == pytest.approx(32.19, abs=0.05)
+
+    # Task 9: Computational budget accounting
+    assert ds.total_warmup_inferences == 201270
+    assert ds.total_all_inferences == 1842080
+    assert "repeated_doe" in ds.method_timing_summary
+    assert ds.method_timing_summary["repeated_doe"]["wall_s_sum"] == pytest.approx(729.76, abs=0.05)
+    assert ds.method_timing_summary["repeated_doe"]["wall_s_mean"] == pytest.approx(36.49, abs=0.05)
+
+    # Task 10: Holdout Pareto bootstrap
+    hpb = ds.holdout_pareto_bootstrap
+    assert hpb["n_boot"] == 2000
+    assert hpb["seed_only_060_mean"] == pytest.approx(17.6923, abs=1e-3)
+    assert hpb["seed_only_060_ci_low"] < 17.6714 < hpb["seed_only_060_ci_high"]
+    assert hpb["seed_only_065_mean"] == pytest.approx(29.0170, abs=1e-3)
+    assert hpb["seed_only_065_ci_low"] < 28.9900 < hpb["seed_only_065_ci_high"]
+    assert hpb["by_optimizer"]["repeated_preplanned_doe_multi_objective"]["present_pct"] == pytest.approx(100.0)
+    assert hpb["by_optimizer"]["multi_objective_tpe"]["present_pct"] == pytest.approx(100.0)
+    assert hpb["by_optimizer"]["constrained_tpe"]["present_pct"] == pytest.approx(100.0)
+    assert hpb["by_optimizer"]["single_objective_tpe"]["present_pct"] == pytest.approx(91.5, abs=0.1)
+
+    # Deliverables existence & content verification
+    claims_doc = (root / "docs" / "scientific_claims_audit.md").read_text(encoding="utf-8")
+    assert "SUPPORTED" in claims_doc and "NEEDS QUALIFICATION" in claims_doc and "UNSUPPORTED" in claims_doc
+    assert "Claim C-22" in claims_doc
+
+    followup_doc = (root / "docs" / "proposed_followup_experiments.md").read_text(encoding="utf-8")
+    assert "PROPOSED FUTURE WORK" in followup_doc
+    assert "Proposal A" in followup_doc and "Proposal B" in followup_doc and "Proposal C" in followup_doc
+
+    val_doc = (root / "docs" / "f_scientific_review_validation.md").read_text(encoding="utf-8")
+    assert val_doc.strip().endswith("**READY FOR INDEPENDENT SCIENTIFIC REVIEW**")
+
+    assert (root / "tables" / "tab_computational_budget.tex").is_file()
+
+    # Title correction check
+    tex_text = (root / "report.tex").read_text(encoding="utf-8")
+    md_text = (root / "REPORT.md").read_text(encoding="utf-8")
+    assert "Pre-Planned Response Surface Methodology" in tex_text
+    assert md_text.startswith("# Pre-Planned Response Surface Methodology")
+
+

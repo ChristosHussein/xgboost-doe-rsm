@@ -7,13 +7,14 @@
 \makecell[l]{Repeated DOE Candidate Fronts\\(5-Block Means Across Replicates)} & $25 \times 20$ & $6.10 \pm 1.4$ & $15.6128 \pm 0.7268$ & $26.6847 \pm 0.8786$ \\
 \makecell[l]{Fixed Full DOE Evaluated Front\\(Single Split 42, 27 Configs)} & $27$ & $4$ & $16.8585$ & $28.1430$ \\
 \makecell[l]{Historical DOE 2-Point Set\\(Single Split 42, $\mathbf{x}^*_{\text{MO}}$ \& $\mathbf{x}^*_{\text{SO}}$)} & $2$ & $2$ & $16.0363$ & $26.9168$ \\
-\makecell[l]{Difference: Fixed Full DOE Front\\\quad $-$ MO-TPE Mean (Split 42)} & --- & --- & $-1.5249$ ($p < 0.0001$) & $-1.9105$ ($p < 0.0001$) \\
+\makecell[l]{Difference: Fixed Full DOE Front\\\quad $-$ MO-TPE Mean (Split 42)} & --- & --- & $-1.5249$ (1-sample $p < 0.0001$) & $-1.9105$ (1-sample $p < 0.0001$) \\
 \midrule
 \multicolumn{5}{l}{\textbf{Panel B: Holdout Non-Dominated Set (122 Records, 95 Configs, 20 Seeds)}} \\
 \makecell[l]{Non-Dominated Set\\(12 Distinct Configs)} & $122$ & $12$ & $17.6714$ & $28.9900$ \\
-\quad $\llcorner$ Repeated DOE MO Selections & $20$ & $3$ & --- & --- \\
-\quad $\llcorner$ Multi-Objective TPE Selections & $20$ & $3$ & --- & --- \\
-\quad $\llcorner$ Constrained TPE Selections & $20$ & $5$ & --- & --- \\
-\quad $\llcorner$ Single-Objective TPE Selections & $20$ & $1$ & --- & --- \\
+\makecell[l]{Holdout Frontier Seed-Bootstrap\\($B=2{,}000$ Resamples over 20 Seeds)} & $122$ & $13.42 \pm 1.46$ & $17.6923 \pm 0.0564$ & $29.0170 \pm 0.0688$ \\
+\quad $\llcorner$ Repeated DOE MO Selections & $20$ & $3 \ (100.0\%)$ & --- & --- \\
+\quad $\llcorner$ Multi-Objective TPE Selections & $20$ & $3 \ (100.0\%)$ & --- & --- \\
+\quad $\llcorner$ Constrained TPE Selections & $20$ & $5 \ (100.0\%)$ & --- & --- \\
+\quad $\llcorner$ Single-Objective TPE Selections & $20$ & $1 \ (91.5\%)$ & --- & --- \\
 \bottomrule
 \end{tabular}

@@ -3,8 +3,8 @@
   "canonical_experiment_dir": "results/revision_v2/full_run_001",
   "historical_baseline_tag": "v1.0.0",
   "summary_counts": {
-    "total_metrics_tracked": 58,
-    "reconstructed_count": 57,
+    "total_metrics_tracked": 65,
+    "reconstructed_count": 64,
     "source_traced_count": 1
   },
   "metrics": [
@@ -1139,6 +1139,134 @@
         "report.tex",
         "results/macros.tex",
         "tables/tab_hypervolume_comparison.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.hv.holdout_bootstrap_seed_060_mean",
+      "value": 17.6923134594675,
+      "formatted_value": "17.6923",
+      "precision": "4dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Paired cluster bootstrap (B=2000, seed=20261011) over 20 shared evaluation seeds at [0.60, 250.0]",
+      "evaluation_domain": "external_holdout_test_domain",
+      "protocol": "cluster_bootstrap_20_eval_seeds",
+      "n_independent_units": 20,
+      "uncertainty_definition": "SD=0.0564, 95% CI=[17.5848, 17.8061]",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_hypervolume_comparison.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.hv.holdout_bootstrap_joint_060_mean",
+      "value": 17.688994642868533,
+      "formatted_value": "17.6890",
+      "precision": "4dp",
+      "input_artifact_path": "results/revision_v2/full_run_001/final_evaluations.csv",
+      "source_field_or_reconstruction": "Joint paired bootstrap (B=2000, seed=20261011) over 20 evaluation seeds and 5 latency sessions at [0.60, 250.0]",
+      "evaluation_domain": "external_holdout_test_domain",
+      "protocol": "joint_cluster_bootstrap_seeds_and_sessions",
+      "n_independent_units": 20,
+      "uncertainty_definition": "SD=0.0727, 95% CI=[17.5507, 17.8420]",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex",
+        "tables/tab_hypervolume_comparison.tex"
+      ]
+    },
+    {
+      "metric_id": "phase1.curvature_f_block_adj_pooled",
+      "value": 20235.41158394235,
+      "formatted_value": "20,235.41",
+      "precision": "2dp",
+      "input_artifact_path": "results/runs.csv",
+      "source_field_or_reconstruction": "SS_curv / MS_block_adj_pooled (79 df = 64 df TxB interaction + 15 df center PE)",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "RCBD_phase1_block_adjusted_pooled_error",
+      "n_independent_units": 100,
+      "uncertainty_definition": "F_distribution_1_79_df",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "phase1.curvature_f_block_paired",
+      "value": 7342.692204240753,
+      "formatted_value": "7,342.69",
+      "precision": "2dp",
+      "input_artifact_path": "results/runs.csv",
+      "source_field_or_reconstruction": "Block-paired curvature contrast across b=5 blocks (t^2 with 4 df)",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "RCBD_phase1_block_paired_contrast",
+      "n_independent_units": 5,
+      "uncertainty_definition": "95% CI=[+0.1300, +0.1387] RMSE",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "doe.low_eta_run_count",
+      "value": 45,
+      "formatted_value": "45/140 (32.14%)",
+      "precision": "exact_ratio_and_2dp_pct",
+      "input_artifact_path": "results/runs.csv",
+      "source_field_or_reconstruction": "sum(x1 == -1.0) across N=140 pre-planned FCCD runs",
+      "evaluation_domain": "development_validation_rmse",
+      "protocol": "preplanned_fccd_budget_allocation",
+      "n_independent_units": 140,
+      "uncertainty_definition": "mean val_rmse=0.7545 vs 0.5055 for x1 > -1.0",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "latency.hist_runs_interface_overhead_mean",
+      "value": 40.882042857142864,
+      "formatted_value": "40.88",
+      "precision": "2dp",
+      "input_artifact_path": "results/runs.csv",
+      "source_field_or_reconstruction": "mean(latency_us_median - inplace_latency_us_median) across N=140 historical DOE runs",
+      "evaluation_domain": "single_sample_interface_overhead_us",
+      "protocol": "historical_doe_1000_calls",
+      "n_independent_units": 140,
+      "uncertainty_definition": "SD=11.56, range=[5.75, 89.33] us",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
+      ]
+    },
+    {
+      "metric_id": "rev_v2.total_warmup_inferences",
+      "value": 201270,
+      "formatted_value": "201,270",
+      "precision": "exact_integer",
+      "input_artifact_path": "results/revision_v2/full_run_001/computational_budget.json",
+      "source_field_or_reconstruction": "14027 * 10 + 610 * 100 warmup prediction calls",
+      "evaluation_domain": "campaign_computational_budget",
+      "protocol": "full_run_001",
+      "n_independent_units": 201270,
+      "uncertainty_definition": "exact_count",
+      "verification_status": "RECONSTRUCTED",
+      "target_documents": [
+        "REPORT.md",
+        "report.tex",
+        "results/macros.tex"
       ]
     }
   ]

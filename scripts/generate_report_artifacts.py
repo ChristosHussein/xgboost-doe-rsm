@@ -11,6 +11,7 @@ Supports:
 from __future__ import annotations
 
 import argparse
+import ast
 import difflib
 import os
 import sys
@@ -667,6 +668,126 @@ def render_macros(ds: Optional[ReportingDataset] = None) -> str:
     add_macro("numRevDoeMoPredictLatOneDp", f"{doe_mo.predict_latency_mean:.1f}")
     add_macro("numRevMoTpePredictLatOneDp", f"{mo_tpe.predict_latency_mean:.1f}")
 
+    # =========================================================================
+    # Work Package F: Methodological Audit, Curvature Sensitivity, Overheads,
+    # Computational Budget, and Holdout Pareto Bootstrap Uncertainty Macros
+    # =========================================================================
+    add_macro("numDoeAxialBeforeHundred", str(ds.doe_axial_before_run100))
+    add_macro("numDoeLowEtaCount", str(ds.doe_low_eta_run_count))
+    add_macro("numDoeLowEtaPct", f"{ds.doe_low_eta_run_pct:.2f}\\%")
+    add_macro("numDoeLowEtaMeanRMSE", f"{ds.doe_low_eta_mean_rmse:.4f}")
+    add_macro("numDoeHighEtaMeanRMSE", f"{ds.doe_high_eta_mean_rmse:.4f}")
+
+    cs = ds.curvature_sensitivity
+    curv_pct_inc = (float(p1["diff_F_minus_C"]) / float(p1["yC_bar"])) * 100.0
+    add_macro("numCurvPctIncrease", f"{curv_pct_inc:.2f}\\%")
+    add_macro("numCurvFBlockAdjPooled", f"{cs['f_block_adj_pooled']:,.2f}".replace(",", "{,}"))
+    add_macro("numCurvMSBlockAdjPooled", f"{cs['ms_block_adj_pooled'] * 1e5:.2f} \\times 10^{{-5}}")
+    add_macro("numCurvFTxB", f"{cs['f_txb_p1']:,.2f}".replace(",", "{,}"))
+    add_macro("numCurvMSTxB", f"{cs['ms_txb_p1'] * 1e5:.2f} \\times 10^{{-5}}")
+    add_macro("numCurvFBlockPaired", f"{cs['f_block_paired']:,.2f}".replace(",", "{,}"))
+    add_macro("numCurvTBlockPaired", f"{cs['t_block_paired']:.2f}")
+    add_macro("numCurvPBlockPaired", f"{cs['p_block_paired'] * 1e7:.2f} \\times 10^{{-7}}")
+    add_macro("numCurvSEBlockPaired", f"{cs['se_block_paired']:.4f}")
+    add_macro("numCurvCIBlockPairedLow", f"{cs['ci95_block_paired_low']:+.4f}")
+    add_macro("numCurvCIBlockPairedHigh", f"{cs['ci95_block_paired_high']:+.4f}")
+    add_macro("numCurvFPeCoordUnadj", f"{cs['f_pe_coord_unadj']:,.2f}".replace(",", "{,}"))
+    add_macro("numCurvFTwoFICurvResid", f"{cs['f_2fi_curv_resid']:,.2f}".replace(",", "{,}"))
+    add_macro("numCurvMSTwoFICurvResid", f"{cs['ms_2fi_curv_resid'] * 1e5:.2f} \\times 10^{{-5}}")
+    add_macro("numCurvFTwoFIResid", f"{cs['f_2fi_resid']:.2f}")
+    add_macro("numCurvMSTwoFIResid", f"{cs['ms_2fi_resid']:.6f}")
+    add_macro("numCurvPTwoFIResid", f"{cs['p_2fi_resid'] * 1e14:.2f} \\times 10^{{-14}}")
+
+    # Task 8 numerical similarity provenance macros
+    f_sum_idx = ds.final_summary_df.set_index("selection_id")
+    h_so_test = float(ast.literal_eval(str(f_sum_idx.loc["doe-so-historical", "test_rmse"]))["mean"])
+    h_so_val = float(ast.literal_eval(str(f_sum_idx.loc["doe-so-historical", "validation_rmse"]))["mean"])
+    h_mo_test = float(ast.literal_eval(str(f_sum_idx.loc["doe-mo-historical", "test_rmse"]))["mean"])
+    h_mo_val = float(ast.literal_eval(str(f_sum_idx.loc["doe-mo-historical", "validation_rmse"]))["mean"])
+    c_so_test = float(so_conf["empirical_test_rmse"])
+    c_so_test_sd = float(so_conf["empirical_test_std"])
+    c_mo_test = float(conf["Y1_Test_RMSE"]["empirical_mean"])
+    c_mo_test_sd = float(conf["Y1_Test_RMSE"]["empirical_std"])
+    c_mo_val = float(conf["Y1_Val_RMSE"]["empirical_mean"])
+    add_macro("numHistBenchSoTestRMSEFull", f"{h_so_test:.6f}")
+    add_macro("numHistBenchSoValRMSEFull", f"{h_so_val:.6f}")
+    add_macro("numHistBenchMoTestRMSEFull", f"{h_mo_test:.6f}")
+    add_macro("numHistBenchMoValRMSEFull", f"{h_mo_val:.6f}")
+    add_macro("numHistBenchMoValRMSEFourDp", f"{h_mo_val:.4f}")
+    add_macro("numConfSoTestRMSEFull", f"{c_so_test:.6f}")
+    add_macro("numConfSoTestRMSESdFull", f"{c_so_test_sd:.6f}")
+    add_macro("numConfMoTestRMSEFull", f"{c_mo_test:.6f}")
+    add_macro("numConfMoTestRMSESdFull", f"{c_mo_test_sd:.6f}")
+    add_macro("numConfMoValRMSEFull", f"{c_mo_val:.6f}")
+    add_macro("numDiffConfBenchSoTestRMSE", f"{abs(h_so_test - c_so_test) * 1e6:.2f} \\times 10^{{-6}}")
+    add_macro("numRevDoeMoTestRMSEFourDp", f"{doe_mo.test_rmse_mean:.4f}")
+    add_macro("numRevDoeMoValRMSEFourDp", f"{doe_mo.val_rmse_mean:.4f}")
+    add_macro("numEulerE", f"{np.e:.4f}")
+
+    # Interface overhead across historical and prospective protocols
+    add_macro("numHistRunsOvMean", f"{ds.hist_runs_interface_overhead_mean:.2f}")
+    add_macro("numHistRunsOvSd", f"{ds.hist_runs_interface_overhead_sd:.2f}")
+    add_macro("numHistRunsOvMin", f"{ds.hist_runs_interface_overhead_min:.2f}")
+    add_macro("numHistRunsOvMax", f"{ds.hist_runs_interface_overhead_max:.2f}")
+    add_macro("numHistConfMoOvMean", f"{ds.hist_conf_mo_interface_overhead_mean:.2f}")
+    add_macro("numHistConfMoOvSd", f"{ds.hist_conf_mo_interface_overhead_sd:.2f}")
+    add_macro("numHistConfSoOvMean", f"{ds.hist_conf_so_interface_overhead_mean:.2f}")
+    add_macro("numHistConfSoOvSd", f"{ds.hist_conf_so_interface_overhead_sd:.2f}")
+    add_macro("numHistBenchOvMean", f"{ds.hist_bench_interface_overhead_mean:.2f}")
+    add_macro("numHistBenchOvSd", f"{ds.hist_bench_interface_overhead_sd:.2f}")
+    add_macro("numHistBenchOvMin", f"{ds.hist_bench_interface_overhead_min:.2f}")
+    add_macro("numHistBenchOvMax", f"{ds.hist_bench_interface_overhead_max:.2f}")
+    add_macro("numRevInterfaceOverheadSd", f"{ds.interface_overhead_sd:.2f}")
+    add_macro("numRevInterfaceOverheadMin", f"{ds.interface_overhead_min:.2f}")
+    add_macro("numRevInterfaceOverheadMax", f"{ds.interface_overhead_max:.2f}")
+
+    # Computational budget and wall-clock macros
+    add_macro("numRevTotalWarmupInferences", f"{ds.total_warmup_inferences:,}".replace(",", "{,}"))
+    add_macro("numRevTotalAllInferences", f"{ds.total_all_inferences:,}".replace(",", "{,}"))
+    mt = ds.method_timing_summary
+    add_macro("numRevWallTimeMoTpeMean", f"{mt['multi_objective_tpe']['wall_clock_s_mean']:.2f}")
+    add_macro("numRevWallTimeMoTpeSd", f"{mt['multi_objective_tpe']['wall_clock_s_sd']:.2f}")
+    add_macro("numRevWallTimeCTpeMean", f"{mt['constrained_tpe']['wall_clock_s_mean']:.2f}")
+    add_macro("numRevWallTimeCTpeSd", f"{mt['constrained_tpe']['wall_clock_s_sd']:.2f}")
+    add_macro("numRevWallTimeRsMean", f"{mt['random_search']['wall_clock_s_mean']:.2f}")
+    add_macro("numRevWallTimeRsSd", f"{mt['random_search']['wall_clock_s_sd']:.2f}")
+    add_macro("numRevWallTimeDoeMean", f"{mt['repeated_preplanned_doe_multi_objective']['wall_clock_s_mean']:.2f}")
+    add_macro("numRevWallTimeDoeSd", f"{mt['repeated_preplanned_doe_multi_objective']['wall_clock_s_sd']:.2f}")
+    add_macro("numRevWallTimeSoTpeMean", f"{mt['single_objective_tpe']['wall_clock_s_mean']:.2f}")
+    add_macro("numRevWallTimeSoTpeSd", f"{mt['single_objective_tpe']['wall_clock_s_sd']:.2f}")
+    add_macro("numRevFitMsMoTpe", f"{mt['multi_objective_tpe']['train_ms_per_fit_mean']:.1f}")
+    add_macro("numRevFitMsCTpe", f"{mt['constrained_tpe']['train_ms_per_fit_mean']:.1f}")
+    add_macro("numRevFitMsRs", f"{mt['random_search']['train_ms_per_fit_mean']:.1f}")
+    add_macro("numRevFitMsDoe", f"{mt['repeated_preplanned_doe_multi_objective']['train_ms_per_fit_mean']:.1f}")
+    add_macro("numRevFitMsSoTpe", f"{mt['single_objective_tpe']['train_ms_per_fit_mean']:.1f}")
+
+    # Holdout Pareto bootstrap uncertainty macros
+    hpb = ds.holdout_pareto_bootstrap
+    add_macro("numRevHvHoldoutBootSeedMean", f"{hpb['seed_only_060_mean']:.4f}")
+    add_macro("numRevHvHoldoutBootSeedSd", f"{hpb['seed_only_060_sd']:.4f}")
+    add_macro("numRevHvHoldoutBootSeedCiLow", f"{hpb['seed_only_060_ci95'][0]:.4f}")
+    add_macro("numRevHvHoldoutBootSeedCiHigh", f"{hpb['seed_only_060_ci95'][1]:.4f}")
+    add_macro("numRevHvHoldoutBootSeedMeanRefTwo", f"{hpb['seed_only_065_mean']:.4f}")
+    add_macro("numRevHvHoldoutBootSeedSdRefTwo", f"{hpb['seed_only_065_sd']:.4f}")
+    add_macro("numRevHvHoldoutBootSeedCiLowRefTwo", f"{hpb['seed_only_065_ci95'][0]:.4f}")
+    add_macro("numRevHvHoldoutBootSeedCiHighRefTwo", f"{hpb['seed_only_065_ci95'][1]:.4f}")
+    add_macro("numRevHvHoldoutBootJointMean", f"{hpb['joint_060_mean']:.4f}")
+    add_macro("numRevHvHoldoutBootJointSd", f"{hpb['joint_060_sd']:.4f}")
+    add_macro("numRevHvHoldoutBootJointCiLow", f"{hpb['joint_060_ci95'][0]:.4f}")
+    add_macro("numRevHvHoldoutBootJointCiHigh", f"{hpb['joint_060_ci95'][1]:.4f}")
+    add_macro("numRevHvHoldoutBootJointMeanRefTwo", f"{hpb['joint_065_mean']:.4f}")
+    add_macro("numRevHvHoldoutBootJointSdRefTwo", f"{hpb['joint_065_sd']:.4f}")
+    add_macro("numRevHvHoldoutBootJointCiLowRefTwo", f"{hpb['joint_065_ci95'][0]:.4f}")
+    add_macro("numRevHvHoldoutBootJointCiHighRefTwo", f"{hpb['joint_065_ci95'][1]:.4f}")
+    add_macro("numRevBootPresentPctDoeMo", f"{hpb['by_optimizer']['repeated_preplanned_doe_multi_objective']['seed_only_present_pct']:.1f}\\%")
+    add_macro("numRevBootPresentPctMoTpe", f"{hpb['by_optimizer']['multi_objective_tpe']['seed_only_present_pct']:.1f}\\%")
+    add_macro("numRevBootPresentPctCTpe", f"{hpb['by_optimizer']['constrained_tpe']['seed_only_present_pct']:.1f}\\%")
+    add_macro("numRevBootPresentPctSoTpe", f"{hpb['by_optimizer']['single_objective_tpe']['seed_only_present_pct']:.1f}\\%")
+    add_macro("numRevBootMeanPtsDoeMo", f"{hpb['by_optimizer']['repeated_preplanned_doe_multi_objective']['seed_only_mean_points']:.2f}")
+    add_macro("numRevBootMeanPtsMoTpe", f"{hpb['by_optimizer']['multi_objective_tpe']['seed_only_mean_points']:.2f}")
+    add_macro("numRevBootMeanPtsCTpe", f"{hpb['by_optimizer']['constrained_tpe']['seed_only_mean_points']:.2f}")
+    add_macro("numRevBootMeanPtsSoTpe", f"{hpb['by_optimizer']['single_objective_tpe']['seed_only_mean_points']:.2f}")
+
     return "% Auto-generated macros from genuine results\n" + "\n".join(macros) + "\n"
 
 
@@ -1008,6 +1129,7 @@ def render_tables(ds: Optional[ReportingDataset] = None) -> Dict[str, str]:
 
     # 6b. Hypervolume and Non-Dominated Frontiers Table
     hvs = ds.hv_summary
+    hpb = ds.holdout_pareto_bootstrap
     nd_by_opt = ds.holdout_nondominated_by_optimizer
     r1_rmse, r1_lat = ds.hv_ref_primary
     r2_rmse, r2_lat = ds.hv_ref_secondary
@@ -1022,18 +1144,57 @@ def render_tables(ds: Optional[ReportingDataset] = None) -> Dict[str, str]:
         f"\\makecell[l]{{Repeated DOE Candidate Fronts\\\\(5-Block Means Across Replicates)}} & $25 \\times 20$ & ${hvs['rdoe_nd_mean']:.2f} \\pm {hvs['rdoe_nd_sd']:.1f}$ & ${hvs['rdoe_dev_060_mean']:.4f} \\pm {hvs['rdoe_dev_060_sd']:.4f}$ & ${hvs['rdoe_dev_065_mean']:.4f} \\pm {hvs['rdoe_dev_065_sd']:.4f}$ \\\\",
         f"\\makecell[l]{{Fixed Full DOE Evaluated Front\\\\(Single Split 42, 27 Configs)}} & $27$ & ${hvs['fdoe_nd']}$ & ${hvs['fdoe_dev_060']:.4f}$ & ${hvs['fdoe_dev_065']:.4f}$ \\\\",
         f"\\makecell[l]{{Historical DOE 2-Point Set\\\\(Single Split 42, $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ \\& $\\mathbf{{x}}^*_{{\\text{{SO}}}}$)}} & $2$ & ${hvs['hdoe_nd']}$ & ${hvs['hdoe_dev_060']:.4f}$ & ${hvs['hdoe_dev_065']:.4f}$ \\\\",
-        f"\\makecell[l]{{Difference: Fixed Full DOE Front\\\\\\quad $-$ MO-TPE Mean (Split 42)}} & --- & --- & ${hvs['diff_fdoe_minus_motpe_060']:+.4f}$ ($p < 0.0001$) & ${hvs['diff_fdoe_minus_motpe_065']:+.4f}$ ($p < 0.0001$) \\\\",
+        f"\\makecell[l]{{Difference: Fixed Full DOE Front\\\\\\quad $-$ MO-TPE Mean (Split 42)}} & --- & --- & ${hvs['diff_fdoe_minus_motpe_060']:+.4f}$ (1-sample $p < 0.0001$) & ${hvs['diff_fdoe_minus_motpe_065']:+.4f}$ (1-sample $p < 0.0001$) \\\\",
         "\\midrule",
         f"\\multicolumn{{5}}{{l}}{{\\textbf{{Panel B: Holdout Non-Dominated Set ({ds.total_selection_records} Records, {ds.distinct_config_hashes} Configs, {len(ds.fresh_eval_seeds)} Seeds)}}}} \\\\",
         f"\\makecell[l]{{Non-Dominated Set\\\\({hvs['holdout_nd']} Distinct Configs)}} & ${ds.total_selection_records}$ & ${hvs['holdout_nd']}$ & ${hvs['holdout_frozen_060']:.4f}$ & ${hvs['holdout_frozen_065']:.4f}$ \\\\",
-        f"\\quad $\\llcorner$ Repeated DOE MO Selections & $20$ & ${nd_by_opt['repeated_preplanned_doe_multi_objective']}$ & --- & --- \\\\",
-        f"\\quad $\\llcorner$ Multi-Objective TPE Selections & $20$ & ${nd_by_opt['multi_objective_tpe']}$ & --- & --- \\\\",
-        f"\\quad $\\llcorner$ Constrained TPE Selections & $20$ & ${nd_by_opt['constrained_tpe']}$ & --- & --- \\\\",
-        f"\\quad $\\llcorner$ Single-Objective TPE Selections & $20$ & ${nd_by_opt['single_objective_tpe']}$ & --- & --- \\\\",
+        f"\\makecell[l]{{Holdout Frontier Seed-Bootstrap\\\\($B=2{{,}}000$ Resamples over 20 Seeds)}} & ${ds.total_selection_records}$ & ${hpb['seed_only_nd_mean']:.2f} \\pm {hpb['seed_only_nd_sd']:.2f}$ & ${hpb['seed_only_060_mean']:.4f} \\pm {hpb['seed_only_060_sd']:.4f}$ & ${hpb['seed_only_065_mean']:.4f} \\pm {hpb['seed_only_065_sd']:.4f}$ \\\\",
+        f"\\quad $\\llcorner$ Repeated DOE MO Selections & $20$ & ${nd_by_opt['repeated_preplanned_doe_multi_objective']} \\ ({hpb['by_optimizer']['repeated_preplanned_doe_multi_objective']['seed_only_present_pct']:.1f}\\%)$ & --- & --- \\\\",
+        f"\\quad $\\llcorner$ Multi-Objective TPE Selections & $20$ & ${nd_by_opt['multi_objective_tpe']} \\ ({hpb['by_optimizer']['multi_objective_tpe']['seed_only_present_pct']:.1f}\\%)$ & --- & --- \\\\",
+        f"\\quad $\\llcorner$ Constrained TPE Selections & $20$ & ${nd_by_opt['constrained_tpe']} \\ ({hpb['by_optimizer']['constrained_tpe']['seed_only_present_pct']:.1f}\\%)$ & --- & --- \\\\",
+        f"\\quad $\\llcorner$ Single-Objective TPE Selections & $20$ & ${nd_by_opt['single_objective_tpe']} \\ ({hpb['by_optimizer']['single_objective_tpe']['seed_only_present_pct']:.1f}\\%)$ & --- & --- \\\\",
         "\\bottomrule",
         "\\end{tabular}",
     ]
     tables["tables/tab_hypervolume_comparison.tex"] = "\n".join(tex_hv) + "\n"
+
+    # 6c. Computational Budget Ledger Table (Task 9)
+    cb = ds.computational_budget
+    mt = ds.method_timing_summary
+    per_opt_fits = int(cb["search_model_fits"]) // int(cb["optimizer_methods"])
+    doe_fits = int(cb["repeated_doe_design_model_fits"])
+    matched_doe_fits = int(cb["matched_historical_doe_candidate_fits"])
+    lat_refit_fits = int(cb["primary_latency_refit_fits"])
+    final_retrain_fits = int(cb["final_retraining_fits"])
+    online_timed = int(cb["online_latency_timed_calls_per_measurement"])
+    online_warmup = int(cb["online_latency_warmups_per_measurement"])
+    prim_timed = int(cb["primary_latency_timed_prediction_calls_maximum"])
+    prim_warmup = int(cb["primary_latency_warmup_prediction_calls_maximum"])
+    tex_cb = [
+        "\\begin{tabular}{lrrrrrr}",
+        "\\toprule",
+        "\\makecell[l]{\\textbf{Phase / Method}\\\\\\textbf{Component}} & \\makecell{\\textbf{Search}\\\\\\textbf{Reps}} & \\makecell{\\textbf{XGBoost}\\\\\\textbf{Fits}} & \\makecell{\\textbf{Distinct}\\\\\\textbf{Coords}} & \\makecell{\\textbf{Timed}\\\\\\textbf{Inferences}} & \\makecell{\\textbf{Warmup}\\\\\\textbf{Calls}} & \\makecell{\\textbf{Wall Time / Rep}\\\\\\scriptsize(s, Mean $\\pm$ SD)} \\\\",
+        "\\midrule",
+        "\\multicolumn{7}{l}{\\textbf{Panel A: Historical Single-Campaign Baseline ($v1.0.0$, 160 DOE + Confirmation Fits)}} \\\\",
+        "Phase 1: $2^4$ Factorial + 4 Center ($5$ Blocks) & $1$ & $100$ & $17$ & $100{,}000$ & $10{,}000$ & --- \\\\",
+        "Phase 2: Face-Centered Axial ($5$ Blocks) & $1$ & $40$ & $8$ & $40{,}000$ & $4{,}000$ & --- \\\\",
+        "Phase 5: Confirmation ($\\mathbf{x}^*_{\\text{MO}}$ \\& $\\mathbf{x}^*_{\\text{SO}}$, $m=10$) & $2$ & $20$ & $2$ & $20{,}000$ & $2{,}000$ & --- \\\\",
+        "\\midrule",
+        f"\\multicolumn{{7}}{{l}}{{\\textbf{{Panel B: Prospective Revision-v2 Campaign (Total = {ds.total_model_fits:,} Fits, {ds.total_timed_inferences:,} Timed Inferences)}}}} \\\\".replace(",", "{,}"),
+        f"Repeated Pre-Planned DOE (MO + SO Shared) & $20$ & ${doe_fits:,}$ & $25/\\text{{rep}}$ & ${doe_fits * online_timed:,}$ & ${doe_fits * online_warmup:,}$ & ${mt['repeated_preplanned_doe_multi_objective']['wall_clock_s_mean']:.2f} \\pm {mt['repeated_preplanned_doe_multi_objective']['wall_clock_s_sd']:.2f}$ \\\\".replace(",", "{,}"),
+        f"Multi-Objective TPE ($140$ Trials/Rep) & $20$ & ${per_opt_fits:,}$ & $140/\\text{{rep}}$ & ${per_opt_fits * online_timed:,}$ & ${per_opt_fits * online_warmup:,}$ & ${mt['multi_objective_tpe']['wall_clock_s_mean']:.2f} \\pm {mt['multi_objective_tpe']['wall_clock_s_sd']:.2f}$ \\\\".replace(",", "{,}"),
+        f"Constrained TPE ($140$ Trials/Rep) & $20$ & ${per_opt_fits:,}$ & $140/\\text{{rep}}$ & ${per_opt_fits * online_timed:,}$ & ${per_opt_fits * online_warmup:,}$ & ${mt['constrained_tpe']['wall_clock_s_mean']:.2f} \\pm {mt['constrained_tpe']['wall_clock_s_sd']:.2f}$ \\\\".replace(",", "{,}"),
+        f"Single-Objective TPE ($140$ Trials/Rep) & $20$ & ${per_opt_fits:,}$ & $140/\\text{{rep}}$ & ${per_opt_fits * online_timed:,}$ & ${per_opt_fits * online_warmup:,}$ & ${mt['single_objective_tpe']['wall_clock_s_mean']:.2f} \\pm {mt['single_objective_tpe']['wall_clock_s_sd']:.2f}$ \\\\".replace(",", "{,}"),
+        f"Random Search ($140$ Trials/Rep) & $20$ & ${per_opt_fits:,}$ & $140/\\text{{rep}}$ & ${per_opt_fits * online_timed:,}$ & ${per_opt_fits * online_warmup:,}$ & ${mt['random_search']['wall_clock_s_mean']:.2f} \\pm {mt['random_search']['wall_clock_s_sd']:.2f}$ \\\\".replace(",", "{,}"),
+        f"Split-42 Full DOE Baseline ($25 + 2$ Opt) & $1$ & ${matched_doe_fits}$ & $27$ & ${matched_doe_fits * online_timed:,}$ & ${matched_doe_fits * online_warmup:,}$ & --- \\\\".replace(",", "{,}"),
+        f"Primary Latency Sessions ($5 \\times 122$ Records) & $5$ & ${lat_refit_fits:,}$ & ${ds.distinct_config_hashes}$ & ${prim_timed:,}$ & ${prim_warmup:,}$ & --- \\\\".replace(",", "{,}"),
+        f"Holdout Retraining ($122$ Records $\\times 20$ Seeds) & --- & ${final_retrain_fits:,}$ & ${ds.distinct_config_hashes}$ & $0$ & $0$ & --- \\\\".replace(",", "{,}"),
+        "\\midrule",
+        f"\\textbf{{Prospective Campaign Total}} & --- & $\\mathbf{{{ds.total_model_fits:,}}}$ & --- & $\\mathbf{{{ds.total_timed_inferences:,}}}$ & $\\mathbf{{{ds.total_warmup_inferences:,}}}$ & $\\mathbf{{{ds.total_all_inferences:,}}}\\text{{ calls}}$ \\\\".replace(",", "{,}"),
+        "\\bottomrule",
+        "\\end{tabular}",
+    ]
+    tables["tables/tab_computational_budget.tex"] = "\n".join(tex_cb) + "\n"
 
     # 7. Integer Depth Table
     df_depth = ds.depth_opt_df

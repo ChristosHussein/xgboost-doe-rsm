@@ -609,69 +609,164 @@ def plot_revision_pareto_front(
     print(f"[Plot] Saved revision Pareto plot to: {destination}")
 
 
-def plot_efficiency_comparison(save_path: str = "figures/efficiency_comparison_curve.png"):
-    """Render the historical v1 efficiency figure for archival reproduction only.
-
-    Median and IQR shaded bands across 20 replicate runs for Random Search and TPE,
-    with single illustrative DOE trajectory in actual randomized run_order.
-
-    This mixes a single DOE run-order trace with optimizer replicate summaries and
-    is deliberately excluded from the revision-v2 rendering entry point.
+def plot_efficiency_comparison(
+    save_path: str = "figures/efficiency_comparison_curve.png",
+    revision_run_dir: str | Path = "results/revision_v2/full_run_001",
+):
+    """Render a two-panel sample-efficiency comparison:
+    Panel (a): Prospective Revision-v2 20-replicate search trajectories (median & IQR)
+      from optimizer_trials.csv (Split 42) and doe_selection_runs.csv (5-block campaigns).
+    Panel (b): Explicitly labeled historical v1.0.0 trajectory archive (Split 42 Random Search
+      and SO-TPE 20-run medians vs. single globally randomized 140-run FCCD trajectory).
     """
+    rev_dir = Path(revision_run_dir)
+    df_trials = pd.read_csv(rev_dir / "optimizer_trials.csv")
+    df_doe_rev = pd.read_csv(rev_dir / "doe_selection_runs.csv")
     df_traj = pd.read_csv("results/benchmark_evals_trajectories.csv")
-    evals = df_traj["eval_idx"].values
     df_runs = pd.read_csv("results/runs.csv")
+
+    evals = np.arange(1, 141)
+    fig, axes = plt.subplots(1, 2, figsize=(15.5, 6.2), dpi=300)
+
+    # Panel (a): Revision-v2 20-Replicate Search Trajectories
+    ax0 = axes[0]
+    opt_styles = [
+        ("single_objective_tpe", "Single-Obj TPE (Split 42, 20-Rep Median)", "#2ca02c", "-."),
+        ("multi_objective_tpe", "Multi-Obj TPE (Split 42, 20-Rep Median)", "#9467bd", "-"),
+        ("constrained_tpe", "Constrained TPE <=145 us (Split 42, 20-Rep Median)", "#ff7f0e", ":"),
+        ("random_search", "Random Search (Split 42, 20-Rep Median)", "#d62728", "--"),
+    ]
+    rev_curves = {}
+    for opt_key, label, color, ls in opt_styles:
+        sub = df_trials[df_trials["optimizer"] == opt_key].sort_values(["replicate_id", "trial_number"])
+        mat = np.vstack(
+            [
+                grp["validation_rmse"].cummin().to_numpy()[:140]
+                for _, grp in sub.groupby("replicate_id")
+            ]
+        )
+        med = np.median(mat, axis=0)
+        q25 = np.percentile(mat, 25, axis=0)
+        q75 = np.percentile(mat, 75, axis=0)
+        rev_curves[opt_key] = (med, q25, q75, color, ls)
+        ax0.plot(evals, med, color=color, linewidth=2.1, linestyle=ls, label=label)
+        ax0.fill_between(evals, q25, q75, color=color, alpha=0.14)
+
+    # Repeated Pre-Planned DOE (20 independent 5-block campaigns, 140 fits/campaign)
+    doe_Sub = df_doe_rev.sort_values(["doe_replicate_id", "block_index", "order_within_block"])
+    doe_mat = np.vstack(
+        [
+            grp["validation_rmse"].cummin().to_numpy()[:140]
+            for _, grp in doe_Sub.groupby("doe_replicate_id")
+        ]
+    )
+    doe_med = np.median(doe_mat, axis=0)
+    doe_q25 = np.percentile(doe_mat, 25, axis=0)
+    doe_q75 = np.percentile(doe_mat, 75, axis=0)
+    ax0.plot(
+        evals,
+        doe_med,
+        color="#1f77b4",
+        linewidth=2.4,
+        linestyle="-",
+        label="Repeated Pre-Planned DOE (5-Block Campaign Order, 20-Rep Median)",
+    )
+    ax0.fill_between(evals, doe_q25, doe_q75, color="#1f77b4", alpha=0.16)
+
+    ax0_ins = ax0.inset_axes([0.42, 0.24, 0.54, 0.44])
+    for opt_key in ("single_objective_tpe", "multi_objective_tpe", "constrained_tpe", "random_search"):
+        med, q25, q75, color, ls = rev_curves[opt_key]
+        ax0_ins.plot(evals, med, color=color, linewidth=1.7, linestyle=ls)
+        ax0_ins.fill_between(evals, q25, q75, color=color, alpha=0.12)
+    ax0_ins.plot(evals, doe_med, color="#1f77b4", linewidth=2.0, linestyle="-")
+    ax0_ins.fill_between(evals, doe_q25, doe_q75, color="#1f77b4", alpha=0.14)
+    ax0_ins.set_xlim(20, 140)
+    ax0_ins.set_ylim(0.455, 0.500)
+    ax0_ins.set_title("Zoomed Convergence (Evals 20-140)", fontsize=8.5, fontweight="bold")
+    ax0_ins.grid(True, linestyle=":", alpha=0.6)
+    ax0.indicate_inset_zoom(ax0_ins, edgecolor="#555555", alpha=0.7)
+
+    ax0.set_title(
+        "(a) Prospective Revision-v2 Search Trajectories (N=20 Replicates / Method)",
+        fontweight="bold",
+        fontsize=10.5,
+    )
+    ax0.set_xlabel("Cumulative Model Evaluations (140 Fits per Search Replicate)")
+    ax0.set_ylabel("Cumulative Best Development Validation RMSE")
+    ax0.grid(True, linestyle=":", alpha=0.6)
+    ax0.legend(loc="upper right", frameon=True, facecolor="white", framealpha=0.95, fontsize=7.8)
+
+    # Panel (b): Historical v1.0.0 Single-Split Trajectory Archive
+    ax1 = axes[1]
     doe_cum_best = df_runs.sort_values("run_order")["val_rmse"].cummin().values
+    ax1.plot(
+        evals,
+        df_traj["rs_median"],
+        color="#d62728",
+        linewidth=2.0,
+        linestyle="--",
+        label="Historical Random Search (Split 42, 20-Run Median & IQR)",
+    )
+    ax1.fill_between(evals, df_traj["rs_q25"], df_traj["rs_q75"], color="#d62728", alpha=0.16)
+    ax1.plot(
+        evals,
+        df_traj["tpe_median"],
+        color="#2ca02c",
+        linewidth=2.2,
+        linestyle="-.",
+        label="Historical SO-TPE (Split 42, 20-Run Median & IQR)",
+    )
+    ax1.fill_between(evals, df_traj["tpe_q25"], df_traj["tpe_q75"], color="#2ca02c", alpha=0.16)
+    ax1.plot(
+        evals,
+        doe_cum_best,
+        color="#1f77b4",
+        linewidth=2.5,
+        linestyle="-",
+        label="Historical Pre-Planned FCCD (Single Shuffled Run-Order Trace, 5 Blocks)",
+    )
 
-    fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
+    ax1.text(
+        8,
+        0.592,
+        "Pre-planned 140-run FCCD globally\nshuffled in run_order (30/40 axial\nruns occur at run_order <= 100;\n45/140 runs at x1 = -1, eta = 0.01)",
+        ha="left",
+        va="center",
+        fontsize=7.6,
+        bbox=dict(boxstyle="round,pad=0.35", facecolor="white", edgecolor="gray", alpha=0.92),
+    )
 
-    # 1. Random Search: Median and IQR band
-    ax.plot(evals, df_traj["rs_median"], color="#d62728", linewidth=2.0, linestyle="--", label="Random Search (20-run Median)")
-    ax.fill_between(evals, df_traj["rs_q25"], df_traj["rs_q75"], color="#d62728", alpha=0.18, label="Random Search IQR Band")
+    ax1_ins = ax1.inset_axes([0.46, 0.25, 0.50, 0.44])
+    ax1_ins.plot(evals, df_traj["rs_median"], color="#d62728", linewidth=1.7, linestyle="--")
+    ax1_ins.fill_between(evals, df_traj["rs_q25"], df_traj["rs_q75"], color="#d62728", alpha=0.16)
+    ax1_ins.plot(evals, df_traj["tpe_median"], color="#2ca02c", linewidth=1.9, linestyle="-.")
+    ax1_ins.fill_between(evals, df_traj["tpe_q25"], df_traj["tpe_q75"], color="#2ca02c", alpha=0.16)
+    ax1_ins.plot(evals, doe_cum_best, color="#1f77b4", linewidth=2.1)
+    ax1_ins.set_xlim(20, 140)
+    ax1_ins.set_ylim(0.455, 0.490)
+    ax1_ins.set_title("Zoomed Convergence (Runs 20-140)", fontsize=8.5, fontweight="bold")
+    ax1_ins.grid(True, linestyle=":", alpha=0.6)
+    ax1.indicate_inset_zoom(ax1_ins, edgecolor="#555555", alpha=0.7)
 
-    # 2. TPE Single-Obj: Median and IQR band
-    ax.plot(evals, df_traj["tpe_median"], color="#2ca02c", linewidth=2.2, linestyle="-.", label="Optuna TPE Single-Obj (20-run Median)")
-    ax.fill_between(evals, df_traj["tpe_q25"], df_traj["tpe_q75"], color="#2ca02c", alpha=0.18, label="TPE IQR Band")
-
-    # 3. DOE Cumulative Best in actual run_order
-    ax.plot(evals, doe_cum_best, color="#1f77b4", linewidth=2.5, linestyle="-", label="DOE Design (Single Illustrative Trajectory, Run Order)")
-
-    # Phase dividers for DOE
-    ax.axvline(100, color="gray", linestyle=":", linewidth=1.2)
-    ax.text(50, 0.54, "Phase 1: Screening ($2^4+n_C$)",
-            ha="center", va="center", fontsize=9, bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="gray", alpha=0.85))
-    ax.text(120, 0.54, "Phase 2: Axial CCD",
-            ha="center", va="center", fontsize=9, bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="gray", alpha=0.85))
-
-    # Zoomed Inset Axes (Runs 20 to 140)
-    ax_ins = ax.inset_axes([0.48, 0.42, 0.48, 0.50])
-    ax_ins.plot(evals, df_traj["rs_median"], color="#d62728", linewidth=1.8, linestyle="--")
-    ax_ins.fill_between(evals, df_traj["rs_q25"], df_traj["rs_q75"], color="#d62728", alpha=0.18)
-    ax_ins.plot(evals, df_traj["tpe_median"], color="#2ca02c", linewidth=2.0, linestyle="-.")
-    ax_ins.fill_between(evals, df_traj["tpe_q25"], df_traj["tpe_q75"], color="#2ca02c", alpha=0.18)
-    ax_ins.plot(evals, doe_cum_best, color="#1f77b4", linewidth=2.2)
-
-    ax_ins.set_xlim(20, 140)
-    ax_ins.set_ylim(0.455, 0.490)
-    ax_ins.set_title("Zoomed Convergence (Runs 20-140)", fontsize=9, fontweight="bold")
-    ax_ins.grid(True, linestyle=":", alpha=0.6)
-    ax.indicate_inset_zoom(ax_ins, edgecolor="#555555", alpha=0.75)
-
-    ax.set_title("Optimization Sample Efficiency Comparison (Cumulative Best Val RMSE vs. Budget)", fontweight="bold")
-    ax.set_xlabel("Number of Function Evaluations (Genuine Model Training Runs)")
-    ax.set_ylabel("Cumulative Best Validation RMSE")
-    ax.grid(True, linestyle=":", alpha=0.6)
-    ax.legend(loc="upper left", bbox_to_anchor=(0.03, 0.96), frameon=True, facecolor="white", framealpha=0.95, fontsize=9.0)
+    ax1.set_title(
+        "(b) Historical v1.0.0 Archive (Single Shuffled FCCD Trace vs. Split-42 Baselines)",
+        fontweight="bold",
+        fontsize=10.5,
+    )
+    ax1.set_xlabel("Cumulative Model Evaluations (Globally Randomized run_order 1..140)")
+    ax1.set_ylabel("Cumulative Best Development Validation RMSE")
+    ax1.grid(True, linestyle=":", alpha=0.6)
+    ax1.legend(loc="upper right", frameon=True, facecolor="white", framealpha=0.95, fontsize=7.8)
 
     os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=300)
-    plt.close()
+    fig.tight_layout()
+    fig.savefig(save_path, dpi=300)
+    plt.close(fig)
     print(f"[Plot] Saved Efficiency Comparison to: {save_path}")
 
 
 def render_revision_plots(revision_run_dir: str | Path):
-    """Render the supported diagnostics plus the estimand-separated v2 Pareto figure."""
+    """Render the supported diagnostics plus the estimand-separated v2 Pareto and efficiency figures."""
     df_runs = pd.read_csv("results/runs.csv")
     plot_residual_diagnostics(df_runs, "figures/diagnostics_panel_4in1.png")
     plot_response_surface_rmse_2d_3d(df_runs, "figures/response_surface_rmse_2d_3d.png")
@@ -680,7 +775,10 @@ def render_revision_plots(revision_run_dir: str | Path):
     plot_revision_pareto_front(
         revision_run_dir, "figures/revision_v2_pareto_front.png"
     )
-    print("Revision diagnostics and estimand-separated Pareto plot rendered successfully.")
+    plot_efficiency_comparison(
+        "figures/efficiency_comparison_curve.png", revision_run_dir
+    )
+    print("Revision diagnostics, efficiency trajectory, and estimand-separated Pareto plots rendered successfully.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
