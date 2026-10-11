@@ -31,13 +31,16 @@ from scripts.generate_report_artifacts import (
 from scripts.generate_research_reporting import (
     SECTION_IDS,
     audit_manuscript_integrity,
+    build_changelog_claim_specifications,
     build_scientific_artifact_registry,
     check_research_reporting,
     clear_custom_scientific_artifacts,
     discover_scientific_and_documentation_files,
     register_custom_scientific_artifact,
+    render_changelog,
     render_report_markdown,
     render_report_sections,
+    validate_changelog_claims,
     verify_scientific_artifact_registry,
 )
 from scripts.reporting_data import (
@@ -627,5 +630,105 @@ def test_scientific_artifact_registry_and_negative_coverage(tmp_path, canonical_
     with pytest.raises(ReportingDataError, match="Cryptographic evidence hash mismatch"):
         load_reporting_dataset(ws)
     conf_json.write_text(orig_conf, encoding="utf-8")
+
+
+def test_changelog_context_bound_claims_and_negative_mutations(tmp_path, canonical_dataset):
+    """Negative test suite proving context-bound, campaign-specific verification of CHANGELOG.md."""
+    ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
+    ds_ws = load_reporting_dataset(ws)
+
+    changelog_path = ws / "CHANGELOG.md"
+    orig_changelog = changelog_path.read_text(encoding="utf-8")
+
+    # Baseline verification: deterministic rendering and 16-row claim specification
+    specs = build_changelog_claim_specifications(ds_ws)
+    assert len(specs) == 16
+    assert orig_changelog == render_changelog(ds_ws)
+    assert validate_changelog_claims(ds_ws, orig_changelog) == []
+    ok_base, msg_base = check_research_reporting(ds_ws)
+    assert ok_base, f"Expected baseline workspace to pass, got: {msg_base}"
+
+    # Verify required prospective Single-Objective comparison values are present in CHANGELOG.md
+    assert "Single-Objective TPE: test RMSE $0.46691 \\pm 0.00116$, `predict` latency $188.93 \\pm 12.07\\,\\mu\\text{s}$" in orig_changelog
+    assert "Repeated DOE Single-Objective: test RMSE $0.46859 \\pm 0.00000$ (conditional retraining SD $0.00304$), `predict` latency $150.74 \\pm 0.72\\,\\mu\\text{s}$" in orig_changelog
+
+    # Negative Test 1: Replace SO-TPE RMSE 0.46691 with obsolete 0.4673 in the prospective Changelog row -> MUST FAIL
+    mut_obsolete_sotpe = orig_changelog.replace(
+        "Single-Objective TPE: test RMSE $0.46691 \\pm 0.00116$",
+        "Single-Objective TPE: test RMSE $0.4673 \\pm 0.00116$",
+        1,
+    )
+    assert mut_obsolete_sotpe != orig_changelog
+    changelog_path.write_text(mut_obsolete_sotpe, encoding="utf-8")
+    claim_errs_1 = validate_changelog_claims(ds_ws)
+    assert any("prospective_sotpe_summary" in e or "0.4673" in e for e in claim_errs_1)
+    ok_1, msg_1 = check_research_reporting(ds_ws)
+    assert not ok_1
+    assert "CHANGELOG.md" in msg_1
+    assert "0.4673" in msg_1 or "prospective_sotpe_summary" in msg_1
+    changelog_path.write_text(orig_changelog, encoding="utf-8")
+
+    # Negative Test 2: Swap DOE SO (150.74) and SO-TPE (188.93) latency values -> MUST FAIL even though both values are canonical
+    mut_swapped_lat = (
+        orig_changelog.replace("188.93 \\pm 12.07", "__TMP_LAT__", 1)
+        .replace("150.74 \\pm 0.72", "188.93 \\pm 12.07", 1)
+        .replace("__TMP_LAT__", "150.74 \\pm 0.72", 1)
+    )
+    assert mut_swapped_lat != orig_changelog
+    changelog_path.write_text(mut_swapped_lat, encoding="utf-8")
+    claim_errs_2 = validate_changelog_claims(ds_ws)
+    assert any("prospective_sotpe_summary" in e for e in claim_errs_2)
+    assert any("prospective_doe_so_summary" in e for e in claim_errs_2)
+    ok_2, msg_2 = check_research_reporting(ds_ws)
+    assert not ok_2
+    assert "CHANGELOG.md" in msg_2
+    assert "prospective_sotpe_summary" in msg_2
+    changelog_path.write_text(orig_changelog, encoding="utf-8")
+
+    # Negative Test 3: Corrupt a historical benchmark value while preserving its historical label -> MUST FAIL
+    assert "[HISTORICAL SPLIT-42 BASELINE: results/benchmark.csv]" in orig_changelog
+    mut_hist_corrupt = orig_changelog.replace(
+        "DOE $\\mathbf{x}^*_{\\text{SO}}$ (Depth 7) Test RMSE $0.4690$, median `predict` latency $147.84\\,\\mu\\text{s}$",
+        "DOE $\\mathbf{x}^*_{\\text{SO}}$ (Depth 7) Test RMSE $0.4668$, median `predict` latency $147.84\\,\\mu\\text{s}$",
+        1,
+    )
+    assert mut_hist_corrupt != orig_changelog
+    assert "[HISTORICAL SPLIT-42 BASELINE: results/benchmark.csv]" in mut_hist_corrupt
+    changelog_path.write_text(mut_hist_corrupt, encoding="utf-8")
+    claim_errs_3 = validate_changelog_claims(ds_ws)
+    assert any("historical_split42_so_comparison" in e or "0.4668" in e for e in claim_errs_3)
+    ok_3, msg_3 = check_research_reporting(ds_ws)
+    assert not ok_3
+    assert "CHANGELOG.md" in msg_3
+    assert "historical_split42_so_comparison" in msg_3 or "0.4668" in msg_3
+    changelog_path.write_text(orig_changelog, encoding="utf-8")
+
+    # Negative Test 4: Add a new numerical claim to the Changelog without a source mapping -> MUST FAIL
+    # Case 4a: Unmapped numerical claim appended inside an existing row
+    mut_unmapped_in_row = orig_changelog.replace(
+        "Guarantees zero test leakage;",
+        "Guarantees zero test leakage (auxiliary holdout drift 0.00412);",
+        1,
+    )
+    changelog_path.write_text(mut_unmapped_in_row, encoding="utf-8")
+    claim_errs_4a = validate_changelog_claims(ds_ws)
+    assert any("unmapped numerical claim" in e and "0.00412" in e for e in claim_errs_4a)
+    ok_4a, msg_4a = check_research_reporting(ds_ws)
+    assert not ok_4a
+    assert "0.00412" in msg_4a
+
+    # Case 4b: Unmapped extra table row or trailing numerical note added to CHANGELOG.md
+    mut_unmapped_row = (
+        orig_changelog
+        + "| **Unmapped Extra Benchmark** | Initial 0.5123 | **Final 0.4789** | Unmapped row |\n"
+    )
+    changelog_path.write_text(mut_unmapped_row, encoding="utf-8")
+    claim_errs_4b = validate_changelog_claims(ds_ws)
+    assert any("Unmapped numerical claim row" in e for e in claim_errs_4b)
+    ok_4b, msg_4b = check_research_reporting(ds_ws)
+    assert not ok_4b
+    assert "CHANGELOG.md" in msg_4b
+    changelog_path.write_text(orig_changelog, encoding="utf-8")
+
 
 

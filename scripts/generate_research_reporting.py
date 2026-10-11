@@ -1521,12 +1521,12 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "1. **Automatic File Discovery (`discover_scientific_and_documentation_files`)**: Scans the repository root, `docs/`, `tables/`, `results/macros.tex`, `results/revision_v2/scientific_audit_c1/`, and `plots.py` for all tracked scientific reports, validation documents, supplementary numerical analyses, tables, macros, provenance manifests, and figure scripts (`45` total artifacts discovered: `43` verified scientific artifacts + `2` justified exclusions).",
         "2. **Mandatory Registration & Fail-Closed Enforcement**: Every discovered file must be explicitly registered in `build_scientific_artifact_registry(ds)` with a declared verification mechanism. Any newly added or renamed scientific document lacking registration causes `verify_scientific_artifact_registry(ds)` and `check_research_reporting(ds)` to fail immediately.",
         "3. **Independent Verification by Mechanism**:",
-        "   - `generated_full_document` (18 files): Deterministically generated from `ReportingDataset` (`docs/scientific_claims_audit.md`, `docs/f_scientific_review_validation.md`, `docs/proposed_followup_experiments.md`, `docs/f1_final_audit_validation.md`, `docs/generated/scientific_results_manifest.json`, `results/macros.tex`, and all 12 `tables/tab_*.tex` tables). Verified by exact content comparison against canonical reconstruction.",
+        "   - `generated_full_document` (19 files): Deterministically generated from `ReportingDataset` (`CHANGELOG.md`, `docs/scientific_claims_audit.md`, `docs/f_scientific_review_validation.md`, `docs/proposed_followup_experiments.md`, `docs/f1_final_audit_validation.md`, `docs/generated/scientific_results_manifest.json`, `results/macros.tex`, and all 12 `tables/tab_*.tex` tables). Verified by exact content comparison against canonical reconstruction (plus row-and-context-bound claim validation for `CHANGELOG.md`).",
         "   - `generated_sections_with_zero_outside_floats` (1 file): `REPORT.md`, verified by exact section-marker reconstruction plus zero floating-point tokens permitted outside auto-generated blocks.",
         "   - `latex_macro_bound_zero_hardcoded_floats` (1 file): `report.tex`, verified by macro definition coverage (`results/macros.tex`) and zero unpermitted hardcoded empirical floats in prose.",
         "   - `compiled_pdf_verified` (1 file): `report.pdf`, verified for non-empty PDF header (`%PDF-`) and text-layer parity with `report.tex` / `REPORT.md` in `scripts/audit_scientific_consistency.py`.",
         "   - `cryptographic_sha256_provenance` (6 files): `docs/provenance/baseline_v1.0.0.json`, `docs/provenance/historical_desirability_selection.json`, and the 4 `tables/anova_*.csv` exports, verified by line-ending-normalized SHA-256 digests (`_file_matches_sha256`).",
-        "   - `claim_registry_verified` (16 files): Milestone C.1, D, D.1, D.2, and audit documents (`CHANGELOG.md`, `docs/c1_*.md`, `docs/d*.md`, `docs/full_experiment_plan.md`, `docs/progress.md`, `docs/scientific_audit.md`, `plots.py`, and `results/revision_v2/scientific_audit_c1/budget_reconciliation.json`). Verified against both (a) non-empty `required_claims` dynamically constructed from `ReportingDataset` and (b) the canonical floating-point vocabulary (`_build_canonical_float_vocabulary(ds)`) so any corrupted empirical number fails closed.",
+        "   - `claim_registry_verified` (15 files): Milestone C.1, D, D.1, D.2, and audit documents (`docs/c1_*.md`, `docs/d*.md`, `docs/full_experiment_plan.md`, `docs/progress.md`, `docs/scientific_audit.md`, `plots.py`, and `results/revision_v2/scientific_audit_c1/budget_reconciliation.json`). Verified against both (a) non-empty `required_claims` dynamically constructed from `ReportingDataset` and (b) the canonical floating-point vocabulary (`_build_canonical_float_vocabulary(ds)`) so any corrupted empirical number fails closed.",
         "   - `justified_exclusion` (2 files): Non-canonical/external historical records that are explicitly excluded from current empirical claim endorsement and locked by SHA-256 digest:",
         "     - `CODEX_REVIEW.md`: External reviewer handoff prompt pinned to historical commit `caf3a5bf59f2eae2541d3478d5fc370f0b339717` (2026-10-08); preserved verbatim as review provenance.",
         "     - `results_summary.json`: Pre-`v1.0.0` initial-commit (`4528425`) prototype summary ($m=5$ confirmation trials, pre-refactoring coding) superseded by `results/phase1.json`, `results/lof.json`, `results/diagnostics.json`, `results/phase3.json`, `results/confirmation.json`, and `results/benchmark_summary.json`; retained solely because `docs/provenance/baseline_v1.0.0.json` and `scripts/capture_provenance.py` record its historical hash.",
@@ -1546,16 +1546,16 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "",
         "## 5. Negative Mutation Tests and Final Verification Summary",
         "",
-        "`tests/test_reporting_integrity.py` enforces four mandatory repository-wide negative test scenarios:",
+        "`tests/test_reporting_integrity.py` enforces four mandatory repository-wide negative test scenarios plus four Changelog-specific context-bound negative tests:",
         "1. Introducing an unregistered scientific document (`new_scientific_audit.md` under `docs/`) containing empirical results fails `verify_scientific_artifact_registry` and `check_research_reporting`.",
         "2. Registering that document passes when all empirical values match `ReportingDataset`, and fails immediately when any empirical value is corrupted.",
-        "3. Corrupting any empirical value in `docs/f1_final_audit_validation.md`, `docs/scientific_claims_audit.md`, `docs/f_scientific_review_validation.md`, or `docs/proposed_followup_experiments.md` fails `check_research_reporting`.",
+        "3. Corrupting any empirical value in `docs/f1_final_audit_validation.md`, `CHANGELOG.md` (including replacing `0.46691` with `0.4673`, swapping `188.93` and `150.74` latencies, corrupting a `[HISTORICAL SPLIT-42 BASELINE]` value, or adding an unmapped number), `docs/scientific_claims_audit.md`, `docs/f_scientific_review_validation.md`, or `docs/proposed_followup_experiments.md` fails `check_research_reporting`.",
         "4. Corrupting any canonical source artifact in `results/` or `config.yaml` fails cryptographic SHA-256 (`verify_canonical_evidence_hashes`) and row-level reconstruction checks.",
         "",
         "| Verification Gate | Command | Result |",
         "| :--- | :--- | :--- |",
         "| LaTeX Artifacts Non-Mutating Check | `python scripts/generate_report_artifacts.py --check` | **PASSED** (`results/macros.tex` and 12 `tables/tab_*.tex` verified) |",
-        "| Full Research Reporting & Artifact Registry Check | `python scripts/generate_research_reporting.py --check` | **PASSED** (`REPORT.md`, manifest, all 43 verified scientific artifacts, and 2 justified exclusions verified) |",
+        "| Full Research Reporting & Artifact Registry Check | `python scripts/generate_research_reporting.py --check` | **PASSED** (`REPORT.md`, `CHANGELOG.md`, manifest, all 43 verified scientific artifacts, and 2 justified exclusions verified) |",
         "| Standalone Scientific Consistency Auditor | `python scripts/audit_scientific_consistency.py` | **PASSED** (40 SHA-256 evidence hashes + 65 manifest metrics + repository-wide artifact registry verified) |",
         "| Automated Pytest Suite (incl. Negative Coverage Tests) | `python -m pytest -q` | **PASSED** |",
         "| LaTeX Manuscript Compilation | `tectonic report.tex` | **PASSED** (`report.pdf` compiled and text-layer verified) |",
@@ -1565,6 +1565,603 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "",
     ]
     return "\n".join(lines)
+
+
+def build_changelog_claim_specifications(ds: Optional[ReportingDataset] = None) -> List[Dict[str, Any]]:
+    """Build the row-by-row, campaign-and-context-bound quantitative claim specifications for CHANGELOG.md."""
+    if ds is None:
+        ds = load_reporting_dataset()
+
+    p1 = ds.phase1
+    cs = ds.curvature_sensitivity
+    icc = ds.icc["Y1"]
+    lof_y1 = ds.lof["Y1"]
+    lof_rest = ds.lof["Y1_restricted"]
+    lat_models = {r["Model"]: r for r in ds.latency_models_df.to_dict(orient="records")}
+    lin_lat = lat_models["Linear (depth)"]
+    quad_lat = lat_models["Quadratic (depth + depth^2)"]
+    ccd_lat = lat_models["Full CCD Second-Order (All factors + Block)"]
+    f_x2_sq_lat = float(ds.anova_ccd_y2_df.loc["x2_sq", "F"])
+    diag = ds.diagnostics
+    p3 = ds.phase3
+    eigs = p3["eigenvalues"]
+    conf = ds.confirmation
+    so_conf = conf["Single_Objective_Optimum"]
+    hb_map = {r.raw_method: r for r in ds.historical_benchmarks}
+    hb_doe_mo = hb_map["Sequential DOE-CCD (x*, Multi-Objective)"]
+    hb_motpe = hb_map["Multi-Objective TPE (Desirability)"]
+    hb_doe_so = hb_map["Sequential DOE-CCD (Single-Objective)"]
+    hb_sotpe = hb_map["Bayesian Optimization (Optuna TPE Single-Obj)"]
+    hb_ctpe = hb_map["Constrained TPE (Latency <= 145 us)"]
+    hbs_hv = ds.historical_benchmark_summary["hypervolume"]
+    hbs_motpe_stat = ds.historical_benchmark_summary["paired_statistics"]["Multi-Objective TPE (Desirability)"]
+    doe_mo = ds.prospective_optimizers["repeated_preplanned_doe_multi_objective"]
+    mo_tpe = ds.prospective_optimizers["multi_objective_tpe"]
+    so_tpe = ds.prospective_optimizers["single_objective_tpe"]
+    doe_so = ds.prospective_optimizers["repeated_preplanned_doe_single_objective"]
+    c_tpe = ds.prospective_optimizers["constrained_tpe"]
+    hvs = ds.hv_summary
+    hpb = ds.holdout_pareto_bootstrap
+
+    rows: List[Dict[str, Any]] = [
+        {
+            "quantity": "**Data Partitioning & Test Set**",
+            "source_artifacts": ["config.yaml", "results/runs.csv"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Reshuffled 20,640 rows across seeds without a fixed external holdout partition",
+            "canonical_campaign": "canonical_v1_and_revision_v2",
+            "canonical_claims": [
+                (
+                    "partition_counts",
+                    "config.yaml",
+                    "Fixed External Holdout: 4,128 rows (20% of 20,640) strictly isolated; Development pool: 16,512 rows (80%) partitioned 75/25 into 12,384 training and 4,128 validation samples per block seed",
+                ),
+            ],
+            "canonical_cell": "**`[CURRENT CANONICAL: config.yaml, results/runs.csv]` Fixed External Holdout: 4,128 rows (20% of 20,640) strictly isolated; Development pool: 16,512 rows (80%) partitioned 75/25 into 12,384 training and 4,128 validation samples per block seed**",
+            "rationale_cell": "Guarantees zero test leakage; evaluation on fresh seeds measures genuine generalization on data never seen during design or tuning.",
+        },
+        {
+            "quantity": "**ICC (Block Effect on RMSE)**",
+            "source_artifacts": ["results/icc.json"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Unblocked or single-split variance attribution without mixed-effects REML/ANOVA decomposition",
+            "canonical_campaign": "canonical_v1",
+            "canonical_claims": [
+                (
+                    "icc_anova_reml",
+                    "results/icc.json",
+                    f"ICC = {icc['icc_anova']:.4f} (ANOVA) / {icc['icc_reml']:.4f} (REML) ($F = {icc['f_block']:.2f}, p < 0.0001$); block variance $\\sigma^2_{{\\text{{block}}}} = {icc['s2b_anova']*1e5:.2f}\\times 10^{{-5}}$ absorbs {icc['icc_anova']*100:.2f}% of residual variance",
+                ),
+            ],
+            "canonical_cell": f"**`[CURRENT v1.0.0 CANONICAL: results/icc.json]` ICC = {icc['icc_anova']:.4f} (ANOVA) / {icc['icc_reml']:.4f} (REML) ($F = {icc['f_block']:.2f}, p < 0.0001$); block variance $\\sigma^2_{{\\text{{block}}}} = {icc['s2b_anova']*1e5:.2f}\\times 10^{{-5}}$ absorbs {icc['icc_anova']*100:.2f}% of residual variance**",
+            "rationale_cell": "Blocks represent genuine data-partition splits of the development pool ($S_b$). Center replicates isolate within-block subsampling pure error ($15$ df).",
+        },
+        {
+            "quantity": "**$F_{\\text{Curvature}}$ (Phase 1)**",
+            "source_artifacts": ["results/phase1.json", "results/runs.csv"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Preliminary curvature test prior to multi-denominator sensitivity analysis",
+            "canonical_campaign": "canonical_v1_and_revision_v2",
+            "canonical_claims": [
+                (
+                    "phase1_curvature_center_pe",
+                    "results/phase1.json",
+                    f"Within-block center pure-error $F(1, 15) = {p1['f_curvature']:,.2f}$ ($\\bar{{y}}_F = {p1['yF_bar']:.4f}, \\bar{{y}}_C = {p1['yC_bar']:.4f}, \\text{{SS}}_{{\\text{{Curv}}}} = {p1['ss_curvature']:.6f}, \\text{{MS}}_{{\\text{{PE}}}} = {p1['ms_pe_center']*1e6:.2f}\\times 10^{{-6}}, \\text{{df}}=15$)",
+                ),
+                (
+                    "phase1_curvature_block_adj",
+                    "results/runs.csv",
+                    f"block-adjusted pooled coordinate error $F(1, 79) = {cs['f_block_adj_pooled']:,.2f}$ ($\\text{{MS}} = {cs['ms_block_adj_pooled']*1e5:.2f}\\times 10^{{-5}}, p < 10^{{-15}}$)",
+                ),
+            ],
+            "canonical_cell": (
+                f"**`[CURRENT CANONICAL: results/phase1.json, results/runs.csv]` "
+                f"Within-block center pure-error $F(1, 15) = {p1['f_curvature']:,.2f}$ ($\\bar{{y}}_F = {p1['yF_bar']:.4f}, \\bar{{y}}_C = {p1['yC_bar']:.4f}, \\text{{SS}}_{{\\text{{Curv}}}} = {p1['ss_curvature']:.6f}, \\text{{MS}}_{{\\text{{PE}}}} = {p1['ms_pe_center']*1e6:.2f}\\times 10^{{-6}}, \\text{{df}}=15$); "
+                f"block-adjusted pooled coordinate error $F(1, 79) = {cs['f_block_adj_pooled']:,.2f}$ ($\\text{{MS}} = {cs['ms_block_adj_pooled']*1e5:.2f}\\times 10^{{-5}}, p < 10^{{-15}}$)**"
+            ),
+            "rationale_cell": "Center points evaluated with distinct subsampling seeds within each block; null hypothesis of first-order planarity is rejected across all seven error denominators.",
+        },
+        {
+            "quantity": "**$R^2$ / Adj $R^2$ (Phase 2 RMSE)**",
+            "source_artifacts": ["results/runs.csv", "tables/anova_ccd_second_order_rmse.csv"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Preliminary second-order fit before finalizing 5-block 140-run FCCD matrix",
+            "canonical_campaign": "canonical_v1",
+            "canonical_claims": [
+                (
+                    "phase2_rmse_r2",
+                    "results/runs.csv",
+                    f"$R^2 = {ds.ccd_y1_rsq:.4f}$ / Adjusted $R^2 = {ds.ccd_y1_adj_rsq:.4f}$ across $N = 140$ blocked FCCD runs",
+                ),
+            ],
+            "canonical_cell": f"**`[CURRENT v1.0.0 CANONICAL: results/runs.csv]` $R^2 = {ds.ccd_y1_rsq:.4f}$ / Adjusted $R^2 = {ds.ccd_y1_adj_rsq:.4f}$ across $N = 140$ blocked FCCD runs**",
+            "rationale_cell": "Fitted on 12,384 training samples and evaluated on 4,128 validation samples per block across 25 coordinates in 5 blocks.",
+        },
+        {
+            "quantity": "**Lack of Fit $Y_1$ (RMSE)**",
+            "source_artifacts": ["results/lof.json"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Full-domain polynomial adequacy assumed without restricted-domain boundary decomposition",
+            "canonical_campaign": "canonical_v1",
+            "canonical_claims": [
+                (
+                    "lof_full_domain",
+                    "results/lof.json",
+                    f"Full Domain: $F(10, 111) = {lof_y1['F_LoF']:.2f}, p = {lof_y1['p_LoF']*1e41:.2f}\\times 10^{{-41}}$, $\\text{{SS}}_{{\\text{{LoF}}}} = {lof_y1['SS_LoF']:.6f}$, $\\text{{RMS Misfit}} = {lof_y1['sqrt_MS_LoF']:.4f}$",
+                ),
+                (
+                    "lof_restricted_domain",
+                    "results/lof.json",
+                    f"Restricted Domain ($x_1 \\ge -0.5$): {lof_rest['ss_lof_reduction_pct']:.2f}% reduction in $\\text{{SS}}_{{\\text{{LoF}}}}$ (${lof_y1['SS_LoF']:.6f} \\to {lof_rest['SS_LoF']:.6f}, F(2, 75) = {lof_rest['F_LoF']:.2f}, p = {lof_rest['p_LoF']:.5f}$)",
+                ),
+            ],
+            "canonical_cell": (
+                f"**`[CURRENT v1.0.0 CANONICAL: results/lof.json]` "
+                f"Full Domain: $F(10, 111) = {lof_y1['F_LoF']:.2f}, p = {lof_y1['p_LoF']*1e41:.2f}\\times 10^{{-41}}$, $\\text{{SS}}_{{\\text{{LoF}}}} = {lof_y1['SS_LoF']:.6f}$, $\\text{{RMS Misfit}} = {lof_y1['sqrt_MS_LoF']:.4f}$; "
+                f"Restricted Domain ($x_1 \\ge -0.5$): {lof_rest['ss_lof_reduction_pct']:.2f}% reduction in $\\text{{SS}}_{{\\text{{LoF}}}}$ (${lof_y1['SS_LoF']:.6f} \\to {lof_rest['SS_LoF']:.6f}, F(2, 75) = {lof_rest['F_LoF']:.2f}, p = {lof_rest['p_LoF']:.5f}$)**"
+            ),
+            "rationale_cell": "Polynomial deficiency is primarily driven by severe underfitting at $\\eta=0.01$ ($x_1=-1$) where 100 trees do not converge.",
+        },
+        {
+            "quantity": "**Latency Model Dynamics**",
+            "source_artifacts": ["results/latency_modeling.json", "tables/anova_ccd_second_order_latency.csv", "results/confirmation.json"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Linear latency scaling in tree depth assumed without quadratic tree-traversal term",
+            "canonical_campaign": "canonical_v1",
+            "canonical_claims": [
+                (
+                    "latency_quad_vs_lin_r2",
+                    "results/latency_modeling.json",
+                    f"Quadratic depth profile ($R^2 = {quad_lat['R2']:.4f}$ vs. ${lin_lat['R2']:.4f}$ for linear depth; Full CCD $R^2 = {ccd_lat['R2']:.4f}$)",
+                ),
+                (
+                    "latency_x2_sq_anova_f",
+                    "tables/anova_ccd_second_order_latency.csv",
+                    f"$x_2^2$ ANOVA $F(1, 121) = {f_x2_sq_lat:.2f}$",
+                ),
+                (
+                    "latency_inplace_confirm",
+                    "results/confirmation.json",
+                    f"`inplace_predict` confirmation runtime ${conf['Y2_Latency']['empirical_inplace_mean']:.2f} \\pm {conf['Y2_Latency']['empirical_inplace_std']:.2f}\\,\\mu\\text{{s}}$",
+                ),
+            ],
+            "canonical_cell": (
+                f"**`[CURRENT v1.0.0 CANONICAL: results/latency_modeling.json, tables/anova_ccd_second_order_latency.csv, results/confirmation.json]` "
+                f"Quadratic depth profile ($R^2 = {quad_lat['R2']:.4f}$ vs. ${lin_lat['R2']:.4f}$ for linear depth; Full CCD $R^2 = {ccd_lat['R2']:.4f}$), "
+                f"$x_2^2$ ANOVA $F(1, 121) = {f_x2_sq_lat:.2f}$, "
+                f"`inplace_predict` confirmation runtime ${conf['Y2_Latency']['empirical_inplace_mean']:.2f} \\pm {conf['Y2_Latency']['empirical_inplace_std']:.2f}\\,\\mu\\text{{s}}$**"
+            ),
+            "rationale_cell": "Exponential leaf growth ($2^d$) causes super-linear latency scaling across deeper trees alongside Python/DataFrame wrapper overhead.",
+        },
+        {
+            "quantity": "**Residual Diagnostics & Heteroscedasticity**",
+            "source_artifacts": ["results/diagnostics.json"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Classical OLS inference reported without HC3 heteroscedasticity-consistent standard errors",
+            "canonical_campaign": "canonical_v1",
+            "canonical_claims": [
+                (
+                    "diagnostics_normality_homoscedasticity",
+                    "results/diagnostics.json",
+                    f"Shapiro-Wilk $W = {diag['shapiro_W']:.4f}, p = {diag['shapiro_p']:.4f}$; Block Levene $W = {diag['levene_stat']:.4f}, p = {diag['levene_p']:.4f}$; Coordinate Brown-Forsythe $W = {diag['brown_forsythe_points_stat']:.4f}, p = {diag['brown_forsythe_points_p']:.4f}$; Breusch-Pagan $\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p = {diag['breusch_pagan_p']*1e8:.2f}\\times 10^{{-8}}$ ($p < 0.0001$ under HC3)",
+                ),
+            ],
+            "canonical_cell": f"**`[CURRENT v1.0.0 CANONICAL: results/diagnostics.json]` Shapiro-Wilk $W = {diag['shapiro_W']:.4f}, p = {diag['shapiro_p']:.4f}$; Block Levene $W = {diag['levene_stat']:.4f}, p = {diag['levene_p']:.4f}$; Coordinate Brown-Forsythe $W = {diag['brown_forsythe_points_stat']:.4f}, p = {diag['brown_forsythe_points_p']:.4f}$; Breusch-Pagan $\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p = {diag['breusch_pagan_p']*1e8:.2f}\\times 10^{{-8}}$ ($p < 0.0001$ under HC3)**",
+            "rationale_cell": "Block Levene confirms variance stability across blocks while Breusch-Pagan detects continuous scale compression at higher learning rates; HC3 robust SEs confirm all primary ANOVA effects.",
+        },
+        {
+            "quantity": "**Independence / Serial Drift**",
+            "source_artifacts": ["results/diagnostics.json"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Durbin-Watson statistic reported without Ljung-Box or non-parametric runs testing",
+            "canonical_campaign": "canonical_v1",
+            "canonical_claims": [
+                (
+                    "diagnostics_serial_independence",
+                    "results/diagnostics.json",
+                    f"Durbin-Watson $\\text{{DW}} = {diag['durbin_watson']:.4f}$; Ljung-Box $Q(5) = {diag['ljung_box_stat']:.2f}, p = {diag['ljung_box_p']:.4f}$; Runs test $p = {diag['runs_test_p']:.4f}$",
+                ),
+            ],
+            "canonical_cell": f"**`[CURRENT v1.0.0 CANONICAL: results/diagnostics.json]` Durbin-Watson $\\text{{DW}} = {diag['durbin_watson']:.4f}$; Ljung-Box $Q(5) = {diag['ljung_box_stat']:.2f}, p = {diag['ljung_box_p']:.4f}$; Runs test $p = {diag['runs_test_p']:.4f}$**",
+            "rationale_cell": "Triple confirmation of zero serial autocorrelation or thermal execution drift across randomized run order.",
+        },
+        {
+            "quantity": "**Canonical Eigenvalues & Ridge**",
+            "source_artifacts": ["results/phase3.json"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Point eigenvalue estimates reported as an isolated bowl without bootstrap sign stability",
+            "canonical_campaign": "canonical_v1",
+            "canonical_claims": [
+                (
+                    "phase3_canonical_eigenvalues",
+                    "results/phase3.json",
+                    f"$\\lambda = [{eigs[0]:.6f}, {eigs[1]:.6f}, {eigs[2]:.6f}, {eigs[3]:.6f}]$, $\\text{{trace}}(\\mathbf{{B}}) = {p3['trace_B']:.6f}$; wild bootstrap: {p3['fraction_min_eigenvalue_le_zero']*100:.2f}% ({p3['fraction_min_eigenvalue_le_zero']*100:.1f}%) of replicates have $\\min(\\lambda) \\le 0$",
+                ),
+            ],
+            "canonical_cell": f"**`[CURRENT v1.0.0 CANONICAL: results/phase3.json]` $\\lambda = [{eigs[0]:.6f}, {eigs[1]:.6f}, {eigs[2]:.6f}, {eigs[3]:.6f}]$, $\\text{{trace}}(\\mathbf{{B}}) = {p3['trace_B']:.6f}$; wild bootstrap: {p3['fraction_min_eigenvalue_le_zero']*100:.2f}% ({p3['fraction_min_eigenvalue_le_zero']*100:.1f}%) of replicates have $\\min(\\lambda) \\le 0$**",
+            "rationale_cell": "Classifies the fitted surface as a stationary/rising ridge system where curvature along subsample ($x_3$) and regularization ($x_4$) is near zero.",
+        },
+        {
+            "quantity": "**Single-Objective Optimum (Depth 7)**",
+            "source_artifacts": ["results/confirmation.json", "results/confirmation_runs_single_obj.csv"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [
+                (
+                    "so_surrogate_predicted_val_rmse",
+                    "results/confirmation.json",
+                    f"predicted $\\hat{{y}} = {so_conf['predicted_val_rmse']:.4f}$",
+                ),
+            ],
+            "historical_cell": f"`[HISTORICAL PROTOTYPE: results/confirmation.json]` Untested stationary-ridge boundary optimum ($\\mathbf{{x}}^*_{{\\text{{SO}}}}$, Depth 7) with predicted $\\hat{{y}} = {so_conf['predicted_val_rmse']:.4f}$",
+            "canonical_campaign": "canonical_v1",
+            "canonical_claims": [
+                (
+                    "so_confirmation_metrics",
+                    "results/confirmation.json",
+                    f"Empirical confirmation ($m=10$, seeds 505..1414): Val RMSE ${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$ (95% PI $[{so_conf['prediction_interval_95_val'][0]:.4f}, {so_conf['prediction_interval_95_val'][1]:.4f}]$, bias $+{so_conf['empirical_val_rmse'] - so_conf['predicted_val_rmse']:.4f}$), Test RMSE ${so_conf['empirical_test_rmse']:.4f} \\pm {so_conf['empirical_test_std']:.4f}$, `predict` latency ${so_conf['empirical_latency']:.2f} \\pm {so_conf['empirical_latency_std']:.2f}\\,\\mu\\text{{s}}$ (predicted ${so_conf['predicted_latency']:.2f}\\,\\mu\\text{{s}}$, 95% PI $[{so_conf['prediction_interval_95_lat'][0]:.2f}, {so_conf['prediction_interval_95_lat'][1]:.2f}]\\,\\mu\\text{{s}}$)",
+                ),
+            ],
+            "canonical_cell": f"**`[CURRENT v1.0.0 CANONICAL: results/confirmation.json]` Empirical confirmation ($m=10$, seeds 505..1414): Val RMSE ${so_conf['empirical_val_rmse']:.4f} \\pm {so_conf['empirical_val_std']:.4f}$ (95% PI $[{so_conf['prediction_interval_95_val'][0]:.4f}, {so_conf['prediction_interval_95_val'][1]:.4f}]$, bias $+{so_conf['empirical_val_rmse'] - so_conf['predicted_val_rmse']:.4f}$), Test RMSE ${so_conf['empirical_test_rmse']:.4f} \\pm {so_conf['empirical_test_std']:.4f}$, `predict` latency ${so_conf['empirical_latency']:.2f} \\pm {so_conf['empirical_latency_std']:.2f}\\,\\mu\\text{{s}}$ (predicted ${so_conf['predicted_latency']:.2f}\\,\\mu\\text{{s}}$, 95% PI $[{so_conf['prediction_interval_95_lat'][0]:.2f}, {so_conf['prediction_interval_95_lat'][1]:.2f}]\\,\\mu\\text{{s}}$)**",
+            "rationale_cell": "Boundary polynomial optimism bias is bounded by the global lack-of-fit RMS scale and motivates multi-objective interior desirability selection.",
+        },
+        {
+            "quantity": "**Multi-Objective Optimum $\\mathbf{x}^*$ Confirmation**",
+            "source_artifacts": ["results/confirmation.json", "results/confirmation_runs.csv"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Unadjusted prediction intervals omitted random block variance $\\sigma^2_{\\text{block}}(1/m + 1/5)$",
+            "canonical_campaign": "canonical_v1",
+            "canonical_claims": [
+                (
+                    "mo_confirmation_metrics",
+                    "results/confirmation.json",
+                    f"Val RMSE ${conf['Y1_Val_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Val_RMSE']['empirical_std']:.4f}$ inside 95% PI $[{conf['Y1_Val_RMSE']['prediction_interval_95'][0]:.4f}, {conf['Y1_Val_RMSE']['prediction_interval_95'][1]:.4f}]$ (predicted ${conf['Y1_Val_RMSE']['predicted_mean']:.4f}$, Pass); `predict` latency ${conf['Y2_Latency']['empirical_mean']:.2f} \\pm {conf['Y2_Latency']['empirical_std']:.2f}\\,\\mu\\text{{s}}$ inside 95% PI $[{conf['Y2_Latency']['prediction_interval_95'][0]:.2f}, {conf['Y2_Latency']['prediction_interval_95'][1]:.2f}]\\,\\mu\\text{{s}}$ (predicted ${conf['Y2_Latency']['predicted_mean']:.2f}\\,\\mu\\text{{s}}$, Pass); Test RMSE ${conf['Y1_Test_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Test_RMSE']['empirical_std']:.4f}$",
+                ),
+            ],
+            "canonical_cell": f"**`[CURRENT v1.0.0 CANONICAL: results/confirmation.json]` Val RMSE ${conf['Y1_Val_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Val_RMSE']['empirical_std']:.4f}$ inside 95% PI $[{conf['Y1_Val_RMSE']['prediction_interval_95'][0]:.4f}, {conf['Y1_Val_RMSE']['prediction_interval_95'][1]:.4f}]$ (predicted ${conf['Y1_Val_RMSE']['predicted_mean']:.4f}$, Pass); `predict` latency ${conf['Y2_Latency']['empirical_mean']:.2f} \\pm {conf['Y2_Latency']['empirical_std']:.2f}\\,\\mu\\text{{s}}$ inside 95% PI $[{conf['Y2_Latency']['prediction_interval_95'][0]:.2f}, {conf['Y2_Latency']['prediction_interval_95'][1]:.2f}]\\,\\mu\\text{{s}}$ (predicted ${conf['Y2_Latency']['predicted_mean']:.2f}\\,\\mu\\text{{s}}$, Pass); Test RMSE ${conf['Y1_Test_RMSE']['empirical_mean']:.4f} \\pm {conf['Y1_Test_RMSE']['empirical_std']:.4f}$**",
+            "rationale_cell": "Satterthwaite prediction interval incorporates random block variance for unseen data partitions under unified core-pinned latency profiling.",
+        },
+        {
+            "quantity": "**Desirability Formulation**",
+            "source_artifacts": ["config.yaml", "results/desirability_sensitivity.csv"],
+            "historical_campaign": "historical_prototype",
+            "historical_claims": [],
+            "historical_cell": "`[HISTORICAL PROTOTYPE]` Implicit weights and undocumented desirability bounds",
+            "canonical_campaign": "canonical_v1",
+            "canonical_claims": [
+                (
+                    "desirability_bounds_and_weights",
+                    "config.yaml",
+                    "Explicit weights $(w_1, w_2) = (1, 1)$, $D = (d_1^{w_1} d_2^{w_2})^{1/(w_1+w_2)}$; limits $L_1 = 0.45, U_1 = 0.70$, $L_2 = 100, U_2 = 180\\,\\mu\\text{s}$",
+                ),
+            ],
+            "canonical_cell": "**`[CURRENT v1.0.0 CANONICAL: config.yaml, results/desirability_sensitivity.csv]` Explicit weights $(w_1, w_2) = (1, 1)$, $D = (d_1^{w_1} d_2^{w_2})^{1/(w_1+w_2)}$; limits $L_1 = 0.45, U_1 = 0.70$, $L_2 = 100, U_2 = 180\\,\\mu\\text{s}$**",
+            "rationale_cell": "Documented sensitivity analysis over alternative weightings $(1, 2)$ and $(2, 1)$ and latency thresholds in `tables/tab_desirability_sensitivity.tex`.",
+        },
+        {
+            "quantity": "**Benchmark: Multi-Objective TPE Comparison**",
+            "source_artifacts": [
+                "results/benchmark.csv",
+                "results/benchmark_summary.json",
+                "results/revision_v2/full_run_001/final_summary.csv",
+                "results/revision_v2/full_run_001/doe_selection_summary.json",
+                "results/revision_v2/full_run_001/optimizer_summary.json",
+                "results/revision_v2/full_run_001/hypervolume.json",
+            ],
+            "historical_campaign": "historical_split42_v1",
+            "historical_claims": [
+                (
+                    "historical_split42_doe_mo",
+                    "results/benchmark.csv",
+                    f"DOE $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ Test RMSE ${hb_doe_mo.test_rmse_mean:.4f}$, median `predict` latency ${hb_doe_mo.predict_latency_us_median:.2f}\\,\\mu\\text{{s}}$",
+                ),
+                (
+                    "historical_split42_motpe",
+                    "results/benchmark.csv",
+                    f"MO-TPE Test RMSE ${hb_motpe.test_rmse_mean:.4f}$, median `predict` latency ${hb_motpe.predict_latency_us_median:.2f}\\,\\mu\\text{{s}}$",
+                ),
+                (
+                    "historical_split42_motpe_stats_and_hv",
+                    "results/benchmark_summary.json",
+                    f"paired $t = {hbs_motpe_stat['paired_t_stat']:.2f}, p = {hbs_motpe_stat['paired_t_pvalue']:.4f}$; Two-Point DOE HV ${hbs_hv['hv_doe_two']:.2f}$ / Single-Point DOE HV ${hbs_hv['hv_doe_single']:.2f}$ vs. MO-TPE HV ${hbs_hv['hv_motpe']:.2f}$",
+                ),
+            ],
+            "historical_cell": (
+                f"`[HISTORICAL SPLIT-42 BASELINE: results/benchmark.csv, results/benchmark_summary.json]` "
+                f"Single-search Split-42 evaluation across 20 shared seeds (2001..2020): "
+                f"DOE $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ Test RMSE ${hb_doe_mo.test_rmse_mean:.4f}$, median `predict` latency ${hb_doe_mo.predict_latency_us_median:.2f}\\,\\mu\\text{{s}}$ vs. "
+                f"MO-TPE Test RMSE ${hb_motpe.test_rmse_mean:.4f}$, median `predict` latency ${hb_motpe.predict_latency_us_median:.2f}\\,\\mu\\text{{s}}$ "
+                f"(paired $t = {hbs_motpe_stat['paired_t_stat']:.2f}, p = {hbs_motpe_stat['paired_t_pvalue']:.4f}$; Two-Point DOE HV ${hbs_hv['hv_doe_two']:.2f}$ / Single-Point DOE HV ${hbs_hv['hv_doe_single']:.2f}$ vs. MO-TPE HV ${hbs_hv['hv_motpe']:.2f}$)"
+            ),
+            "canonical_campaign": "prospective_revision_v2",
+            "canonical_claims": [
+                (
+                    "prospective_doe_mo_summary",
+                    "results/revision_v2/full_run_001/doe_selection_summary.json",
+                    f"Repeated DOE MO: test RMSE ${doe_mo.test_rmse_mean:.5f} \\pm {doe_mo.test_rmse_sd:.5f}$, `predict` latency ${doe_mo.predict_latency_mean:.2f} \\pm {doe_mo.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$",
+                ),
+                (
+                    "prospective_motpe_summary",
+                    "results/revision_v2/full_run_001/optimizer_summary.json",
+                    f"MO-TPE: test RMSE ${mo_tpe.test_rmse_mean:.5f} \\pm {mo_tpe.test_rmse_sd:.5f}$, `predict` latency ${mo_tpe.predict_latency_mean:.2f} \\pm {mo_tpe.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$",
+                ),
+                (
+                    "prospective_doe_mo_vs_motpe_inference",
+                    "results/revision_v2/full_run_001/final_summary.csv",
+                    f"Welch $\\Delta = {ds.doe_mo_vs_motpe_diff:+.5f}, t = {ds.doe_mo_vs_motpe_welch_t:.4f}, p = {ds.doe_mo_vs_motpe_welch_p:.4f}$; index-paired $t = {ds.doe_mo_vs_motpe_paired_t:.3f}, p = {ds.doe_mo_vs_motpe_paired_p:.4f}$; Holdout Pareto HV ${hvs['holdout_frozen_060']:.4f}$ (seed-bootstrap ${hpb['seed_only_060_mean']:.4f} \\pm {hpb['seed_only_060_sd']:.4f}$)",
+                ),
+            ],
+            "canonical_cell": (
+                f"**`[CURRENT REVISION-v2 CANONICAL: final_summary.csv, doe_selection_summary.json, optimizer_summary.json, hypervolume.json]` "
+                f"Prospective 20-replicate campaign: "
+                f"Repeated DOE MO: test RMSE ${doe_mo.test_rmse_mean:.5f} \\pm {doe_mo.test_rmse_sd:.5f}$, `predict` latency ${doe_mo.predict_latency_mean:.2f} \\pm {doe_mo.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$ vs. "
+                f"MO-TPE: test RMSE ${mo_tpe.test_rmse_mean:.5f} \\pm {mo_tpe.test_rmse_sd:.5f}$, `predict` latency ${mo_tpe.predict_latency_mean:.2f} \\pm {mo_tpe.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$ "
+                f"(Welch $\\Delta = {ds.doe_mo_vs_motpe_diff:+.5f}, t = {ds.doe_mo_vs_motpe_welch_t:.4f}, p = {ds.doe_mo_vs_motpe_welch_p:.4f}$; index-paired $t = {ds.doe_mo_vs_motpe_paired_t:.3f}, p = {ds.doe_mo_vs_motpe_paired_p:.4f}$; Holdout Pareto HV ${hvs['holdout_frozen_060']:.4f}$ (seed-bootstrap ${hpb['seed_only_060_mean']:.4f} \\pm {hpb['seed_only_060_sd']:.4f}$))**"
+            ),
+            "rationale_cell": "Preserves single-search Split-42 baseline observations separately from the 20-replicate prospective campaign; between-search RMSE difference is descriptive and not statistically significant.",
+        },
+        {
+            "quantity": "**Benchmark: Single-Objective TPE Comparison**",
+            "source_artifacts": [
+                "results/benchmark.csv",
+                "results/revision_v2/full_run_001/optimizer_summary.json",
+                "results/revision_v2/full_run_001/doe_selection_summary.json",
+                "results/revision_v2/full_run_001/final_summary.csv",
+            ],
+            "historical_campaign": "historical_split42_v1",
+            "historical_claims": [
+                (
+                    "historical_split42_doe_so",
+                    "results/benchmark.csv",
+                    f"DOE $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ (Depth 7) Test RMSE ${hb_doe_so.test_rmse_mean:.4f}$, median `predict` latency ${hb_doe_so.predict_latency_us_median:.2f}\\,\\mu\\text{{s}}$",
+                ),
+                (
+                    "historical_split42_sotpe",
+                    "results/benchmark.csv",
+                    f"Single-Obj TPE (Depth 9) Test RMSE ${hb_sotpe.test_rmse_mean:.4f}$, median `predict` latency ${hb_sotpe.predict_latency_us_median:.2f}\\,\\mu\\text{{s}}$",
+                ),
+            ],
+            "historical_cell": (
+                f"`[HISTORICAL SPLIT-42 BASELINE: results/benchmark.csv]` "
+                f"Single-search Split-42 evaluation across 20 shared seeds (2001..2020): "
+                f"DOE $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ (Depth 7) Test RMSE ${hb_doe_so.test_rmse_mean:.4f}$, median `predict` latency ${hb_doe_so.predict_latency_us_median:.2f}\\,\\mu\\text{{s}}$ vs. "
+                f"Single-Obj TPE (Depth 9) Test RMSE ${hb_sotpe.test_rmse_mean:.4f}$, median `predict` latency ${hb_sotpe.predict_latency_us_median:.2f}\\,\\mu\\text{{s}}$"
+            ),
+            "canonical_campaign": "prospective_revision_v2",
+            "canonical_claims": [
+                (
+                    "prospective_sotpe_summary",
+                    "results/revision_v2/full_run_001/optimizer_summary.json",
+                    f"Single-Objective TPE: test RMSE ${so_tpe.test_rmse_mean:.5f} \\pm {so_tpe.test_rmse_sd:.5f}$, `predict` latency ${so_tpe.predict_latency_mean:.2f} \\pm {so_tpe.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$",
+                ),
+                (
+                    "prospective_doe_so_summary",
+                    "results/revision_v2/full_run_001/doe_selection_summary.json",
+                    f"Repeated DOE Single-Objective: test RMSE ${doe_so.test_rmse_mean:.5f} \\pm {doe_so.test_rmse_sd:.5f}$ (conditional retraining SD ${doe_so.retrain_sd:.5f}$), `predict` latency ${doe_so.predict_latency_mean:.2f} \\pm {doe_so.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$",
+                ),
+            ],
+            "canonical_cell": (
+                f"**`[CURRENT REVISION-v2 CANONICAL: optimizer_summary.json, doe_selection_summary.json, final_summary.csv]` "
+                f"Prospective 20-replicate campaign: "
+                f"Single-Objective TPE: test RMSE ${so_tpe.test_rmse_mean:.5f} \\pm {so_tpe.test_rmse_sd:.5f}$, `predict` latency ${so_tpe.predict_latency_mean:.2f} \\pm {so_tpe.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$; "
+                f"Repeated DOE Single-Objective: test RMSE ${doe_so.test_rmse_mean:.5f} \\pm {doe_so.test_rmse_sd:.5f}$ (conditional retraining SD ${doe_so.retrain_sd:.5f}$), `predict` latency ${doe_so.predict_latency_mean:.2f} \\pm {doe_so.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$**"
+            ),
+            "rationale_cell": "Separates historical single-search Split-42 observations from the 20-replicate prospective campaign; SO-TPE achieves lower unconstrained RMSE at higher tree depth and latency.",
+        },
+        {
+            "quantity": "**Constrained TPE ($\\le 145\\ \\mu$s)**",
+            "source_artifacts": [
+                "results/benchmark.csv",
+                "results/revision_v2/full_run_001/finalized_selections.json",
+                "results/revision_v2/full_run_001/final_summary.csv",
+            ],
+            "historical_campaign": "historical_split42_v1",
+            "historical_claims": [
+                (
+                    "historical_split42_ctpe",
+                    "results/benchmark.csv",
+                    f"Depth 5, Test RMSE ${hb_ctpe.test_rmse_mean:.4f}$, median `predict` latency ${hb_ctpe.predict_latency_us_median:.2f}\\,\\mu\\text{{s}}$, median `inplace_predict` latency ${hb_ctpe.inplace_latency_us_median:.2f}\\,\\mu\\text{{s}}$",
+                ),
+            ],
+            "historical_cell": (
+                f"`[HISTORICAL SPLIT-42 BASELINE: results/benchmark.csv]` "
+                f"Single-search Split-42 evaluation across 20 shared seeds (2001..2020): "
+                f"Depth 5, Test RMSE ${hb_ctpe.test_rmse_mean:.4f}$, median `predict` latency ${hb_ctpe.predict_latency_us_median:.2f}\\,\\mu\\text{{s}}$, median `inplace_predict` latency ${hb_ctpe.inplace_latency_us_median:.2f}\\,\\mu\\text{{s}}$"
+            ),
+            "canonical_campaign": "prospective_revision_v2",
+            "canonical_claims": [
+                (
+                    "prospective_ctpe_overall",
+                    "results/revision_v2/full_run_001/final_summary.csv",
+                    f"Constrained TPE: test RMSE ${c_tpe.test_rmse_mean:.5f} \\pm {c_tpe.test_rmse_sd:.5f}$, `predict` latency ${c_tpe.predict_latency_mean:.2f} \\pm {c_tpe.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$ ($20/20 = 100\\%$ search feasible, $9/20 = 45\\%$ benchmark feasible)",
+                ),
+                (
+                    "prospective_ctpe_depth_stratified",
+                    "results/revision_v2/full_run_001/finalized_selections.json",
+                    f"Depth 6 ($n=9$): $9/9$ feasible at ${ds.ctpe_depth6_latency_mean:.2f} \\pm {ds.ctpe_depth6_latency_sd:.2f}\\,\\mu\\text{{s}}$; Depth 7 ($n=11$): $0/11$ feasible at ${ds.ctpe_depth7_latency_mean:.2f} \\pm {ds.ctpe_depth7_latency_sd:.2f}\\,\\mu\\text{{s}}$",
+                ),
+            ],
+            "canonical_cell": (
+                f"**`[CURRENT REVISION-v2 CANONICAL: finalized_selections.json, final_summary.csv]` "
+                f"Prospective 20-replicate campaign: "
+                f"Constrained TPE: test RMSE ${c_tpe.test_rmse_mean:.5f} \\pm {c_tpe.test_rmse_sd:.5f}$, `predict` latency ${c_tpe.predict_latency_mean:.2f} \\pm {c_tpe.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$ ($20/20 = 100\\%$ search feasible, $9/20 = 45\\%$ benchmark feasible); "
+                f"Depth 6 ($n=9$): $9/9$ feasible at ${ds.ctpe_depth6_latency_mean:.2f} \\pm {ds.ctpe_depth6_latency_sd:.2f}\\,\\mu\\text{{s}}$; Depth 7 ($n=11$): $0/11$ feasible at ${ds.ctpe_depth7_latency_mean:.2f} \\pm {ds.ctpe_depth7_latency_sd:.2f}\\,\\mu\\text{{s}}$**"
+            ),
+            "rationale_cell": "Validates constrained baseline under the 5-session 1,000-call benchmark protocol and stratifies feasibility by selected tree depth.",
+        },
+        {
+            "quantity": "**Operating System & Platform**",
+            "source_artifacts": ["results/env.json", "results/revision_v2/full_run_001/provenance.json"],
+            "historical_campaign": "historical_v1_env",
+            "historical_claims": [
+                (
+                    "historical_v1_env_spec",
+                    "results/env.json",
+                    f"`{ds.env['platform']}`, `{ds.env['cpu_model']}`, Python `{ds.env['python_version']}`, XGBoost `{ds.env['packages']['xgboost']}`",
+                ),
+            ],
+            "historical_cell": f"`[HISTORICAL v1.0.0 BASELINE: results/env.json]` `{ds.env['platform']}`, `{ds.env['cpu_model']}`, Python `{ds.env['python_version']}`, XGBoost `{ds.env['packages']['xgboost']}`",
+            "canonical_campaign": "prospective_revision_v2",
+            "canonical_claims": [
+                (
+                    "prospective_revision_v2_env_spec",
+                    "results/revision_v2/full_run_001/provenance.json",
+                    f"Prospective campaign (`Revision-v2`): `Intel Core i7-12650H`, Python `{ds.env['python_version']}`, XGBoost `{ds.env['packages']['xgboost']}`",
+                ),
+            ],
+            "canonical_cell": f"**`[CURRENT REVISION-v2 CANONICAL: results/revision_v2/full_run_001/provenance.json]` Prospective campaign (`Revision-v2`): `Intel Core i7-12650H`, Python `{ds.env['python_version']}`, XGBoost `{ds.env['packages']['xgboost']}`**",
+            "rationale_cell": "Records both the historical `v1.0.0` baseline environment (`results/env.json`) and the prospective `Revision-v2` campaign provenance (`results/revision_v2/full_run_001/provenance.json`).",
+        },
+    ]
+    return rows
+
+
+def render_changelog(ds: Optional[ReportingDataset] = None) -> str:
+    """Deterministically render CHANGELOG.md from ReportingDataset with explicit campaign labels and source mappings."""
+    if ds is None:
+        ds = load_reporting_dataset()
+    rows = build_changelog_claim_specifications(ds)
+    lines = [
+        "# CHANGELOG: Statistical Remediation and Verification Ledger",
+        "",
+        "This ledger documents the historical baseline/prototype observations and the current canonical verified values across all rounds of statistical and methodological remediation. Every row is deterministically generated from `ReportingDataset` (`scripts/reporting_data.py`) and bound to explicit canonical artifacts in `results/`, `tables/`, and `config.yaml`.",
+        "",
+        "| Quantity | Initial / Historical Observation | Final Verified Canonical Value | Reason for Change |",
+        "| :--- | :--- | :--- | :--- |",
+    ]
+    for r in rows:
+        lines.append(
+            f"| {r['quantity']} | {r['historical_cell']} | {r['canonical_cell']} | {r['rationale_cell']} |"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def validate_changelog_claims(ds: Optional[ReportingDataset] = None, changelog_text: Optional[str] = None) -> List[str]:
+    """Validate every quantitative claim in CHANGELOG.md against its specific canonical artifact, metric, campaign, and reporting context."""
+    if ds is None:
+        ds = load_reporting_dataset()
+    if changelog_text is None:
+        changelog_path = ds.root_dir / "CHANGELOG.md"
+        if not changelog_path.is_file():
+            return ["Missing required file: CHANGELOG.md"]
+        changelog_text = changelog_path.read_text(encoding="utf-8")
+
+    errors: List[str] = []
+    specs = build_changelog_claim_specifications(ds)
+    spec_by_qty = {r["quantity"]: r for r in specs}
+
+    table_lines: List[str] = []
+    non_table_lines: List[str] = []
+    for line in changelog_text.splitlines():
+        if line.strip().startswith("|"):
+            table_lines.append(line.strip())
+        else:
+            non_table_lines.append(line)
+
+    # 1. Reject any floating-point claim added outside the mapped table rows
+    outside_text = "\n".join(non_table_lines)
+    outside_floats = re.findall(r"\b\d+\.\d+\b", outside_text)
+    if outside_floats:
+        errors.append(
+            f"Unmapped numerical claim outside table in CHANGELOG.md (lacks canonical source mapping): {outside_floats}"
+        )
+
+    # 2. Parse Markdown table data rows (skipping header and alignment rows)
+    data_rows: List[List[str]] = []
+    for tline in table_lines:
+        cells = [c.strip() for c in tline.strip("|").split("|")]
+        if len(cells) != 4:
+            errors.append(f"Malformed table row in CHANGELOG.md (expected 4 columns, got {len(cells)}): {tline}")
+            continue
+        if cells[0] == "Quantity" or set(cells[0]).issubset({":", "-", " "}):
+            continue
+        data_rows.append(cells)
+
+    seen_quantities: Set[str] = set()
+    for cells in data_rows:
+        qty, hist_col, canon_col, rationale_col = cells
+        if qty not in spec_by_qty:
+            errors.append(
+                f"Unmapped numerical claim row '{qty}' in CHANGELOG.md without canonical source mapping"
+            )
+            continue
+        seen_quantities.add(qty)
+        rspec = spec_by_qty[qty]
+
+        # Verify declared source artifacts exist on disk
+        for src_rel in rspec["source_artifacts"]:
+            if not (ds.root_dir / src_rel).is_file() and not (ROOT_DIR / src_rel).is_file():
+                errors.append(f"CHANGELOG.md row {qty} references missing source artifact '{src_rel}'")
+
+        # Verify explicit historical label in Column 2
+        if not hist_col.startswith("`[HISTORICAL "):
+            errors.append(
+                f"CHANGELOG.md row {qty} historical column lacks explicit `[HISTORICAL ...]` campaign label: {hist_col}"
+            )
+
+        # Validate every context-bound historical claim in Column 2
+        for metric_id, src_art, expected_clause in rspec["historical_claims"]:
+            if expected_clause not in hist_col:
+                errors.append(
+                    f"CHANGELOG.md row {qty} [campaign={rspec['historical_campaign']}, source={src_art}, metric={metric_id}] "
+                    f"failed context-bound historical claim check: expected '{expected_clause}' in '{hist_col}'"
+                )
+
+        # Verify exact ordered float sequence in Column 2 (catches any unmapped or corrupted historical float)
+        actual_hist_floats = re.findall(r"\b\d+\.\d+\b", hist_col)
+        expected_hist_floats = re.findall(r"\b\d+\.\d+\b", rspec["historical_cell"])
+        if actual_hist_floats != expected_hist_floats:
+            errors.append(
+                f"CHANGELOG.md row {qty} [campaign={rspec['historical_campaign']}] contains unmapped, corrupted, or swapped "
+                f"historical floating-point values: got {actual_hist_floats}, expected {expected_hist_floats}"
+            )
+
+        # Verify explicit canonical campaign label in Column 3
+        if "`[CURRENT " not in canon_col:
+            errors.append(
+                f"CHANGELOG.md row {qty} canonical column lacks explicit `[CURRENT ... CANONICAL]` campaign label: {canon_col}"
+            )
+
+        # Validate every context-bound canonical claim in Column 3
+        for metric_id, src_art, expected_clause in rspec["canonical_claims"]:
+            if expected_clause not in canon_col:
+                errors.append(
+                    f"CHANGELOG.md row {qty} [campaign={rspec['canonical_campaign']}, source={src_art}, metric={metric_id}] "
+                    f"failed context-bound canonical claim check: expected '{expected_clause}' in '{canon_col}'"
+                )
+
+        # Verify exact ordered float sequence in Column 3 (catches any unmapped float, obsolete float, or swapped values)
+        actual_canon_floats = re.findall(r"\b\d+\.\d+\b", canon_col)
+        expected_canon_floats = re.findall(r"\b\d+\.\d+\b", rspec["canonical_cell"])
+        if actual_canon_floats != expected_canon_floats:
+            errors.append(
+                f"CHANGELOG.md row {qty} [campaign={rspec['canonical_campaign']}] contains unmapped, corrupted, or swapped "
+                f"canonical floating-point values: got {actual_canon_floats}, expected {expected_canon_floats}"
+            )
+
+        # Verify zero unmapped floats in Column 4 (Reason for Change)
+        rationale_floats = re.findall(r"\b\d+\.\d+\b", rationale_col)
+        expected_rationale_floats = re.findall(r"\b\d+\.\d+\b", rspec["rationale_cell"])
+        if rationale_floats != expected_rationale_floats:
+            errors.append(
+                f"CHANGELOG.md row {qty} contains unmapped numerical claim in rationale column without source mapping: {rationale_floats}"
+            )
+
+    missing_rows = sorted(set(spec_by_qty.keys()) - seen_quantities)
+    if missing_rows:
+        errors.append(f"CHANGELOG.md is missing required mapped rows: {missing_rows}")
+
+    return errors
 
 
 def _audit_referenced_repo_paths(ds: ReportingDataset, doc_name: str, doc_text: str) -> List[str]:
@@ -1772,6 +2369,31 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
             "source_artifacts": ["results/phase1.json", "results/confirmation.json", "results/revision_v2/full_run_001/final_summary.csv", "results/revision_v2/full_run_001/hypervolume.json"],
             "description": "Work Package F.1 final audit corrections, CI stabilization, and repository-wide coverage report generated from ReportingDataset.",
         },
+        "CHANGELOG.md": {
+            "mechanism": "generated_full_document",
+            "expected_renderer": render_changelog,
+            "claim_validator": validate_changelog_claims,
+            "source_artifacts": [
+                "config.yaml",
+                "results/phase1.json",
+                "results/icc.json",
+                "results/lof.json",
+                "results/latency_modeling.json",
+                "tables/anova_ccd_second_order_latency.csv",
+                "results/diagnostics.json",
+                "results/phase3.json",
+                "results/confirmation.json",
+                "results/benchmark.csv",
+                "results/benchmark_summary.json",
+                "results/env.json",
+                "results/revision_v2/full_run_001/final_summary.csv",
+                "results/revision_v2/full_run_001/optimizer_summary.json",
+                "results/revision_v2/full_run_001/doe_selection_summary.json",
+                "results/revision_v2/full_run_001/hypervolume.json",
+                "results/revision_v2/full_run_001/environment.json",
+            ],
+            "description": "Deterministically generated and row/context-bound claim-validated statistical remediation and verification ledger.",
+        },
     }
 
     # 3. All 12 generated LaTeX tables under tables/tab_*.tex
@@ -1820,38 +2442,8 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
             "description": desc,
         }
 
-    # 5. Claim-registry verified milestone reports, supplementary analyses, and figure scripts (16 files)
+    # 5. Claim-registry verified milestone reports, supplementary analyses, and figure scripts (15 files)
     claim_verified_entries: Dict[str, Dict[str, Any]] = {
-        "CHANGELOG.md": {
-            "source_artifacts": [
-                "results/phase1.json",
-                "results/icc.json",
-                "results/lof.json",
-                "results/benchmark.csv",
-                "results/revision_v2/full_run_001/final_summary.csv",
-            ],
-            "required_claims": [
-                f_curv,
-                f"{ds.icc['Y1']['icc_anova']:.4f}",
-                f"{ds.phase1['yF_bar']:.4f}",
-                f"{ds.phase1['yC_bar']:.4f}",
-                r_doe,
-                r_doe_sd,
-                r_motpe,
-                r_motpe_sd,
-                hv_hold,
-                "136.70",
-                "150.45",
-            ],
-            "allowed_context_floats": (
-                "0.00033", "0.0028", "0.007243", "0.00885", "0.1458", "0.1756", "0.2160",
-                "0.4673", "0.4699", "0.802", "0.886", "0.9912", "0.9924", "0.9954",
-                "1.41", "12.6", "122.63", "125.4", "143.0", "147.8", "150.4", "171.3",
-                "193.2", "22.5", "3.11", "322.04", "468.86", "49.91", "5.91", "8.84",
-                "94.1", "96.34",
-            ),
-            "description": "Release changelog traceable to Phase 1/2/3/5/6 and Revision-v2 canonical artifacts.",
-        },
         "docs/c1_computational_efficiency.md": {
             "source_artifacts": ["results/revision_v2/full_run_001/computational_budget.json", "results/revision_v2/scientific_audit_c1/budget_reconciliation.json"],
             "required_claims": [tot_fits, tot_inf, w_doe, w_sotpe],
@@ -2077,6 +2669,7 @@ def verify_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) -
             if rel_p in {
                 "REPORT.md",
                 "report.tex",
+                "CHANGELOG.md",
                 "results/macros.tex",
                 "docs/generated/scientific_results_manifest.json",
                 "docs/scientific_claims_audit.md",
@@ -2105,6 +2698,9 @@ def verify_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) -
                     )
                 )
                 errors.append(f"Generated scientific artifact '{rel_p}' is out of sync with ReportingDataset:\n{diff}")
+            claim_validator = spec.get("claim_validator")
+            if claim_validator is not None:
+                errors.extend(claim_validator(ds, actual_text))
 
         elif mech in {"generated_sections_with_zero_outside_floats", "latex_macro_bound_zero_hardcoded_floats"}:
             # Verified in detail by audit_manuscript_integrity Steps 1, 6, 7
@@ -2183,6 +2779,7 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
     errors: List[str] = []
     report_md_path = ds.root_dir / "REPORT.md"
     report_tex_path = ds.root_dir / "report.tex"
+    changelog_path = ds.root_dir / "CHANGELOG.md"
     macros_tex_path = ds.root_dir / "results" / "macros.tex"
     manifest_path = ds.root_dir / "docs" / "generated" / "scientific_results_manifest.json"
     claims_audit_path = ds.root_dir / "docs" / "scientific_claims_audit.md"
@@ -2193,6 +2790,7 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
     for p in (
         report_md_path,
         report_tex_path,
+        changelog_path,
         macros_tex_path,
         manifest_path,
         claims_audit_path,
@@ -2207,6 +2805,7 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
 
     md_text = report_md_path.read_text(encoding="utf-8")
     tex_text = report_tex_path.read_text(encoding="utf-8")
+    changelog_text = changelog_path.read_text(encoding="utf-8")
     macros_text = macros_tex_path.read_text(encoding="utf-8")
     claims_text = claims_audit_path.read_text(encoding="utf-8")
     f_val_text = f_val_path.read_text(encoding="utf-8")
@@ -2237,8 +2836,9 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
     except ReportingDataError as exc:
         errors.append(str(exc))
 
-    # 2. Verify Work Package F / F.1 audit documents match canonical source reconstructions
+    # 2. Verify Work Package F / F.1 audit documents and CHANGELOG.md match canonical source reconstructions
     expected_audit_docs = [
+        ("CHANGELOG.md", changelog_text, render_changelog(ds)),
         ("docs/scientific_claims_audit.md", claims_text, render_scientific_claims_audit(ds)),
         ("docs/f_scientific_review_validation.md", f_val_text, render_f_scientific_review_validation(ds)),
         ("docs/proposed_followup_experiments.md", followup_text, render_proposed_followup_experiments(ds)),
@@ -2256,9 +2856,10 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
             )
             errors.append(f"Audit document '{doc_rel}' is out of sync with canonical ReportingDataset:\n{diff}")
 
-    # 3. Verify all referenced repo paths and script names in REPORT.md and audit docs exist on disk
+    # 3. Verify all referenced repo paths and script names in REPORT.md, CHANGELOG.md, and audit docs exist on disk
     docs_to_check_paths = [
         ("REPORT.md", md_text),
+        ("CHANGELOG.md", changelog_text),
         ("docs/scientific_claims_audit.md", claims_text),
         ("docs/f_scientific_review_validation.md", f_val_text),
         ("docs/proposed_followup_experiments.md", followup_text),
@@ -2344,7 +2945,7 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
 
 
 def write_research_reporting(ds: Optional[ReportingDataset] = None) -> None:
-    """Write REPORT.md, docs/generated/scientific_results_manifest.json, Work Package F/F.1 audit docs, and LaTeX artifacts."""
+    """Write REPORT.md, CHANGELOG.md, docs/generated/scientific_results_manifest.json, Work Package F/F.1 audit docs, and LaTeX artifacts."""
     if ds is None:
         ds = load_reporting_dataset()
 
@@ -2371,8 +2972,9 @@ def write_research_reporting(ds: Optional[ReportingDataset] = None) -> None:
         f"({manifest_obj['summary_counts']['total_metrics_tracked']} metrics tracked)."
     )
 
-    # Write Work Package F / F.1 scientific audit documents
+    # Write CHANGELOG.md and Work Package F / F.1 scientific audit documents
     audit_docs = [
+        ("CHANGELOG.md", render_changelog(ds)),
         ("docs/scientific_claims_audit.md", render_scientific_claims_audit(ds)),
         ("docs/f_scientific_review_validation.md", render_f_scientific_review_validation(ds)),
         ("docs/proposed_followup_experiments.md", render_proposed_followup_experiments(ds)),
@@ -2387,7 +2989,7 @@ def write_research_reporting(ds: Optional[ReportingDataset] = None) -> None:
 
 
 def check_research_reporting(ds: Optional[ReportingDataset] = None) -> Tuple[bool, str]:
-    """Non-mutating check of REPORT.md, manifest, Work Package F/F.1 audit docs, LaTeX macros/tables, and repository-wide artifact registry."""
+    """Non-mutating check of REPORT.md, CHANGELOG.md, manifest, Work Package F/F.1 audit docs, LaTeX macros/tables, and repository-wide artifact registry."""
     try:
         if ds is None:
             ds = load_reporting_dataset()
@@ -2447,7 +3049,7 @@ def check_research_reporting(ds: Optional[ReportingDataset] = None) -> Tuple[boo
         return False, "\n\n".join(diagnostics)
     return (
         True,
-        "All reporting outputs (REPORT.md, results/macros.tex, tables/*.tex, "
+        "All reporting outputs (REPORT.md, CHANGELOG.md, results/macros.tex, tables/*.tex, "
         "docs/generated/scientific_results_manifest.json, docs/scientific_claims_audit.md, "
         "docs/f_scientific_review_validation.md, docs/proposed_followup_experiments.md, "
         "docs/f1_final_audit_validation.md) and repository-wide scientific artifact registry checks passed.",
