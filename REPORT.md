@@ -278,7 +278,7 @@ All **122 winning selection records** (representing **95 distinct hyperparameter
 ## 9. Repository Artifacts and Reproducibility
 
 - **LaTeX Manuscript & Compiled PDF**: `report.tex` and `report.pdf` (22 pages, compiled via Tectonic with zero unresolved references or layout overflows).
-- **Auto-Generated Statistical Macros & Tables**: `results/macros.tex` (283 macros) and `tables/*.tex`, generated deterministically via `python scripts/generate_report_artifacts.py`.
+- **Auto-Generated Statistical Macros & Tables**: `results/macros.tex` (362 macros) and `tables/*.tex`, generated deterministically via `python scripts/generate_report_artifacts.py`.
 - **Single-Source-of-Truth Reporting & Manifest**: `scripts/reporting_data.py`, `scripts/generate_research_reporting.py`, and `docs/generated/scientific_results_manifest.json`.
 - **Prospective Benchmark Evidence**: `results/revision_v2/full_run_001/` (`finalized_selections.json`, `final_evaluations.csv`, `final_summary.csv`, `optimizer_summary.json`, `hypervolume.json`, `paired_comparisons.json`, `computational_budget.json`, `run_manifest.json`).
 - **Verification & Audit Suite**: `python scripts/audit_scientific_consistency.py`, `python scripts/generate_research_reporting.py --check`, `python scripts/generate_report_artifacts.py --check`, and `pytest` (automated integrity, statistical, and numerical table consistency checks).

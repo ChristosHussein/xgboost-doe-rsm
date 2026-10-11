@@ -45,6 +45,7 @@ from scripts.reporting_data import (
     ReportingDataError,
     build_scientific_results_manifest,
     load_reporting_dataset,
+    verify_canonical_evidence_hashes,
 )
 
 
@@ -274,7 +275,7 @@ def test_mutation_corrupted_confirmation_seeds_fails_closed(tmp_path, canonical_
     conf_csv = ws / "results" / "confirmation_runs.csv"
     orig_csv = conf_csv.read_text(encoding="utf-8")
     conf_csv.write_text(orig_csv.replace("505,", "555,", 1), encoding="utf-8")
-    with pytest.raises(ReportingDataError, match="confirmation_runs.csv seeds"):
+    with pytest.raises(ReportingDataError, match="Cryptographic evidence hash mismatch|confirmation_runs.csv seeds"):
         load_reporting_dataset(ws)
     conf_csv.write_text(orig_csv, encoding="utf-8")
 
@@ -282,7 +283,7 @@ def test_mutation_corrupted_confirmation_seeds_fails_closed(tmp_path, canonical_
     cfg_path = ws / "config.yaml"
     orig_cfg = cfg_path.read_text(encoding="utf-8")
     cfg_path.write_text(orig_cfg.replace("505, 606", "105, 606"), encoding="utf-8")
-    with pytest.raises(ReportingDataError, match="confirmation_seeds"):
+    with pytest.raises(ReportingDataError, match="Cryptographic evidence hash mismatch|confirmation_seeds"):
         load_reporting_dataset(ws)
 
 
@@ -307,12 +308,12 @@ def test_mutation_corrupted_hypervolume_reference_point_fails_closed(tmp_path, c
     cfg_path = ws / "config.yaml"
     orig_cfg = cfg_path.read_text(encoding="utf-8")
     cfg_path.write_text(orig_cfg.replace("[0.60, 250.0]", "[0.55, 240.0]"), encoding="utf-8")
-    with pytest.raises(ReportingDataError, match="Primary hypervolume reference point"):
+    with pytest.raises(ReportingDataError, match="Cryptographic evidence hash mismatch|Primary hypervolume reference point"):
         load_reporting_dataset(ws)
 
 
 def test_mutation_stale_latex_or_missing_marker_or_untraced_float_fails(tmp_path, canonical_dataset):
-    """Negative test: stale LaTeX macro/table, missing marker, untraced outside float, or TOST claim fails."""
+    """Negative test: stale LaTeX macro/table, missing marker, untraced outside float, hardcoded tex float, or TOST claim fails."""
     ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
     ds_ws = load_reporting_dataset(ws)
 
@@ -339,14 +340,45 @@ def test_mutation_stale_latex_or_missing_marker_or_untraced_float_fails(tmp_path
     report_md.write_text(orig_md + "\nUnverified extra result: 0.41234 RMSE.\n", encoding="utf-8")
     errors_float = audit_manuscript_integrity(ds_ws)
     assert any("Untraced floating-point numbers" in e for e in errors_float)
-
-    # 4. Unsupported equivalence claim injected into report.tex while rmse_equivalence_margin is null
     report_md.write_text(orig_md, encoding="utf-8")
+
+    # 4. Hardcoded empirical result float injected into report.tex prose (e.g., 18.3834 or 0.0217)
     report_tex = ws / "report.tex"
     orig_tex = report_tex.read_text(encoding="utf-8")
+    report_tex.write_text(
+        orig_tex.replace(r"\numRevHvMoTpeDevMean", "18.3834", 1),
+        encoding="utf-8",
+    )
+    errors_tex_float = audit_manuscript_integrity(ds_ws)
+    assert any("Hardcoded empirical floating-point numbers found in report.tex prose" in e and "18.3834" in e for e in errors_tex_float)
+    report_tex.write_text(orig_tex, encoding="utf-8")
+
+    # 5. Unsupported equivalence claim injected into report.tex while rmse_equivalence_margin is null
     report_tex.write_text(
         orig_tex + "\n% The two methods are statistically equivalent under TOST.\n",
         encoding="utf-8",
     )
     errors_equiv = audit_manuscript_integrity(ds_ws)
     assert any("Unsupported equivalence claim" in e for e in errors_equiv)
+
+
+def test_cryptographic_evidence_hash_protection_fails_on_tampered_artifact(tmp_path, canonical_dataset):
+    """Negative test: tampering with any frozen canonical evidence file fails SHA-256 verification."""
+    ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
+    verify_canonical_evidence_hashes(ws)
+
+    # Tamper with a top-level v1.0.0 artifact
+    p1_json = ws / "results" / "phase1.json"
+    orig_p1 = p1_json.read_text(encoding="utf-8")
+    p1_json.write_text(orig_p1 + "\n", encoding="utf-8")
+    with pytest.raises(ReportingDataError, match="Cryptographic evidence hash mismatch"):
+        verify_canonical_evidence_hashes(ws)
+    p1_json.write_text(orig_p1, encoding="utf-8")
+
+    # Tamper with a prospective full_run_001 artifact tracked in provenance.json
+    hv_json = ws / "results" / "revision_v2" / "full_run_001" / "hypervolume.json"
+    orig_hv = hv_json.read_text(encoding="utf-8")
+    hv_json.write_text(orig_hv + "\n", encoding="utf-8")
+    with pytest.raises(ReportingDataError, match="Cryptographic evidence hash mismatch.*provenance\\.json"):
+        verify_canonical_evidence_hashes(ws)
+

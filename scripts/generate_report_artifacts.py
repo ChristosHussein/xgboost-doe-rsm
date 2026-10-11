@@ -492,6 +492,181 @@ def render_macros(ds: Optional[ReportingDataset] = None) -> str:
     add_macro("numRevHvHoldoutFrozen", f"{hvs['holdout_frozen_060']:.4f}")
     add_macro("numRevHvHoldoutFrozenRefTwo", f"{hvs['holdout_frozen_065']:.4f}")
 
+    # Additional source-derived prose macros (ensuring zero hardcoded empirical results in report.tex)
+    import scipy.stats as stats
+    import statsmodels.formula.api as smf
+
+    add_macro("numICCAnovaPct", f"{icc['Y1']['icc_anova'] * 100.0:.1f}\\%")
+    add_macro("numSigmaBlock", f"{np.sqrt(icc['Y1']['s2b_anova']):.4f}")
+    add_macro("numAnovaPOneFBlock", f"{float(an_p1.loc['C(block)', 'F']):.2f}")
+    add_macro("numAnovaPOnePBlock", f"{float(an_p1.loc['C(block)', 'PR(>F)']):.4f}")
+    add_macro(
+        "numAnovaPOneMSE",
+        f"{float(an_p1.loc['Residual', 'sum_sq'] / an_p1.loc['Residual', 'df']):.6f}",
+    )
+    an_ccd_y1 = ds.anova_ccd_y1_df
+    add_macro(
+        "numAnovaCCDMSE",
+        f"{float(an_ccd_y1.loc['Residual', 'sum_sq'] / an_ccd_y1.loc['Residual', 'df']):.6f}",
+    )
+    add_macro(
+        "numAnovaCCDFxOneSq",
+        f"{float(an_ccd_y1.loc['x1_sq', 'F']):,.2f}".replace(",", "{,}"),
+    )
+    add_macro("numAnovaCCDFxTwoSq", f"{float(an_ccd_y1.loc['x2_sq', 'F']):.2f}")
+
+    # Phase 1 pooled pure error across all replicated design coordinates
+    df_p1_runs = ds.runs_df[ds.runs_df["phase"].astype(str).str.contains("1")].copy()
+    df_p1_runs["coord"] = list(
+        zip(df_p1_runs["x1"], df_p1_runs["x2"], df_p1_runs["x3"], df_p1_runs["x4"])
+    )
+    ss_pe_all = float(
+        df_p1_runs.groupby("coord")["val_rmse"]
+        .apply(lambda s: ((s - s.mean()) ** 2).sum())
+        .sum()
+    )
+    df_pe_all = int(len(df_p1_runs) - df_p1_runs["coord"].nunique())
+    ms_pe_all = ss_pe_all / df_pe_all
+    f_curv_all = float(p1["ss_curvature"]) / ms_pe_all
+    add_macro("numDFpeAll", str(df_pe_all))
+    add_macro("numMSpeAll", f"{ms_pe_all * 1e5:.2f} \\times 10^{{-5}}")
+    add_macro("numFCurvAll", f"{f_curv_all:,.0f}".replace(",", "{,}"))
+
+    # Lack-of-fit ratios and cell-level contributions
+    add_macro(
+        "numLofRatioAdditive",
+        f"{round(lof['Y1']['sqrt_MS_LoF'], 4) / round(lof['Y1']['sqrt_MS_PE'], 4):.1f}",
+    )
+    add_macro(
+        "numLofRatioCenter",
+        f"{round(lof['Y1']['sqrt_MS_LoF'], 4) / round(np.sqrt(ms_pure_center_y1), 4):.1f}",
+    )
+    b0_val = float(p3["b0"])
+    b_arr = np.array(p3["b"], dtype=float)
+    B_arr = np.array(p3["B"], dtype=float)
+    cell_grp = (
+        ds.runs_df.groupby(["x1", "x2", "x3", "x4"])
+        .agg(n=("val_rmse", "count"), ybar=("val_rmse", "mean"))
+        .reset_index()
+    )
+    cell_ybar_minus_yhat_sq = []
+    cell_contribs = {}
+    for _, crow in cell_grp.iterrows():
+        x_vec = np.array([crow["x1"], crow["x2"], crow["x3"], crow["x4"]], dtype=float)
+        yhat_cell = b0_val + float(x_vec @ b_arr + x_vec @ B_arr @ x_vec)
+        diff_sq = float((crow["ybar"] - yhat_cell) ** 2)
+        cell_ybar_minus_yhat_sq.append(diff_sq)
+        key_tuple = (int(round(crow["x1"])), int(round(crow["x2"])), int(round(crow["x3"])), int(round(crow["x4"])))
+        cell_contribs[key_tuple] = float(crow["n"]) * diff_sq
+    add_macro("numLofCellRmsUnweighted", f"{np.sqrt(np.mean(cell_ybar_minus_yhat_sq)):.4f}")
+    add_macro("numLofObsWeightedRms", f"{np.sqrt(lof['Y1']['SS_LoF'] / len(ds.runs_df)):.4f}")
+    add_macro("numLofCellContribMax", f"{cell_contribs[(1, 1, -1, -1)]:.5f}")
+    add_macro("numLofCellContribLowEtaOne", f"{cell_contribs[(-1, -1, 1, 1)]:.5f}")
+    add_macro("numLofCellContribLowEtaTwo", f"{cell_contribs[(-1, 1, -1, 1)]:.5f}")
+    add_macro(
+        "numLofRestrictedRmsDeclinePct",
+        f"{(1.0 - lof['Y1_restricted']['sqrt_MS_LoF'] / lof['Y1']['sqrt_MS_LoF']) * 100.0:.0f}\\%",
+    )
+    add_macro("numSqrtMSPeRestricted", f"{lof['Y1_restricted']['sqrt_MS_PE']:.4f}")
+
+    # Latency AICs, Jacobian, and linear intercept
+    m_log = df_lat[df_lat["Model"].str.contains("Log-Linear")].iloc[0]
+    add_macro("numLatJacobian", f"{ds.latency_jacobian_adjustment:,.1f}".replace(",", "{,}"))
+    add_macro("numLatQuadAIC", f"{float(m_quad['AIC']):.1f}")
+    add_macro("numLatLinAIC", f"{float(m_lin['AIC']):.1f}")
+    add_macro("numLatLogAdjAIC", f"{float(m_log['AIC']) + ds.latency_jacobian_adjustment:.1f}")
+    m_lat_lin_fit = smf.ols("latency_us_median ~ depth", data=ds.runs_df).fit()
+    add_macro("numLatLinIntercept", f"{float(m_lat_lin_fit.params['Intercept']):.1f}")
+
+    # Stationary point distance outside [-1, 1]^4 and eigenvector components
+    x0_arr = np.array(p3["stationary_point_coded"], dtype=float)
+    add_macro(
+        "numStationaryDistBoundary",
+        f"{float(np.linalg.norm(x0_arr - np.clip(x0_arr, -1.0, 1.0))):.2f}",
+    )
+    eig_vecs = p3["eigenvectors"]
+    for c_idx in range(4):
+        for r_idx in range(4):
+            val = float(eig_vecs[r_idx][c_idx])
+            add_macro(f"eigVec{words[c_idx]}{words[r_idx]}", f"{val:.3f}")
+            add_macro(f"eigVecSigned{words[c_idx]}{words[r_idx]}", f"{val:+.3f}")
+
+    # Desirability interior sweep at depth=4, subsample=1.0, reg_lambda=x_star
+    add_macro("numOptLambdaThreeDp", f"{conf['x_star_natural']['reg_lambda']:.3f}")
+    add_macro("numDesirabilityBoundaryMax", f"{float(ds.desirability_sens_df.loc[0, 'Best_D']):.4f}")
+    ccd_formula_y1 = (
+        "val_rmse ~ C(block) + x1 + x2 + x3 + x4 + I(x1**2) + I(x2**2) + I(x3**2) + I(x4**2) "
+        "+ x1:x2 + x1:x3 + x1:x4 + x2:x3 + x2:x4 + x3:x4"
+    )
+    ccd_formula_y2 = (
+        "latency_us_median ~ C(block) + x1 + x2 + x3 + x4 + I(x1**2) + I(x2**2) + I(x3**2) + I(x4**2) "
+        "+ x1:x2 + x1:x3 + x1:x4 + x2:x3 + x2:x4 + x3:x4"
+    )
+    fit_y1 = smf.ols(ccd_formula_y1, data=ds.runs_df).fit()
+    fit_y2 = smf.ols(ccd_formula_y2, data=ds.runs_df).fit()
+    blocks_unique = ds.runs_df["block"].unique()
+    x2_mo, x3_mo, x4_mo = (
+        float(conf["x_star_coded"][1]),
+        float(conf["x_star_coded"][2]),
+        float(conf["x_star_coded"][3]),
+    )
+    for macro_suffix, eta_val in [
+        ("PointTwoZero", 0.20),
+        ("PointTwoFive", 0.25),
+        ("PointThreeZero", 0.30),
+    ]:
+        x1_val = (np.log(eta_val) - 0.5 * (np.log(0.01) + np.log(0.30))) / (
+            0.5 * (np.log(0.30) - np.log(0.01))
+        )
+        grid_df = pd.DataFrame(
+            {"block": blocks_unique, "x1": x1_val, "x2": x2_mo, "x3": x3_mo, "x4": x4_mo}
+        )
+        y1_p = float(fit_y1.predict(grid_df).mean())
+        y2_p = float(fit_y2.predict(grid_df).mean())
+        d1_p = float(np.clip((0.700 - y1_p) / (0.700 - 0.450), 0.0, 1.0))
+        d2_p = float(np.clip((180.0 - y2_p) / (180.0 - 100.0), 0.0, 1.0))
+        add_macro(f"numDesirabilityEta{macro_suffix}", f"{np.sqrt(d1_p * d2_p):.4f}")
+
+    # Confirmation t-critical values, naive PIs, and single-objective exceedance
+    t_mo = float(stats.t.ppf(0.975, conf["Y1_Val_RMSE"]["nu_eff"]))
+    t_so = float(stats.t.ppf(0.975, so_conf["nu_eff"]))
+    v_conf_mo = (
+        (conf["Y1_Val_RMSE"]["prediction_interval_95"][1] - conf["Y1_Val_RMSE"]["predicted_mean"])
+        / t_mo
+    ) ** 2
+    t_121 = float(stats.t.ppf(0.975, 121))
+    add_macro("numConfTCritMo", f"{t_mo:.3f}")
+    add_macro(
+        "numConfNaivePiLowValRMSE",
+        f"{conf['Y1_Val_RMSE']['predicted_mean'] - t_121 * np.sqrt(v_conf_mo):.4f}",
+    )
+    add_macro(
+        "numConfNaivePiHighValRMSE",
+        f"{conf['Y1_Val_RMSE']['predicted_mean'] + t_121 * np.sqrt(v_conf_mo):.4f}",
+    )
+    add_macro("numConfPiLowLatOneDp", f"{conf['Y2_Latency']['prediction_interval_95'][0]:.1f}")
+    add_macro("numConfPiHighLatOneDp", f"{conf['Y2_Latency']['prediction_interval_95'][1]:.1f}")
+    add_macro("numConfSoLeverageH", f"{so_conf['leverage_h']:.4f}")
+    add_macro("numConfSoTCrit", f"{t_so:.3f}")
+    add_macro("numConfSoPiLowLatOneDp", f"{so_conf['prediction_interval_95_lat'][0]:.1f}")
+    add_macro(
+        "numConfSoExceedance",
+        f"{so_conf['empirical_val_rmse'] - so_conf['prediction_interval_95_val'][1]:.4f}",
+    )
+    se_d7 = float(ds.depth_opt_df[ds.depth_opt_df["depth"] == 7]["se"].iloc[0])
+    add_macro(
+        "numConfSoBiasSeMult",
+        f"{round(so_conf['empirical_val_rmse'] - so_conf['predicted_val_rmse'], 4) / round(se_d7, 4):.1f}",
+    )
+
+    # Prospective benchmark prose macros
+    add_macro("numRevDoeSoLatLowerPct", f"{ds.doe_so_vs_sotpe_latency_reduction_pct:.1f}\\%")
+    add_macro("numRevPairedTDoeMoMoTpe", f"{ds.doe_mo_vs_motpe_paired_t:.3f}")
+    add_macro("numRevPairedPDoeMoMoTpe", f"{ds.doe_mo_vs_motpe_paired_p:.4f}")
+    add_macro("numRevWelchPDoeMoMoTpeTwoDp", f"{ds.doe_mo_vs_motpe_welch_p:.2f}")
+    add_macro("numRevDoeMoPredictLatOneDp", f"{doe_mo.predict_latency_mean:.1f}")
+    add_macro("numRevMoTpePredictLatOneDp", f"{mo_tpe.predict_latency_mean:.1f}")
+
     return "% Auto-generated macros from genuine results\n" + "\n".join(macros) + "\n"
 
 
