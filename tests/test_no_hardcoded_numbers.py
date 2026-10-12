@@ -68,13 +68,13 @@ def test_frozen_selections_counts_and_manifest():
 
 
 def test_manifest_naming_in_manuscript():
-    """Keeps implementation filenames out of the reader report while retaining supplement provenance."""
+    """Keeps implementation filenames out of both reader-facing manuscripts."""
     with open("report.tex", "r", encoding="utf-8") as f:
         main_tex = f.read().replace(r"\_", "_")
     with open("technical_supplement.tex", "r", encoding="utf-8") as f:
         supplement_tex = f.read().replace(r"\_", "_")
     assert "finalized_selections.json" not in main_tex
-    assert "finalized_selections.json" in supplement_tex
+    assert "finalized_selections.json" not in supplement_tex
     assert "frozen_selection_manifest.json" not in main_tex + supplement_tex
 
 

@@ -2,12 +2,12 @@
 \toprule
 \makecell[l]{\textbf{Phase / Method}\\\textbf{Component}} & \makecell{\textbf{Search}\\\textbf{Reps}} & \makecell{\textbf{XGBoost}\\\textbf{Fits}} & \makecell{\textbf{Distinct}\\\textbf{Coords}} & \makecell{\textbf{Timed}\\\textbf{Inferences}} & \makecell{\textbf{Warmup}\\\textbf{Calls}} & \makecell{\textbf{Wall Time / Rep}\\\scriptsize(s, Mean $\pm$ SD)} \\
 \midrule
-\multicolumn{7}{l}{\textbf{Panel A: Historical Single-Campaign Baseline ($v1.0.0$, 160 DOE + Confirmation Fits)}} \\
+\multicolumn{7}{l}{\textbf{Panel A: Initial Single-Campaign Experiment (160 DOE + Confirmation Fits)}} \\
 Phase 1: $2^4$ Factorial + 4 Center ($5$ Blocks) & $1$ & $100$ & $17$ & $100{,}000$ & $10{,}000$ & --- \\
 Phase 2: Face-Centered Axial ($5$ Blocks) & $1$ & $40$ & $8$ & $40{,}000$ & $4{,}000$ & --- \\
 Phase 5: Confirmation ($\mathbf{x}^*_{\text{MO}}$ \& $\mathbf{x}^*_{\text{SO}}$, $m=10$) & $2$ & $20$ & $2$ & $20{,}000$ & $2{,}000$ & --- \\
 \midrule
-\multicolumn{7}{l}{\textbf{Panel B: Prospective Revision-v2 Campaign (Total = 17{,}077 Fits{,} 1{,}640{,}810 Timed Inferences)}} \\
+\multicolumn{7}{l}{\textbf{Panel B: Repeated Benchmark Experiments (Total = 17{,}077 Fits{,} 1{,}640{,}810 Timed Inferences)}} \\
 Repeated Pre-Planned DOE (MO + SO Shared) & $20$ & $2{,}800$ & $25/\text{rep}$ & $84{,}000$ & $28{,}000$ & $36.49 \pm 0.19$ \\
 Multi-Objective TPE ($140$ Trials/Rep) & $20$ & $2{,}800$ & $140/\text{rep}$ & $84{,}000$ & $28{,}000$ & $26.24 \pm 1.80$ \\
 Constrained TPE ($140$ Trials/Rep) & $20$ & $2{,}800$ & $140/\text{rep}$ & $84{,}000$ & $28{,}000$ & $26.50 \pm 2.70$ \\

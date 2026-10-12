@@ -554,11 +554,11 @@ def test_scientific_artifact_registry_and_negative_coverage(tmp_path, canonical_
     ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
     ds_ws = load_reporting_dataset(ws)
 
-    # Verify baseline discovery and registry completeness (61 files: 59 scientific + 2 justified exclusions)
+    # Verify discovery and registry completeness (62 files: 60 scientific + 2 justified exclusions)
     discovered = set(discover_scientific_and_documentation_files(ws))
     registry = build_scientific_artifact_registry(ds_ws)
     assert discovered == set(registry.keys())
-    assert len(registry) == 61
+    assert len(registry) == 62
     assert verify_scientific_artifact_registry(ds_ws) == []
 
     # 1. Introduce a new docs/new_scientific_audit.md containing empirical results but no verification registration -> MUST FAIL

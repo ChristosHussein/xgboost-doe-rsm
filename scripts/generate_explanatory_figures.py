@@ -21,6 +21,9 @@ ROOT = Path(__file__).resolve().parent.parent
 FIGURES = ROOT / "figures"
 RUNS = ROOT / "results" / "runs.csv"
 FINAL_SUMMARY = ROOT / "results" / "revision_v2" / "full_run_001" / "final_summary.csv"
+OPTIMIZER_TRIALS = ROOT / "results" / "revision_v2" / "full_run_001" / "optimizer_trials.csv"
+DOE_SELECTION_RUNS = ROOT / "results" / "revision_v2" / "full_run_001" / "doe_selection_runs.csv"
+ARCHIVED_TRAJECTORIES = ROOT / "results" / "benchmark_evals_trajectories.csv"
 
 COLORS = {
     "blue": "#2369a8",
@@ -198,28 +201,101 @@ def tradeoff(final_summary: pd.DataFrame) -> None:
 
 
 def method_comparison() -> None:
-    fig, ax = plt.subplots(figsize=(9.4, 4.5))
+    fig, ax = plt.subplots(figsize=(9.4, 3.5))
     ax.axis("off")
     rows = [
         ("Blocked DOE", "25 planned coordinates", "5 split blocks", "effects, interactions, curvature"),
         ("Random search", "140 sampled coordinates", "one development split", "broad non-adaptive exploration"),
         ("TPE variants", "140 adaptive coordinates", "one development split", "concentrated optimization"),
     ]
-    headers = ["Method", "Where the 140-fit budget goes", "Noise handling during search", "Primary information gained"]
+    headers = ["Method", "Use of the\n140-fit budget", "Noise handling\nduring search", "Primary information\ngained"]
     table = ax.table(cellText=rows, colLabels=headers, loc="center", cellLoc="left", colLoc="left", colWidths=[0.16, 0.27, 0.24, 0.33])
     table.auto_set_font_size(False)
-    table.set_fontsize(8.5)
-    table.scale(1, 2.0)
+    table.set_fontsize(8.2)
+    table.scale(1, 1.85)
     for (row, _col), cell in table.get_celld().items():
         cell.set_edgecolor("#b8c2ca")
         cell.set_facecolor("#dcecf8" if row == 0 else ("#f7fafc" if row % 2 else "#edf3f6"))
         if row == 0:
             cell.set_text_props(weight="bold")
-    ax.set_title("Equal fit counts do not imply equal information", pad=18)
-    ax.text(0.5, 0.07,
-            "Revision-v2 repeated each search 20 times and retrained frozen selections across 20 evaluation seeds.",
+    ax.set_title("Equal fit counts produce different kinds of information", pad=14)
+    ax.text(0.5, 0.035,
+            "The benchmark repeated each search 20 times and retrained fixed selections across 20 evaluation seeds.",
             ha="center", transform=ax.transAxes, fontsize=8.5, color=COLORS["gray"])
     _save(fig, "explainer_method_comparison.pdf")
+
+
+def efficiency_comparison(runs: pd.DataFrame) -> None:
+    """Render a reader-facing version of the canonical efficiency evidence."""
+    trials = pd.read_csv(OPTIMIZER_TRIALS)
+    doe_runs = pd.read_csv(DOE_SELECTION_RUNS)
+    archived = pd.read_csv(ARCHIVED_TRAJECTORIES)
+    evaluations = np.arange(1, 141)
+
+    fig, axes = plt.subplots(1, 2, figsize=(10.8, 4.8))
+    styles = [
+        ("single_objective_tpe", "TPE: accuracy", COLORS["green"], "-."),
+        ("multi_objective_tpe", "TPE: accuracy + speed", COLORS["purple"], "-"),
+        ("constrained_tpe", "TPE: latency constrained", COLORS["orange"], ":"),
+        ("random_search", "Random search", COLORS["red"], "--"),
+    ]
+    repeated_curves = {}
+    for key, label, color, linestyle in styles:
+        subset = trials[trials["optimizer"].eq(key)].sort_values(["replicate_id", "trial_number"])
+        matrix = np.vstack([
+            group["validation_rmse"].cummin().to_numpy()[:140]
+            for _, group in subset.groupby("replicate_id")
+        ])
+        median = np.median(matrix, axis=0)
+        lower = np.percentile(matrix, 25, axis=0)
+        upper = np.percentile(matrix, 75, axis=0)
+        repeated_curves[key] = (median, lower, upper, color, linestyle)
+        axes[0].plot(evaluations, median, color=color, lw=1.8, ls=linestyle, label=label)
+        axes[0].fill_between(evaluations, lower, upper, color=color, alpha=0.12)
+
+    ordered_doe = doe_runs.sort_values(["doe_replicate_id", "block_index", "order_within_block"])
+    doe_matrix = np.vstack([
+        group["validation_rmse"].cummin().to_numpy()[:140]
+        for _, group in ordered_doe.groupby("doe_replicate_id")
+    ])
+    doe_median = np.median(doe_matrix, axis=0)
+    doe_lower = np.percentile(doe_matrix, 25, axis=0)
+    doe_upper = np.percentile(doe_matrix, 75, axis=0)
+    axes[0].plot(evaluations, doe_median, color=COLORS["blue"], lw=2.1, label="Blocked DOE")
+    axes[0].fill_between(evaluations, doe_lower, doe_upper, color=COLORS["blue"], alpha=0.14)
+    axes[0].set(title="Repeated benchmark searches", xlabel="Cumulative model fits", ylabel="Best validation RMSE so far")
+
+    initial_doe = runs.sort_values("run_order")["val_rmse"].cummin().to_numpy()
+    axes[1].plot(evaluations, archived["rs_median"], color=COLORS["red"], lw=1.8, ls="--", label="Random search")
+    axes[1].fill_between(evaluations, archived["rs_q25"], archived["rs_q75"], color=COLORS["red"], alpha=0.12)
+    axes[1].plot(evaluations, archived["tpe_median"], color=COLORS["green"], lw=1.9, ls="-.", label="TPE: accuracy")
+    axes[1].fill_between(evaluations, archived["tpe_q25"], archived["tpe_q75"], color=COLORS["green"], alpha=0.12)
+    axes[1].plot(evaluations, initial_doe, color=COLORS["blue"], lw=2.1, label="Blocked DOE")
+    axes[1].set(title="Initial experiment archive", xlabel="Cumulative model fits", ylabel="Best validation RMSE so far")
+
+    for ax in axes:
+        ax.grid(True, linestyle=":", alpha=0.45)
+        ax.set_xlim(1, 140)
+        ax.legend(loc="upper right", fontsize=7.2, frameon=True)
+        inset = ax.inset_axes([0.43, 0.22, 0.53, 0.42])
+        inset.set_xlim(20, 140)
+        inset.set_ylim(0.455, 0.500 if ax is axes[0] else 0.490)
+        inset.grid(True, linestyle=":", alpha=0.4)
+        inset.tick_params(labelsize=7)
+        inset.set_title("Fits 20--140", fontsize=7.5)
+        if ax is axes[0]:
+            for median, lower, upper, color, linestyle in repeated_curves.values():
+                inset.plot(evaluations, median, color=color, lw=1.2, ls=linestyle)
+                inset.fill_between(evaluations, lower, upper, color=color, alpha=0.09)
+            inset.plot(evaluations, doe_median, color=COLORS["blue"], lw=1.4)
+        else:
+            inset.plot(evaluations, archived["rs_median"], color=COLORS["red"], lw=1.2, ls="--")
+            inset.plot(evaluations, archived["tpe_median"], color=COLORS["green"], lw=1.2, ls="-.")
+            inset.plot(evaluations, initial_doe, color=COLORS["blue"], lw=1.4)
+
+    fig.suptitle("Optimization progress under a common 140-fit budget", fontsize=12, weight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    _save(fig, "explainer_efficiency_comparison.pdf")
 
 
 def main() -> None:
@@ -232,7 +308,8 @@ def main() -> None:
     response_surface_fit(runs)
     tradeoff(final_summary)
     method_comparison()
-    print("Generated six reader-focused PDF figures from canonical evidence and protocol metadata.")
+    efficiency_comparison(runs)
+    print("Generated seven reader-focused PDF figures from canonical evidence and protocol metadata.")
 
 
 if __name__ == "__main__":

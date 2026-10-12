@@ -1121,7 +1121,7 @@ def render_tables(ds: Optional[ReportingDataset] = None) -> Dict[str, str]:
         "\\toprule",
         "\\makecell{\\textbf{Optimization}\\\\\\textbf{Method}} & \\makecell{\\textbf{Search Basis}\\\\\\scriptsize($N$ Reps)} & \\makecell{\\textbf{Val RMSE}\\\\\\scriptsize Mean $\\pm$ SD} & \\makecell{\\textbf{Holdout}\\\\\\textbf{Test RMSE}\\\\\\scriptsize Mean $\\pm$ SD} & \\makecell{\\textbf{Retrain}\\\\\\bm{$\\sigma_{\\text{eval}}$}} & \\makecell{\\textbf{Latency}\\\\\\scriptsize($\\mu\\text{s} \\pm \\text{SD}$)} & \\makecell{\\textbf{Feasible}\\\\\\scriptsize($\\le 145\\,\\mu\\text{s}$)} \\\\",
         "\\midrule",
-        "\\multicolumn{7}{l}{\\textbf{Panel A: Prospective Revision-v2 Full Benchmark ($N=20$ Search Replicates)}} \\\\",
+        "\\multicolumn{7}{l}{\\textbf{Panel A: Repeated Benchmark Experiments ($N=20$ Search Replicates)}} \\\\",
     ]
 
     for opt_key in PROSPECTIVE_OPTIMIZER_ORDER:
@@ -1133,7 +1133,7 @@ def render_tables(ds: Optional[ReportingDataset] = None) -> Dict[str, str]:
 
     tex_bm.append("\\midrule")
     tex_bm.append(
-        "\\multicolumn{7}{l}{\\textbf{Panel B: Historical Baseline Snapshot ($v1.0.0$, Single Search Replicate)}} \\\\"
+        "\\multicolumn{7}{l}{\\textbf{Panel B: Initial Experiment Snapshot (Single Search Replicate)}} \\\\"
     )
     for hrow in ds.historical_benchmarks:
         v_val = f"${hrow.val_rmse_mean:.4f}$"
@@ -1195,12 +1195,12 @@ def render_tables(ds: Optional[ReportingDataset] = None) -> Dict[str, str]:
         "\\toprule",
         "\\makecell[l]{\\textbf{Phase / Method}\\\\\\textbf{Component}} & \\makecell{\\textbf{Search}\\\\\\textbf{Reps}} & \\makecell{\\textbf{XGBoost}\\\\\\textbf{Fits}} & \\makecell{\\textbf{Distinct}\\\\\\textbf{Coords}} & \\makecell{\\textbf{Timed}\\\\\\textbf{Inferences}} & \\makecell{\\textbf{Warmup}\\\\\\textbf{Calls}} & \\makecell{\\textbf{Wall Time / Rep}\\\\\\scriptsize(s, Mean $\\pm$ SD)} \\\\",
         "\\midrule",
-        "\\multicolumn{7}{l}{\\textbf{Panel A: Historical Single-Campaign Baseline ($v1.0.0$, 160 DOE + Confirmation Fits)}} \\\\",
+        "\\multicolumn{7}{l}{\\textbf{Panel A: Initial Single-Campaign Experiment (160 DOE + Confirmation Fits)}} \\\\",
         "Phase 1: $2^4$ Factorial + 4 Center ($5$ Blocks) & $1$ & $100$ & $17$ & $100{,}000$ & $10{,}000$ & --- \\\\",
         "Phase 2: Face-Centered Axial ($5$ Blocks) & $1$ & $40$ & $8$ & $40{,}000$ & $4{,}000$ & --- \\\\",
         "Phase 5: Confirmation ($\\mathbf{x}^*_{\\text{MO}}$ \\& $\\mathbf{x}^*_{\\text{SO}}$, $m=10$) & $2$ & $20$ & $2$ & $20{,}000$ & $2{,}000$ & --- \\\\",
         "\\midrule",
-        f"\\multicolumn{{7}}{{l}}{{\\textbf{{Panel B: Prospective Revision-v2 Campaign (Total = {ds.total_model_fits:,} Fits, {ds.total_timed_inferences:,} Timed Inferences)}}}} \\\\".replace(",", "{,}"),
+        f"\\multicolumn{{7}}{{l}}{{\\textbf{{Panel B: Repeated Benchmark Experiments (Total = {ds.total_model_fits:,} Fits, {ds.total_timed_inferences:,} Timed Inferences)}}}} \\\\".replace(",", "{,}"),
         f"Repeated Pre-Planned DOE (MO + SO Shared) & $20$ & ${doe_fits:,}$ & $25/\\text{{rep}}$ & ${doe_fits * online_timed:,}$ & ${doe_fits * online_warmup:,}$ & ${mt['repeated_preplanned_doe_multi_objective']['wall_clock_s_mean']:.2f} \\pm {mt['repeated_preplanned_doe_multi_objective']['wall_clock_s_sd']:.2f}$ \\\\".replace(",", "{,}"),
         f"Multi-Objective TPE ($140$ Trials/Rep) & $20$ & ${per_opt_fits:,}$ & $140/\\text{{rep}}$ & ${per_opt_fits * online_timed:,}$ & ${per_opt_fits * online_warmup:,}$ & ${mt['multi_objective_tpe']['wall_clock_s_mean']:.2f} \\pm {mt['multi_objective_tpe']['wall_clock_s_sd']:.2f}$ \\\\".replace(",", "{,}"),
         f"Constrained TPE ($140$ Trials/Rep) & $20$ & ${per_opt_fits:,}$ & $140/\\text{{rep}}$ & ${per_opt_fits * online_timed:,}$ & ${per_opt_fits * online_warmup:,}$ & ${mt['constrained_tpe']['wall_clock_s_mean']:.2f} \\pm {mt['constrained_tpe']['wall_clock_s_sd']:.2f}$ \\\\".replace(",", "{,}"),

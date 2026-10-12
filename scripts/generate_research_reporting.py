@@ -1518,7 +1518,7 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "",
         "To prevent any future validation report or supplementary document from bypassing numerical verification, `scripts/generate_research_reporting.py` implements an automated **Scientific Artifact Registry and Discovery Gate** (`discover_scientific_and_documentation_files`, `build_scientific_artifact_registry`, and `verify_scientific_artifact_registry`):",
         "",
-        "1. **Automatic File Discovery (`discover_scientific_and_documentation_files`)**: Scans the repository root, `docs/`, `figures/`, `tables/`, `results/macros.tex`, `results/revision_v2/scientific_audit_c1/`, and registered figure scripts for all tracked scientific reports, validation documents, supplementary numerical analyses, tables, macros, provenance manifests, figures, and figure scripts (`61` total artifacts discovered: `59` verified scientific artifacts + `2` justified exclusions).",
+        "1. **Automatic File Discovery (`discover_scientific_and_documentation_files`)**: Scans the repository root, `docs/`, `figures/`, `tables/`, `results/macros.tex`, `results/revision_v2/scientific_audit_c1/`, and registered figure scripts for all tracked scientific reports, validation documents, supplementary numerical analyses, tables, macros, provenance manifests, figures, and figure scripts (`62` total artifacts discovered: `60` verified scientific artifacts + `2` justified exclusions).",
         "2. **Mandatory Registration & Fail-Closed Enforcement**: Every discovered file must be explicitly registered in `build_scientific_artifact_registry(ds)` with a declared verification mechanism. Any newly added or renamed scientific document lacking registration causes `verify_scientific_artifact_registry(ds)` and `check_research_reporting(ds)` to fail immediately.",
         "3. **Independent Verification by Mechanism**:",
         "   - `generated_full_document` (19 files): Deterministically generated from `ReportingDataset` (`CHANGELOG.md`, `docs/scientific_claims_audit.md`, `docs/f_scientific_review_validation.md`, `docs/proposed_followup_experiments.md`, `docs/f1_final_audit_validation.md`, `docs/generated/scientific_results_manifest.json`, `results/macros.tex`, and all 12 `tables/tab_*.tex` tables). Verified by exact content comparison against canonical reconstruction (plus row-and-context-bound claim validation for `CHANGELOG.md`).",
@@ -1555,7 +1555,7 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "| Verification Gate | Command | Result |",
         "| :--- | :--- | :--- |",
         "| LaTeX Artifacts Non-Mutating Check | `python scripts/generate_report_artifacts.py --check` | **PASSED** (`results/macros.tex` and 12 `tables/tab_*.tex` verified) |",
-        "| Full Research Reporting & Artifact Registry Check | `python scripts/generate_research_reporting.py --check` | **PASSED** (`REPORT.md`, `CHANGELOG.md`, manifest, all 59 verified scientific artifacts, and 2 justified exclusions verified) |",
+        "| Full Research Reporting & Artifact Registry Check | `python scripts/generate_research_reporting.py --check` | **PASSED** (`REPORT.md`, `CHANGELOG.md`, manifest, all 60 verified scientific artifacts, and 2 justified exclusions verified) |",
         "| Standalone Scientific Consistency Auditor | `python scripts/audit_scientific_consistency.py` | **PASSED** (40 SHA-256 evidence hashes + 65 manifest metrics + repository-wide artifact registry verified) |",
         "| Automated Pytest Suite (incl. Negative Coverage Tests) | `python -m pytest -q` | **PASSED** |",
         "| LaTeX Manuscript Compilation | `tectonic report.tex` and `tectonic technical_supplement.tex` | **PASSED** (both PDFs compiled and verified) |",
@@ -2455,7 +2455,7 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
             "Frozen Type III ANOVA export for Phase 1 factorial validation RMSE.",
         ),
         "scripts/generate_explanatory_figures.py": (
-            "e4b8463eb0eb255775d98c9fa40323b64af392d96a3116e36a1aa3a2b7c37e57",
+            "2411943cd55fe2d84dc1d469201014914f5279c8e1635d947b174e10b6a099a0",
             "Deterministic generator for reader-focused conceptual and empirical vector figures.",
         ),
         "figures/desirability_pareto_front.png": (
@@ -2495,8 +2495,12 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
             "Reader-focused conceptual FCCD projection.",
         ),
         "figures/explainer_method_comparison.pdf": (
-            "c04d05eeb8457869cd9a5104b120be30a9d0c57e9677f91a4a60f87052304c9b",
+            "be2cb6183678277958e64296025e0876964167ff389e91f91633501d5b8c5f60",
             "Reader-focused comparison of search-budget allocation.",
+        ),
+        "figures/explainer_efficiency_comparison.pdf": (
+            "462ded98e280e34903354905406a7bab1e31256adbb394ea8c75e91323d79c22",
+            "Reader-focused efficiency comparison regenerated from canonical search trajectories.",
         ),
         "figures/explainer_research_pipeline.pdf": (
             "79079afc462d4497a37ead550e2a73c1c12600ce7abe42fc22258c1a8b9a496d",
