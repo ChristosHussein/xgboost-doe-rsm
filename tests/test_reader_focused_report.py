@@ -62,7 +62,6 @@ def test_reader_figures_and_complete_coverage_inventory_are_present():
         "explainer_research_pipeline.pdf",
         "explainer_design_projection.pdf",
         "explainer_blocking.pdf",
-        "explainer_method_comparison.pdf",
         "explainer_efficiency_comparison.pdf",
         "response_surface_rmse_2d_3d.png",
         "response_surface_latency_2d_3d.png",
@@ -72,6 +71,8 @@ def test_reader_figures_and_complete_coverage_inventory_are_present():
     for figure in expected_figures:
         assert figure in tex
         assert (ROOT / "figures" / figure).is_file()
+    assert "\\label{tab:methods}" in tex
+    assert "explainer_method_comparison.pdf" not in tex
 
     coverage = (ROOT / "docs" / "report_rewrite_coverage.md").read_text(encoding="utf-8")
     for claim_no in range(1, 23):

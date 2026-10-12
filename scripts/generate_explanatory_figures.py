@@ -12,6 +12,7 @@ from pathlib import Path
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
@@ -61,23 +62,34 @@ def _save(fig: plt.Figure, name: str) -> None:
     plt.close(fig)
 
 
-def _box(ax: plt.Axes, x: float, y: float, text: str, color: str, width: float = 0.13) -> None:
-    ax.text(
-        x,
-        y,
-        text,
-        ha="center",
-        va="center",
-        color="#17212b",
-        linespacing=1.2,
-        bbox={"boxstyle": "round,pad=0.5", "facecolor": color, "edgecolor": "#4b5966", "linewidth": 0.9},
+def _box(
+    ax: plt.Axes,
+    x: float,
+    y: float,
+    text: str,
+    color: str,
+    width: float,
+    height: float,
+) -> None:
+    patch = FancyBboxPatch(
+        (x - width / 2, y - height / 2),
+        width,
+        height,
+        boxstyle="round,pad=0.006,rounding_size=0.014",
+        facecolor=color,
+        edgecolor="#4b5966",
+        linewidth=0.9,
         transform=ax.transAxes,
     )
+    ax.add_patch(patch)
+    ax.text(x, y, text, ha="center", va="center", color="#17212b", linespacing=1.2, transform=ax.transAxes)
 
 
 def research_pipeline() -> None:
     fig, ax = plt.subplots(figsize=(9.2, 4.8))
     ax.axis("off")
+    box_width = 0.19
+    box_height = 0.12
     labels = [
         "Question\naccuracy + speed",
         "Partition data\ndevelopment + holdout",
@@ -89,22 +101,33 @@ def research_pipeline() -> None:
         "Confirm and\ncompare with TPE",
     ]
     positions = [
-        (0.12, 0.72), (0.37, 0.72), (0.62, 0.72), (0.87, 0.72),
-        (0.87, 0.34), (0.62, 0.34), (0.37, 0.34), (0.12, 0.34),
+        (0.115, 0.72), (0.37, 0.72), (0.625, 0.72), (0.88, 0.72),
+        (0.88, 0.34), (0.625, 0.34), (0.37, 0.34), (0.115, 0.34),
     ]
     fills = ["#dcecf8", "#eaf3fa", "#e8f2e9", "#e8f2e9", "#fff1dc", "#f5eafb", "#fde9e7", "#e7f4ef"]
-    for i, ((x, y), label, fill) in enumerate(zip(positions, labels, fills)):
-        _box(ax, x, y, label, fill)
-        if i < len(labels) - 1:
-            nx, ny = positions[i + 1]
-            if y == ny:
-                start_x = x + (0.075 if nx > x else -0.075)
-                end_x = nx - (0.075 if nx > x else -0.075)
-                ax.annotate("", xy=(end_x, ny), xytext=(start_x, y), xycoords=ax.transAxes,
-                            arrowprops={"arrowstyle": "->", "color": COLORS["gray"], "lw": 1.3})
-            else:
-                ax.annotate("", xy=(nx, ny + 0.075), xytext=(x, y - 0.075), xycoords=ax.transAxes,
-                            arrowprops={"arrowstyle": "->", "color": COLORS["gray"], "lw": 1.3})
+    for (x, y), label, fill in zip(positions, labels, fills):
+        _box(ax, x, y, label, fill, box_width, box_height)
+
+    gap = 0.012
+    for (x, y), (nx, ny) in zip(positions, positions[1:]):
+        if y == ny:
+            direction = 1 if nx > x else -1
+            start = (x + direction * (box_width / 2 + gap), y)
+            end = (nx - direction * (box_width / 2 + gap), ny)
+        else:
+            start = (x, y - box_height / 2 - gap)
+            end = (nx, ny + box_height / 2 + gap)
+        ax.add_patch(
+            FancyArrowPatch(
+                start,
+                end,
+                arrowstyle="-|>",
+                mutation_scale=12,
+                color=COLORS["gray"],
+                linewidth=1.35,
+                transform=ax.transAxes,
+            )
+        )
     ax.text(0.5, 0.08, "Historical execution: every FCCD run was scheduled up front and globally randomized; the analysis was hierarchical, not adaptive.",
             ha="center", va="center", transform=ax.transAxes, fontsize=9, color="#38434d")
     _save(fig, "explainer_research_pipeline.pdf")
@@ -200,31 +223,6 @@ def tradeoff(final_summary: pd.DataFrame) -> None:
     _save(fig, "explainer_accuracy_latency.pdf")
 
 
-def method_comparison() -> None:
-    fig, ax = plt.subplots(figsize=(9.4, 3.5))
-    ax.axis("off")
-    rows = [
-        ("Blocked DOE", "25 planned coordinates", "5 split blocks", "effects, interactions, curvature"),
-        ("Random search", "140 sampled coordinates", "one development split", "broad non-adaptive exploration"),
-        ("TPE variants", "140 adaptive coordinates", "one development split", "concentrated optimization"),
-    ]
-    headers = ["Method", "Use of the\n140-fit budget", "Noise handling\nduring search", "Primary information\ngained"]
-    table = ax.table(cellText=rows, colLabels=headers, loc="center", cellLoc="left", colLoc="left", colWidths=[0.16, 0.27, 0.24, 0.33])
-    table.auto_set_font_size(False)
-    table.set_fontsize(8.2)
-    table.scale(1, 1.85)
-    for (row, _col), cell in table.get_celld().items():
-        cell.set_edgecolor("#b8c2ca")
-        cell.set_facecolor("#dcecf8" if row == 0 else ("#f7fafc" if row % 2 else "#edf3f6"))
-        if row == 0:
-            cell.set_text_props(weight="bold")
-    ax.set_title("Equal fit counts produce different kinds of information", pad=14)
-    ax.text(0.5, 0.035,
-            "The benchmark repeated each search 20 times and retrained fixed selections across 20 evaluation seeds.",
-            ha="center", transform=ax.transAxes, fontsize=8.5, color=COLORS["gray"])
-    _save(fig, "explainer_method_comparison.pdf")
-
-
 def efficiency_comparison(runs: pd.DataFrame) -> None:
     """Render a reader-facing version of the canonical efficiency evidence."""
     trials = pd.read_csv(OPTIMIZER_TRIALS)
@@ -307,9 +305,8 @@ def main() -> None:
     blocking_example(runs)
     response_surface_fit(runs)
     tradeoff(final_summary)
-    method_comparison()
     efficiency_comparison(runs)
-    print("Generated seven reader-focused PDF figures from canonical evidence and protocol metadata.")
+    print("Generated six reader-focused PDF figures from canonical evidence and protocol metadata.")
 
 
 if __name__ == "__main__":

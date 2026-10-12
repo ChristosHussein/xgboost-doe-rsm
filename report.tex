@@ -2,7 +2,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb,bm}
-\usepackage{booktabs,array,makecell}
+\usepackage{booktabs,array,makecell,tabularx}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{xcolor}
@@ -195,13 +195,24 @@ We compared four adaptive or stochastic alternatives:
 \item \term{Constrained TPE} minimizes RMSE while treating 145\,$\mu$s as a latency constraint.
 \end{itemize}
 
-Figure~\ref{fig:methods} explains why equal counts of model fits do not make the information identical. The complete campaign used \numRevTotalFits\ model fits. Each search replicate used 140 fits, but DOE replicated planned coordinates across splits while black-box methods explored distinct coordinates on one split. The technical supplement provides the detailed execution budget and timing ledger.
-\begin{figure}[H]
+Table~\ref{tab:methods} explains why equal counts of model fits do not make the information identical. The complete campaign used \numRevTotalFits\ model fits. Each search replicate used 140 fits, but DOE replicated planned coordinates across splits while black-box methods explored distinct coordinates on one split. The technical supplement provides the detailed execution budget and timing ledger.
+\begin{table}[H]
 \centering
-\includegraphics[width=0.9\textwidth]{figures/explainer_method_comparison.pdf}
-\caption{What the compared methods did with the same 140-fit search budget. DOE emphasized estimable effects and split-to-split variation; Random Search emphasized broad coverage; TPE emphasized adaptive concentration. These are different experimental estimands even when fit counts match.}
-\label{fig:methods}
-\end{figure}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}p{0.20\textwidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Method} & \textbf{Use of the 140-fit budget} & \textbf{Noise handling during search} & \textbf{Primary information gained} \\
+\midrule
+Blocked DOE & 25 planned coordinates & Five data-split blocks & Effects, interactions, curvature, and split-to-split variation \\
+Random Search & 140 sampled coordinates & One development split & Broad non-adaptive exploration \\
+TPE variants & 140 adaptive coordinates & One development split & Concentrated optimization in promising regions \\
+\bottomrule
+\end{tabularx}
+\caption{What the compared methods did with the same 140-fit search budget. DOE emphasized estimable effects and split-to-split variation; Random Search emphasized broad coverage; TPE emphasized adaptive concentration. These are different experimental estimands even when fit counts match. Each search was repeated 20 times, and fixed selections were retrained across 20 evaluation seeds.}
+\label{tab:methods}
+\end{table}
 
 Before comparing final models, we asked how quickly each search found lower validation error. Figure~\ref{fig:efficiency} plots cumulative model fits on the horizontal axis and the best validation RMSE found so far on the vertical axis. Falling curves indicate improvement; shaded bands show the middle half of repeated runs. TPE improves rapidly because it adapts toward promising regions. The planned DOE trace improves in scheduled jumps because its run order was randomized for unbiased analysis rather than arranged for early optimization. By the end of the budget, several curves are close, but they reached that region in different ways and produced different kinds of information.
 \begin{figure}[H]
