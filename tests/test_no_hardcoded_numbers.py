@@ -10,16 +10,20 @@ import pandas as pd
 import pytest
 
 def test_report_uses_macros_and_inputs():
-    """Ensures report.tex uses \\input{results/macros.tex} and \\input{tables/...}."""
-    tex_path = "report.tex"
-    assert os.path.exists(tex_path), f"Missing {tex_path}"
-
-    with open(tex_path, "r", encoding="utf-8") as f:
-        content = f.read()
+    """Ensures the main report and supplement bind published results to generated artifacts."""
+    manuscripts = ["report.tex", "technical_supplement.tex"]
+    for tex_path in manuscripts:
+        assert os.path.exists(tex_path), f"Missing {tex_path}"
+    with open("report.tex", "r", encoding="utf-8") as f:
+        main_content = f.read()
+    with open("technical_supplement.tex", "r", encoding="utf-8") as f:
+        supplement_content = f.read()
+    content = main_content + "\n" + supplement_content
 
     # 1. Must include macros.tex
-    assert "\\input{results/macros.tex}" in content or "\\input{results/macros}" in content, \
-        "report.tex must \\input{results/macros.tex} to source all numbers from code"
+    for tex_path, manuscript in [("report.tex", main_content), ("technical_supplement.tex", supplement_content)]:
+        assert "\\input{results/macros.tex}" in manuscript or "\\input{results/macros}" in manuscript, \
+            f"{tex_path} must \\input{{results/macros.tex}} to source empirical numbers from code"
 
     # 2. Must input generated tables
     required_tables = [
@@ -34,7 +38,7 @@ def test_report_uses_macros_and_inputs():
     ]
     for tab in required_tables:
         pattern = rf"\\input{{tables/{tab}(\.tex)?}}"
-        assert re.search(pattern, content), f"report.tex must \\input tables/{tab}.tex"
+        assert re.search(pattern, content), f"Publication package must \\input tables/{tab}.tex"
 
     # 3. Must use \\num* macros in the body text
     macro_matches = re.findall(r"\\num[A-Z][a-zA-Z0-9]*", content)
@@ -64,12 +68,14 @@ def test_frozen_selections_counts_and_manifest():
 
 
 def test_manifest_naming_in_manuscript():
-    """Verifies correct finalized_selections.json reference and absence of obsolete frozen_selection_manifest.json."""
+    """Keeps implementation filenames out of both reader-facing manuscripts."""
     with open("report.tex", "r", encoding="utf-8") as f:
-        tex = f.read()
-    tex_unescaped = tex.replace(r"\_", "_")
-    assert "finalized_selections.json" in tex_unescaped, "report.tex must reference finalized_selections.json"
-    assert "frozen_selection_manifest.json" not in tex_unescaped, "report.tex must not reference obsolete frozen_selection_manifest.json"
+        main_tex = f.read().replace(r"\_", "_")
+    with open("technical_supplement.tex", "r", encoding="utf-8") as f:
+        supplement_tex = f.read().replace(r"\_", "_")
+    assert "finalized_selections.json" not in main_tex
+    assert "finalized_selections.json" not in supplement_tex
+    assert "frozen_selection_manifest.json" not in main_tex + supplement_tex
 
 
 def test_absence_of_unsupported_equivalence_language():
@@ -80,7 +86,7 @@ def test_absence_of_unsupported_equivalence_language():
         "multi-objective equivalence",
         "Multi-Objective Equivalence",
     ]
-    for doc in ["report.tex", "REPORT.md"]:
+    for doc in ["report.tex", "technical_supplement.tex", "REPORT.md"]:
         with open(doc, "r", encoding="utf-8") as f:
             text = f.read()
         for phrase in banned_phrases:
@@ -135,7 +141,9 @@ def test_holdout_history_and_hypervolume_table_labels():
     for doc in ["report.tex", "REPORT.md"]:
         with open(doc, "r", encoding="utf-8") as f:
             text = f.read().lower()
-        assert "untouched" not in text, f"Found inaccurate 'untouched' holdout claim in {doc}"
+        assert "completely untouched" not in text, f"Found inaccurate unconditional holdout claim in {doc}"
+        if "untouched" in text:
+            assert "cannot be described as untouched" in text
         assert "prevented access" in text or "blocked access" in text, (
             f"Missing explanation of revised holdout access prevention in {doc}"
         )
@@ -155,13 +163,17 @@ def test_holdout_history_and_hypervolume_table_labels():
 
 
 def test_compiled_pdf_page_count():
-    """Verifies that compiled report.pdf exists, is readable by pypdf without skip, and contains pages."""
+    """Verifies the target main-report length and a readable companion supplement."""
     import pypdf
 
     pdf_path = "report.pdf"
     assert os.path.exists(pdf_path), f"Missing {pdf_path}"
     reader = pypdf.PdfReader(pdf_path)
-    assert len(reader.pages) >= 14, f"Expected valid multi-page manuscript PDF in {pdf_path}, found {len(reader.pages)} pages"
+    assert 15 <= len(reader.pages) <= 18, f"Expected 15--18 pages in {pdf_path}, found {len(reader.pages)}"
+    supplement_path = "technical_supplement.pdf"
+    assert os.path.exists(supplement_path), f"Missing {supplement_path}"
+    supplement_reader = pypdf.PdfReader(supplement_path)
+    assert len(supplement_reader.pages) >= 20, "Technical supplement is unexpectedly incomplete"
 
 
 def _extract_markdown_table_rows(md_text: str, section_heading: str) -> list[list[str]]:

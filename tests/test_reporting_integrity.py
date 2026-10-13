@@ -224,6 +224,8 @@ def _create_isolated_workspace(tmp_path: Path, root_dir: Path) -> Path:
         "REPORT.md",
         "report.tex",
         "report.pdf",
+        "technical_supplement.tex",
+        "technical_supplement.pdf",
         "CHANGELOG.md",
         "CODEX_REVIEW.md",
         "plots.py",
@@ -236,6 +238,12 @@ def _create_isolated_workspace(tmp_path: Path, root_dir: Path) -> Path:
 
     # Copy tables
     shutil.copytree(root_dir / "tables", ws / "tables")
+
+    # Copy registered publication figures and scripts cited by generated documents.
+    shutil.copytree(root_dir / "figures", ws / "figures")
+    shutil.copytree(root_dir / "scripts", ws / "scripts")
+    for source in root_dir.glob("*.py"):
+        shutil.copy2(source, ws / source.name)
 
     # Copy results top-level files, revision_v2/full_run_001, and revision_v2/scientific_audit_c1
     (ws / "results" / "revision_v2").mkdir(parents=True, exist_ok=True)
@@ -537,7 +545,7 @@ def test_work_package_f_scientific_audit_reconstructions_and_deliverables(canoni
     # Title correction check
     tex_text = (root / "report.tex").read_text(encoding="utf-8")
     md_text = (root / "REPORT.md").read_text(encoding="utf-8")
-    assert "Pre-Planned Response Surface Methodology" in tex_text
+    assert "Learning and Optimizing XGBoost with Planned Experiments" in tex_text
     assert md_text.startswith("# Pre-Planned Response Surface Methodology")
 
 
@@ -546,11 +554,11 @@ def test_scientific_artifact_registry_and_negative_coverage(tmp_path, canonical_
     ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
     ds_ws = load_reporting_dataset(ws)
 
-    # Verify baseline discovery and registry completeness (45 files: 43 scientific + 2 justified exclusions)
+    # Verify discovery and registry completeness (61 files: 59 scientific + 2 justified exclusions)
     discovered = set(discover_scientific_and_documentation_files(ws))
     registry = build_scientific_artifact_registry(ds_ws)
     assert discovered == set(registry.keys())
-    assert len(registry) == 45
+    assert len(registry) == 61
     assert verify_scientific_artifact_registry(ds_ws) == []
 
     # 1. Introduce a new docs/new_scientific_audit.md containing empirical results but no verification registration -> MUST FAIL

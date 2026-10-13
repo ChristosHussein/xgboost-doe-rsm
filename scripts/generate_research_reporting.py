@@ -833,7 +833,7 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "5. Treating replicate indices as paired experimental blocks when they represent independent RNG streams; or",
         "6. Presenting a deterministic 12-point holdout non-dominated set without seed-sampling uncertainty.",
         "",
-        "This register inventories all **22 material scientific claims** across the Title, Abstract, Introduction, Methods, Phase 1–5 Results, Prospective Benchmark Tables/Figures, Discussion, Reproducibility Statement, and Conclusion, classifies each claim prior to Work Package F (`SUPPORTED`, `NEEDS QUALIFICATION`, `UNSUPPORTED`, or `UNVERIFIED`), and documents the exact methodological correction enforced in `report.tex` and `REPORT.md`. Furthermore, in Work Package F.1 this document itself is deterministically generated and verified from `ReportingDataset` via `scripts/generate_research_reporting.py` so that audit documentation can never drift from canonical source reconstructions.",
+        "This register inventories all **22 material scientific claims** across the Title, Abstract, Introduction, Methods, Phase 1–5 Results, Prospective Benchmark Tables/Figures, Discussion, Code Availability, and Conclusion, classifies each claim prior to Work Package F (`SUPPORTED`, `NEEDS QUALIFICATION`, `UNSUPPORTED`, or `UNVERIFIED`), and documents the exact methodological correction enforced in `report.tex` and `REPORT.md`. Furthermore, in Work Package F.1 this document itself is deterministically generated and verified from `ReportingDataset` via `scripts/generate_research_reporting.py` so that audit documentation can never drift from canonical source reconstructions.",
         "",
         "---",
         "",
@@ -841,35 +841,35 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "",
         "| Claim ID | Manuscript Location | Topic / Claim Summary | Pre-Audit Status | Post-Audit Disposition |",
         "| :---: | :--- | :--- | :---: | :--- |",
-        f"| **C-01** | Title, Abstract, Sec. 1, Sec. 10 | Characterization of the 140-run FCCD campaign as \"Sequential RSM\" | **UNSUPPORTED** | Corrected to **Pre-Planned Blocked RSM & FCCD**; actual shuffled execution chronology documented (`{ds.doe_axial_before_run100}/40` axial runs before `run_order = 100`). |",
-        f"| **C-02** | Sec. 2.2 (`report.tex`), Sec. 1.3 (`REPORT.md`), Table 1 | 140-evaluation budget equivalence between Blocked DOE (25 coords $\\times$ 5 blocks) and TPE/Random Search (140 distinct coords) | **NEEDS QUALIFICATION** | Explicitly contrasted spatial exploration (25 vs. 140 distinct coordinates) and low-$\\eta$ corner allocation (`{ds.doe_low_eta_run_count}/140 = {ds.doe_low_eta_run_pct:.2f}%` runs at $\\eta = 0.01$). |",
-        f"| **C-03** | Sec. 2.4 (`report.tex`), Sec. 1.3 (`REPORT.md`) | Single-sample CPU inference latency protocol and `predict` vs. `inplace_predict` interface overhead | **NEEDS QUALIFICATION** | Documented all 3 timing protocols (1,000-call historical, 30-call online search, $2\\times 500$-call warmed holdout) and quantified wrapper overhead (`{ds.interface_overhead_mean:.2f} ± {ds.interface_overhead_sd:.2f} µs` in Revision-v2; `{ds.hist_runs_interface_overhead_mean:.2f} ± {ds.hist_runs_interface_overhead_sd:.2f} µs` in historical DOE). |",
-        f"| **C-04** | Abstract, Sec. 3 (`report.tex`), Sec. 2.1 (`REPORT.md`), Table 3 | Phase 1 $2^4$ factorial screening dominance of $\\ln(\\eta)$ ($F = {f_x1_p1:.2f}$), depth ($F = {f_x2_p1:.2f}$), and $x_1 x_2$ ($F = {f_x1x2_p1:.2f}$) | **SUPPORTED** | Verified via Type III OLS ANOVA on `results/runs.csv` ($N_1 = 100$ runs across 5 blocks, $\\text{{MS}}_E = {ms_e_p1:.6f}$). |",
-        f"| **C-05** | Abstract, Sec. 3.1 (`report.tex`), Sec. 2.2–2.3 (`REPORT.md`) | Phase 1 curvature test $F_{{\\text{{Curvature}}}} = {p1['f_curvature']:,.2f}$ ($p < 10^{{-15}}$) | **NEEDS QUALIFICATION** | Explained micro-scale subsampling denominator ($\\text{{df}}={p1['df_pe_center']}$, $\\text{{SS}}_{{\\text{{Curv}}}} = {p1['ss_curvature']:.6f}$, $\\text{{MS}}_{{\\text{{PE, center}}}} = {_fmt_sci_md(p1['ms_pe_center'])}$) and added 6-denominator sensitivity analysis ($F = {cs['f_block_adj_pooled']:,.2f}$ pooled; $F = {cs['f_txb_p1']:,.2f}$ vs. $T\\times B$; $F = {cs['f_block_paired']:,.2f}, p = {_fmt_sci_md(cs['p_block_paired'])}$ 5-block paired; $F = {cs['f_2fi_resid']:.2f}, p = {_fmt_sci_md(cs['p_2fi_resid'])}$ vs. unadjusted 2FI residual). Distinguished non-planarity from quadratic adequacy. |",
-        f"| **C-06** | Abstract, Sec. 2.3 & Sec. 4 (`report.tex`), Sec. 3.2 (`REPORT.md`) | Variance shielding and Block Intraclass Correlation $\\text{{ICC}} = {icc['Y1']['icc_anova']:.4f}$ (${icc_anova_pct:.2f}\\%$, REML ${icc_reml:.4f}$, $\\sigma_{{\\text{{block}}}} \\approx {sigma_block:.4f}$ RMSE) | **SUPPORTED** | Reconstructed from `results/runs.csv` Phase 2 ANOVA ($\\text{{SS}}_{{\\text{{block}}}} = {ss_blk_p2:.6f}, \\text{{MS}}_{{\\text{{block}}}} = {ms_blk_p2:.6f}, \\text{{MS}}_E = {ms_e_p2:.6f}, F = {f_block_ccd:.2f}, p = {_fmt_sci_md(p_block_ccd)}$) and REML mixed model. |",
-        f"| **C-07** | Sec. 4.1 (`report.tex`), Sec. 3.1 (`REPORT.md`), Table 4 | Phase 2 second-order FCCD model fit ($R^2 = {ds.ccd_y1_rsq:.4f}$, $\\text{{Adj }} R^2 = {ds.ccd_y1_adj_rsq:.4f}$) and HC3 robust standard errors | **NEEDS QUALIFICATION** | Qualified high $R^2$ as reflecting macro-scale contrast across $\\eta \\in [0.01, 0.30]$ while local lack of fit remains significant; noted HC3 adjusts SEs for heteroscedasticity but does not remove polynomial bias. |",
-        f"| **C-08** | Sec. 4.2 (`report.tex`), Sec. 3.3 (`REPORT.md`), Table 6 | Multi-scale lack-of-fit decomposition ($121\\text{{ df}} = 10\\text{{ df LoF}} + 96\\text{{ df }} T\\times B + 15\\text{{ df Center PE}}$) and restricted-domain refit ($x_1 \\ge -0.5$) | **SUPPORTED** | Verified exact SS/DF/MS decomposition ($\\text{{SS}}_{{\\text{{LoF}}}} = {lof['Y1']['SS_LoF']:.6f}, F = {lof['Y1']['F_LoF']:.2f}$ vs. additive; $F = {ld['f_lof_center_y1']:.2f}$ vs. center PE) and documented that dropping $x_1 = -1$ aliases $x_1^2 \\equiv x_1$, reducing $\\text{{df}}_{{\\text{{LoF}}}}$ from 10 to 2 (${restr['ss_lof_reduction_pct']:.1f}\\%$ SS reduction). |",
-        f"| **C-09** | Sec. 4.2 (`report.tex`), Sec. 3.1 (`REPORT.md`), Table 5, Table 7, Fig. 3 | Second-order and quadratic-depth inference latency models ($R^2 = {float(m_full['R2']):.4f}$ and ${float(m_quad['R2']):.4f}$, $\\text{{AIC}} = {float(m_full['AIC']):.1f}$ and ${float(m_quad['AIC']):.1f}$) and non-significant latency lack of fit ($F = {ld['f_lof_center_y2']:.2f}, p = {ld['p_lof_center_y2']:.4f}$) | **SUPPORTED** | Verified from `results/runs.csv` and `results/latency_models_comparison.csv` with exact Jacobian adjustment ($+2\\sum\\ln y_i = {ds.latency_jacobian_adjustment:,.1f}$). |",
-        f"| **C-10** | Sec. 5 (`report.tex`), Sec. 3.3 (`REPORT.md`), Fig. 1 | Residual diagnostics: Shapiro-Wilk ($W = {diag['shapiro_W']:.4f}, p = {diag['shapiro_p']:.4f}$), Levene ($p = {diag['levene_p']:.4f}$), Brown-Forsythe ($p = {diag['brown_forsythe_points_p']:.4f}$), Breusch-Pagan ($\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p < 0.0001$), Durbin-Watson ($DW = {diag['durbin_watson']:.4f}$) | **NEEDS QUALIFICATION** | Explicitly specified grouping factors: mean-centered Levene across **5 seed blocks** ($W={diag['levene_stat']:.4f}, p={diag['levene_p']:.4f}$), median-centered Brown-Forsythe across **25 design coordinates** ($W={diag['brown_forsythe_points_stat']:.4f}, p={diag['brown_forsythe_points_p']:.4f}$), and reconciled both with significant Breusch-Pagan across continuous $\\hat{{y}}$ due to cell-mean LoF at $\\eta = 0.01$. |",
-        f"| **C-11** | Sec. 6 (`report.tex`), Sec. 4 (`REPORT.md`), Table 8, Fig. 2 | Canonical spectral decomposition ($\\lambda_1 = {eigs[0]:.6f}$, 95% wild bootstrap CI $[{boot_p[0][0]:.4f}, {boot_p[2][0]:+.4f}]$, ${p3['fraction_min_eigenvalue_le_zero']*100:.1f}\\%$ $\\le 0$) and stationary/rising ridge classification | **SUPPORTED** | Verified eigenvalues, eigenvectors, unconstrained stationary point $\\mathbf{{x}}_0 = [{st_pt[0]:+.4f}, {st_pt[1]:+.4f}, {st_pt[2]:+.4f}, {st_pt[3]:+.4f}]^T$ ($\\|\\mathbf{{x}}_0\\|_2 = {p3['distance_coded']:.2f}$), and constrained depth-{cube['depth']} candidate $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ ($\\hat{{y}} = {cube['pred_rmse']:.4f}$). |",
-        f"| **C-12** | Sec. 7 (`report.tex`), Sec. 5 (`REPORT.md`), Table 9, Fig. 4 | Multi-objective Derringer-Suich desirability optimization selecting interior $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ ($\\eta = {mo_nat['eta']:.4f}, d = {mo_nat['depth']}, s = {mo_nat['subsample']:.4f}, \\lambda = {mo_nat['reg_lambda']:.4f}, D = {d_star['D']:.4f}$) | **SUPPORTED** | Verified against `results/confirmation.json` ($\\hat{{Y}}_1 = {d_star['pred_y1']:.4f}, \\hat{{Y}}_2 = {d_star['pred_y2']:.2f}\\,\\mu\\text{{s}}, d_1 = {d_star['d1']:.4f}, d_2 = {d_star['d2']:.4f}$) and `results/desirability_sensitivity.csv`. |",
-        f"| **C-13** | Sec. 8.1 (`report.tex`), Sec. 6 (`REPORT.md`), Table 10 | Phase 5 Satterthwaite confirmation intervals ($m=10$ seeds `505..1414`): pointwise confirmation at $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ (${mo_val['empirical_mean']:.4f} \\in [{mo_val['prediction_interval_95'][0]:.4f}, {mo_val['prediction_interval_95'][1]:.4f}]$) and non-confirmation / polynomial optimism at $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ (${so_conf['empirical_val_rmse']:.4f} > {so_conf['prediction_interval_95_val'][1]:.4f}$, bias ${so_bias:+.4f}$) | **SUPPORTED** | Verified exact variance-component synthesis $\\hat{{V}}_{{\\text{{conf}}}} = c_1 \\text{{MS}}_E + c_2 \\text{{MS}}_{{\\text{{block}}}}$, effective degrees of freedom ($\\nu_{{\\text{{eff}}}} = {mo_val['nu_eff']:.1f}$ and ${so_conf['nu_eff']:.1f}$), and qualified pointwise confirmation vs. global surrogate accuracy. |",
-        f"| **C-14** | Sec. 8.2 (`report.tex`), Sec. 6.1 (`REPORT.md`), Table 10 & Table 11 | Three- and four-decimal-place numerical similarities (`{doe_so.test_rmse_mean:.4f}`/`{doe_so.val_rmse_mean:.4f}`/`{h_so_test:.4f}`/`{c_so_test:.4f}`, `{c_mo_val:.4f}`, `{h_mo_test:.4f}`/`{c_mo_test:.4f}`, `{c_so_val:.4f}`) across confirmation, historical benchmark, and Revision-v2 tables | **NEEDS QUALIFICATION** | Documented exact provenance: (1) shared configuration hashes (`{ds.doe_so_hist_hash16}` and `{ds.doe_mo_hist_hash16}`) on seeds `2001..2020`, plus deterministic grid selection (`{ds.doe_so_rep_hash16}`, `grid_index = {ds.doe_so_rep_grid_index}`); (2) disjoint seed sets (`505..1414` vs. `2001..2020`) differing at the 5th–6th decimal place (`{c_so_test:.6f}` vs. `{h_so_test:.6f}`, $\\Delta = {diff_conf_bench_so:.2f}\\times 10^{{-6}}$). |",
-        "| **C-15** | Sec. 8.3 (`report.tex`), Sec. 7 (`REPORT.md`) | Holdout test set isolation history between historical `v1.0.0` and prospective `Revision-v2` | **SUPPORTED** | Explicitly stated that `v1.0.0` logged test RMSE during development, whereas `Revision-v2` enforced programmatic isolation until `finalized_selections.json` was frozen, without undoing prior historical exposure of the California Housing dataset. |",
-        f"| **C-16** | Sec. 8.3 (`report.tex`), Sec. 7.3 (`REPORT.md`), Table 11 | What the 20 Repeated DOE replicates represent (block seeds `3001..3100` + deterministic {ds.doe_grid_size:,}-point grid selection) and why DOE-SO has between-search $\\text{{SD}} = 0.00000$ vs. retraining $\\sigma_{{\\text{{eval}}}} = {doe_so.retrain_sd:.5f}$ | **NEEDS QUALIFICATION** | Explicitly documented the {ds.doe_grid_size:,}-point grid ($21 \\times 7 \\times 3 \\times 3$ in `doe_selection_protocol.json`), why all 20 DOE-SO replicates select `grid_index = {ds.doe_so_rep_grid_index}` ($\\eta={ds.doe_so_rep_eta:.4f}, d={cube['depth']}, s=1.0, \\lambda=10.0$), and how between-search selection SD is separated from 20-seed retraining SD. |",
-        f"| **C-17** | Abstract, Sec. 8.3 (`report.tex`), Sec. 7.3 (`REPORT.md`), Table 11 | Multi-objective holdout comparison: Repeated DOE MO (${doe_mo.test_rmse_mean:.5f} \\pm {doe_mo.test_rmse_sd:.5f}$) vs. MO-TPE (${mo_tpe.test_rmse_mean:.5f} \\pm {mo_tpe.test_rmse_sd:.5f}$), Welch $t = {ds.doe_mo_vs_motpe_welch_t:.4f}, p = {ds.doe_mo_vs_motpe_welch_p:.4f}$, paired $t = {ds.doe_mo_vs_motpe_paired_t:.3f}, p = {ds.doe_mo_vs_motpe_paired_p:.4f}$ | **NEEDS QUALIFICATION** | Designated **unpaired Welch's two-sample $t$-test as the primary inferential test** (since replicate index $r$ pairs DOE seeds `3001+5r..3005+5r` with Optuna seed `1000+r` on split 42 rather than a shared random block) and paired $t$-test as a secondary sensitivity check; noted no pre-registered equivalence margin (`rmse_equivalence_margin: null`). |",
-        f"| **C-18** | Sec. 8.3 (`report.tex`), Sec. 7.2 (`REPORT.md`), Table 12 | Development candidate hypervolume comparison (MO-TPE ${hvs['motpe_dev_060_mean']:.4f} \\pm {hvs['motpe_dev_060_sd']:.4f}$ vs. Repeated DOE 5-block means ${hvs['rdoe_dev_060_mean']:.4f} \\pm {hvs['rdoe_dev_060_sd']:.4f}$ vs. Fixed 27-point DOE front ${hvs['fdoe_dev_060']:.4f}$, diff ${hvs['diff_fdoe_minus_motpe_060']:+.4f}, p < 0.0001$) and historical `v1.0.0` hypervolume ($18.38$ vs. $16.86$) | **NEEDS QUALIFICATION** | Distinguished all 4 protocol rows; qualified the Split-42 difference as a **descriptive 1-sample test** of 20 stochastic MO-TPE fronts against a single fixed 27-point DOE front on split 42; explained that historical `v1.0.0` compared a 25-point DOE front ($18.38$) against 1 MO-TPE point ($16.86$), whereas single-point comparison is $16.92$ vs. $16.86$ ($+0.3\\%$). |",
-        f"| **C-19** | Abstract, Sec. 8.3 (`report.tex`), Sec. 7.2–7.3 (`REPORT.md`), Table 12, Fig. 5 | Holdout non-dominated set of {hvs['holdout_nd']} configurations ($\\text{{HV}} = {hvs['holdout_frozen_060']:.4f}$ at $[{r1_rmse:.2f}, {r1_lat:.1f}]$; ${hvs['holdout_frozen_065']:.4f}$ at $[{r2_rmse:.2f}, {r2_lat:.1f}]$): 3 DOE-MO, 3 MO-TPE, 5 Constrained TPE, 1 SO-TPE | **NEEDS QUALIFICATION** | Added paired cluster bootstrap ($B=2,000$ resamples over the 20 shared evaluation seeds `2001..2020`, `seed=20261011`): $\\text{{HV}} = {hpb['seed_only_060_mean']:.4f} \\pm {hpb['seed_only_060_sd']:.4f}$ (95% CI $[{hpb['seed_only_060_ci95'][0]:.4f}, {hpb['seed_only_060_ci95'][1]:.4f}]$) at $[{r1_rmse:.2f}, {r1_lat:.1f}]$, ${hpb['seed_only_065_mean']:.4f} \\pm {hpb['seed_only_065_sd']:.4f}$ (95% CI $[{hpb['seed_only_065_ci95'][0]:.4f}, {hpb['seed_only_065_ci95'][1]:.4f}]$) at $[{r2_rmse:.2f}, {r2_lat:.1f}]$, joint seed+session $\\text{{HV}} = {hpb['joint_060_mean']:.4f} \\pm {hpb['joint_060_sd']:.4f}$ ($[{hpb['joint_060_ci95'][0]:.4f}, {hpb['joint_060_ci95'][1]:.4f}]$), and per-optimizer frontier presence (${hpb['by_optimizer']['repeated_preplanned_doe_multi_objective']['seed_only_present_pct']:.1f}\\%$ DOE-MO, MO-TPE, Constrained TPE; ${hpb['by_optimizer']['single_objective_tpe']['seed_only_present_pct']:.1f}\\%$ SO-TPE). |",
-        f"| **C-20** | Sec. 8.3 (`report.tex`), Sec. 7.3 (`REPORT.md`), Table 11 | Constrained TPE feasibility degradation from ${ctpe.search_feasible_count}/{ctpe.n_replicates}$ ($100\\%$) during online 30-call search to ${ctpe.benchmark_feasible_count}/{ctpe.n_replicates}$ (${ctpe.benchmark_feasible_pct}\\%$) under 1,000-call benchmark verification (depth 6: ${ds.ctpe_depth6_feasible}/{ds.ctpe_depth6_count}$ feasible at ${ds.ctpe_depth6_latency_mean:.2f} \\pm {ds.ctpe_depth6_latency_sd:.2f}\\,\\mu\\text{{s}}$; depth 7: ${ds.ctpe_depth7_feasible}/{ds.ctpe_depth7_count}$ feasible at ${ds.ctpe_depth7_latency_mean:.2f} \\pm {ds.ctpe_depth7_latency_sd:.2f}\\,\\mu\\text{{s}}$) | **SUPPORTED** | Verified from `finalized_selections.json` and `final_summary.csv`; framed explanations (30-call noise, warmup protocol difference, winner's-curse selection near $145\\,\\mu\\text{{s}}$) as plausible mechanisms. |",
-        f"| **C-21** | Sec. 8.3 (`report.tex`), Sec. 7.4 (`REPORT.md`), Table 13 | Complete computational budget (${ds.total_model_fits:,}$ model fits, ${ds.total_timed_inferences:,}$ timed single-row calls, ${ds.total_warmup_inferences:,}$ warmup calls, ${ds.total_all_inferences:,}$ total calls) and per-method search wall-clock times | **NEEDS QUALIFICATION** | Added Table 13 (`tables/tab_computational_budget.tex`) and Section 7.4 reconciling every fit, timed call, warmup call, mean fit duration (`{mt['multi_objective_tpe']['train_ms_per_fit_mean']:.1f} ms` MO-TPE to `{mt['single_objective_tpe']['train_ms_per_fit_mean']:.1f} ms` SO-TPE; `{mt['repeated_preplanned_doe_multi_objective']['train_ms_per_fit_mean']:.1f} ms` DOE), and replicate wall-clock time (`{mt['repeated_preplanned_doe_multi_objective']['wall_clock_s_mean']:.2f} ± {mt['repeated_preplanned_doe_multi_objective']['wall_clock_s_sd']:.2f} s` DOE vs. `{mt['single_objective_tpe']['wall_clock_s_mean']:.2f} ± {mt['single_objective_tpe']['wall_clock_s_sd']:.2f} s` SO-TPE). |",
-        f"| **C-22** | Sec. 8.3 & Sec. 10 (`report.tex`), Sec. 7.3 & Sec. 9 (`REPORT.md`) | Historical vs. prospective latency differences and reproducibility provenance | **SUPPORTED** | Verified that both historical and prospective scripts applied Win32 CPU Core 0 affinity pinning (attributing differences to between-session drift, $\\text{{SD}} = {ds.between_session_latency_sd_mean:.2f}\\,\\mu\\text{{s}}$), cited specific Montgomery chapters (4, 5, 6, 7, 10, 11, 13), recorded immutable commit SHAs (`cd63135d...`, `421cf242...`, `6b53dac8...`), and added the AI-Assistance Disclosure. |",
+        f"| **C-01** | Main Abstract and Secs. 1 & 3; Supplement Secs. 1--2 | Characterization of the 140-run FCCD campaign as \"Sequential RSM\" | **UNSUPPORTED** | Corrected to **Pre-Planned Blocked RSM & FCCD**; actual shuffled execution chronology documented (`{ds.doe_axial_before_run100}/40` axial runs before `run_order = 100`). |",
+        f"| **C-02** | Main Secs. 3 & 7; Supplement Sec. 2 and Table 1; `REPORT.md` Sec. 1.3 | 140-evaluation budget equivalence between Blocked DOE (25 coords $\\times$ 5 blocks) and TPE/Random Search (140 distinct coords) | **NEEDS QUALIFICATION** | Explicitly contrasted spatial exploration (25 vs. 140 distinct coordinates) and low-$\\eta$ corner allocation (`{ds.doe_low_eta_run_count}/140 = {ds.doe_low_eta_run_pct:.2f}%` runs at $\\eta = 0.01$). |",
+        f"| **C-03** | Main Sec. 3; Supplement Sec. 2; `REPORT.md` Sec. 1.3 | Single-sample CPU inference latency protocol and `predict` vs. `inplace_predict` interface overhead | **NEEDS QUALIFICATION** | Documented all 3 timing protocols (1,000-call historical, 30-call online search, $2\\times 500$-call warmed holdout) and quantified wrapper overhead (`{ds.interface_overhead_mean:.2f} ± {ds.interface_overhead_sd:.2f} µs` in Revision-v2; `{ds.hist_runs_interface_overhead_mean:.2f} ± {ds.hist_runs_interface_overhead_sd:.2f} µs` in historical DOE). |",
+        f"| **C-04** | Main Sec. 4; Supplement Sec. 3 and Table 3; `REPORT.md` Sec. 2.1 | Phase 1 $2^4$ factorial screening dominance of $\\ln(\\eta)$ ($F = {f_x1_p1:.2f}$), depth ($F = {f_x2_p1:.2f}$), and $x_1 x_2$ ($F = {f_x1x2_p1:.2f}$) | **SUPPORTED** | Verified via Type III OLS ANOVA on `results/runs.csv` ($N_1 = 100$ runs across 5 blocks, $\\text{{MS}}_E = {ms_e_p1:.6f}$). |",
+        f"| **C-05** | Main Sec. 4; Supplement Sec. 3; `REPORT.md` Secs. 2.2--2.3 | Phase 1 curvature test $F_{{\\text{{Curvature}}}} = {p1['f_curvature']:,.2f}$ ($p < 10^{{-15}}$) | **NEEDS QUALIFICATION** | Explained micro-scale subsampling denominator ($\\text{{df}}={p1['df_pe_center']}$, $\\text{{SS}}_{{\\text{{Curv}}}} = {p1['ss_curvature']:.6f}$, $\\text{{MS}}_{{\\text{{PE, center}}}} = {_fmt_sci_md(p1['ms_pe_center'])}$) and added 6-denominator sensitivity analysis ($F = {cs['f_block_adj_pooled']:,.2f}$ pooled; $F = {cs['f_txb_p1']:,.2f}$ vs. $T\\times B$; $F = {cs['f_block_paired']:,.2f}, p = {_fmt_sci_md(cs['p_block_paired'])}$ 5-block paired; $F = {cs['f_2fi_resid']:.2f}, p = {_fmt_sci_md(cs['p_2fi_resid'])}$ vs. unadjusted 2FI residual). Distinguished non-planarity from quadratic adequacy. |",
+        f"| **C-06** | Main Sec. 3; Supplement Secs. 2 & 4; `REPORT.md` Sec. 3.2 | Variance shielding and Block Intraclass Correlation $\\text{{ICC}} = {icc['Y1']['icc_anova']:.4f}$ (${icc_anova_pct:.2f}\\%$, REML ${icc_reml:.4f}$, $\\sigma_{{\\text{{block}}}} \\approx {sigma_block:.4f}$ RMSE) | **SUPPORTED** | Reconstructed from `results/runs.csv` Phase 2 ANOVA ($\\text{{SS}}_{{\\text{{block}}}} = {ss_blk_p2:.6f}, \\text{{MS}}_{{\\text{{block}}}} = {ms_blk_p2:.6f}, \\text{{MS}}_E = {ms_e_p2:.6f}, F = {f_block_ccd:.2f}, p = {_fmt_sci_md(p_block_ccd)}$) and REML mixed model. |",
+        f"| **C-07** | Main Sec. 4; Supplement Sec. 4 and Table 4; `REPORT.md` Sec. 3.1 | Phase 2 second-order FCCD model fit ($R^2 = {ds.ccd_y1_rsq:.4f}$, $\\text{{Adj }} R^2 = {ds.ccd_y1_adj_rsq:.4f}$) and HC3 robust standard errors | **NEEDS QUALIFICATION** | Qualified high $R^2$ as reflecting macro-scale contrast across $\\eta \\in [0.01, 0.30]$ while local lack of fit remains significant; noted HC3 adjusts SEs for heteroscedasticity but does not remove polynomial bias. |",
+        f"| **C-08** | Main Sec. 4; Supplement Sec. 4 and Table 6; `REPORT.md` Sec. 3.3 | Multi-scale lack-of-fit decomposition ($121\\text{{ df}} = 10\\text{{ df LoF}} + 96\\text{{ df }} T\\times B + 15\\text{{ df Center PE}}$) and restricted-domain refit ($x_1 \\ge -0.5$) | **SUPPORTED** | Verified exact SS/DF/MS decomposition ($\\text{{SS}}_{{\\text{{LoF}}}} = {lof['Y1']['SS_LoF']:.6f}, F = {lof['Y1']['F_LoF']:.2f}$ vs. additive; $F = {ld['f_lof_center_y1']:.2f}$ vs. center PE) and documented that dropping $x_1 = -1$ aliases $x_1^2 \\equiv x_1$, reducing $\\text{{df}}_{{\\text{{LoF}}}}$ from 10 to 2 (${restr['ss_lof_reduction_pct']:.1f}\\%$ SS reduction). |",
+        f"| **C-09** | Main Sec. 4; Supplement Sec. 4, Tables 5 & 7, and latency figure; `REPORT.md` Sec. 3.1 | Second-order and quadratic-depth inference latency models ($R^2 = {float(m_full['R2']):.4f}$ and ${float(m_quad['R2']):.4f}$, $\\text{{AIC}} = {float(m_full['AIC']):.1f}$ and ${float(m_quad['AIC']):.1f}$) and non-significant latency lack of fit ($F = {ld['f_lof_center_y2']:.2f}, p = {ld['p_lof_center_y2']:.4f}$) | **SUPPORTED** | Verified from `results/runs.csv` and `results/latency_models_comparison.csv` with exact Jacobian adjustment ($+2\\sum\\ln y_i = {ds.latency_jacobian_adjustment:,.1f}$). |",
+        f"| **C-10** | Main Sec. 4; Supplement Sec. 5 and diagnostics figure; `REPORT.md` Sec. 3.3 | Residual diagnostics: Shapiro-Wilk ($W = {diag['shapiro_W']:.4f}, p = {diag['shapiro_p']:.4f}$), Levene ($p = {diag['levene_p']:.4f}$), Brown-Forsythe ($p = {diag['brown_forsythe_points_p']:.4f}$), Breusch-Pagan ($\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p < 0.0001$), Durbin-Watson ($DW = {diag['durbin_watson']:.4f}$) | **NEEDS QUALIFICATION** | Explicitly specified grouping factors: mean-centered Levene across **5 seed blocks** ($W={diag['levene_stat']:.4f}, p={diag['levene_p']:.4f}$), median-centered Brown-Forsythe across **25 design coordinates** ($W={diag['brown_forsythe_points_stat']:.4f}, p={diag['brown_forsythe_points_p']:.4f}$), and reconciled both with significant Breusch-Pagan across continuous $\\hat{{y}}$ due to cell-mean LoF at $\\eta = 0.01$. |",
+        f"| **C-11** | Main Sec. 5; Supplement Sec. 6, Table 8, and RMSE-surface figure; `REPORT.md` Sec. 4 | Canonical spectral decomposition ($\\lambda_1 = {eigs[0]:.6f}$, 95% wild bootstrap CI $[{boot_p[0][0]:.4f}, {boot_p[2][0]:+.4f}]$, ${p3['fraction_min_eigenvalue_le_zero']*100:.1f}\\%$ $\\le 0$) and stationary/rising ridge classification | **SUPPORTED** | Verified eigenvalues, eigenvectors, unconstrained stationary point $\\mathbf{{x}}_0 = [{st_pt[0]:+.4f}, {st_pt[1]:+.4f}, {st_pt[2]:+.4f}, {st_pt[3]:+.4f}]^T$ ($\\|\\mathbf{{x}}_0\\|_2 = {p3['distance_coded']:.2f}$), and constrained depth-{cube['depth']} candidate $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ ($\\hat{{y}} = {cube['pred_rmse']:.4f}$). |",
+        f"| **C-12** | Main Sec. 5; Supplement Sec. 7, Table 9, and desirability figure; `REPORT.md` Sec. 5 | Multi-objective Derringer-Suich desirability optimization selecting interior $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ ($\\eta = {mo_nat['eta']:.4f}, d = {mo_nat['depth']}, s = {mo_nat['subsample']:.4f}, \\lambda = {mo_nat['reg_lambda']:.4f}, D = {d_star['D']:.4f}$) | **SUPPORTED** | Verified against `results/confirmation.json` ($\\hat{{Y}}_1 = {d_star['pred_y1']:.4f}, \\hat{{Y}}_2 = {d_star['pred_y2']:.2f}\\,\\mu\\text{{s}}, d_1 = {d_star['d1']:.4f}, d_2 = {d_star['d2']:.4f}$) and `results/desirability_sensitivity.csv`. |",
+        f"| **C-13** | Main Sec. 6 and confirmation table; Supplement Sec. 8; `REPORT.md` Sec. 6 | Phase 5 Satterthwaite confirmation intervals ($m=10$ seeds `505..1414`): pointwise confirmation at $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ (${mo_val['empirical_mean']:.4f} \\in [{mo_val['prediction_interval_95'][0]:.4f}, {mo_val['prediction_interval_95'][1]:.4f}]$) and non-confirmation / polynomial optimism at $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ (${so_conf['empirical_val_rmse']:.4f} > {so_conf['prediction_interval_95_val'][1]:.4f}$, bias ${so_bias:+.4f}$) | **SUPPORTED** | Verified exact variance-component synthesis $\\hat{{V}}_{{\\text{{conf}}}} = c_1 \\text{{MS}}_E + c_2 \\text{{MS}}_{{\\text{{block}}}}$, effective degrees of freedom ($\\nu_{{\\text{{eff}}}} = {mo_val['nu_eff']:.1f}$ and ${so_conf['nu_eff']:.1f}$), and qualified pointwise confirmation vs. global surrogate accuracy. |",
+        f"| **C-14** | Main Sec. 6 summary; Supplement Sec. 8 and Tables 10--11; `REPORT.md` Sec. 6.1 | Three- and four-decimal-place numerical similarities (`{doe_so.test_rmse_mean:.4f}`/`{doe_so.val_rmse_mean:.4f}`/`{h_so_test:.4f}`/`{c_so_test:.4f}`, `{c_mo_val:.4f}`, `{h_mo_test:.4f}`/`{c_mo_test:.4f}`, `{c_so_val:.4f}`) across confirmation, historical benchmark, and Revision-v2 tables | **NEEDS QUALIFICATION** | Documented exact provenance: (1) shared configuration hashes (`{ds.doe_so_hist_hash16}` and `{ds.doe_mo_hist_hash16}`) on seeds `2001..2020`, plus deterministic grid selection (`{ds.doe_so_rep_hash16}`, `grid_index = {ds.doe_so_rep_grid_index}`); (2) disjoint seed sets (`505..1414` vs. `2001..2020`) differing at the 5th–6th decimal place (`{c_so_test:.6f}` vs. `{h_so_test:.6f}`, $\\Delta = {diff_conf_bench_so:.2f}\\times 10^{{-6}}$). |",
+        "| **C-15** | Main Secs. 3, 6 & 8; Supplement Secs. 1 & 8; `REPORT.md` Sec. 7 | Holdout test set isolation history between historical `v1.0.0` and prospective `Revision-v2` | **SUPPORTED** | Explicitly stated that `v1.0.0` logged test RMSE during development, whereas `Revision-v2` enforced programmatic isolation until `finalized_selections.json` was frozen, without undoing prior historical exposure of the California Housing dataset. |",
+        f"| **C-16** | Main Sec. 6; Supplement Sec. 8 and Table 11; `REPORT.md` Sec. 7.3 | What the 20 Repeated DOE replicates represent (block seeds `3001..3100` + deterministic {ds.doe_grid_size:,}-point grid selection) and why DOE-SO has between-search $\\text{{SD}} = 0.00000$ vs. retraining $\\sigma_{{\\text{{eval}}}} = {doe_so.retrain_sd:.5f}$ | **NEEDS QUALIFICATION** | Explicitly documented the {ds.doe_grid_size:,}-point grid ($21 \\times 7 \\times 3 \\times 3$ in `doe_selection_protocol.json`), why all 20 DOE-SO replicates select `grid_index = {ds.doe_so_rep_grid_index}` ($\\eta={ds.doe_so_rep_eta:.4f}, d={cube['depth']}, s=1.0, \\lambda=10.0$), and how between-search selection SD is separated from 20-seed retraining SD. |",
+        f"| **C-17** | Main Abstract and Sec. 7; Supplement Sec. 8 and Table 11; `REPORT.md` Sec. 7.3 | Multi-objective holdout comparison: Repeated DOE MO (${doe_mo.test_rmse_mean:.5f} \\pm {doe_mo.test_rmse_sd:.5f}$) vs. MO-TPE (${mo_tpe.test_rmse_mean:.5f} \\pm {mo_tpe.test_rmse_sd:.5f}$), Welch $t = {ds.doe_mo_vs_motpe_welch_t:.4f}, p = {ds.doe_mo_vs_motpe_welch_p:.4f}$, paired $t = {ds.doe_mo_vs_motpe_paired_t:.3f}, p = {ds.doe_mo_vs_motpe_paired_p:.4f}$ | **NEEDS QUALIFICATION** | Designated **unpaired Welch's two-sample $t$-test as the primary inferential test** (since replicate index $r$ pairs DOE seeds `3001+5r..3005+5r` with Optuna seed `1000+r` on split 42 rather than a shared random block) and paired $t$-test as a secondary sensitivity check; noted no pre-registered equivalence margin (`rmse_equivalence_margin: null`). |",
+        f"| **C-18** | Main Sec. 7; Supplement Sec. 8 and Table 12; `REPORT.md` Sec. 7.2 | Development candidate hypervolume comparison (MO-TPE ${hvs['motpe_dev_060_mean']:.4f} \\pm {hvs['motpe_dev_060_sd']:.4f}$ vs. Repeated DOE 5-block means ${hvs['rdoe_dev_060_mean']:.4f} \\pm {hvs['rdoe_dev_060_sd']:.4f}$ vs. Fixed 27-point DOE front ${hvs['fdoe_dev_060']:.4f}$, diff ${hvs['diff_fdoe_minus_motpe_060']:+.4f}, p < 0.0001$) and historical `v1.0.0` hypervolume ($18.38$ vs. $16.86$) | **NEEDS QUALIFICATION** | Distinguished all 4 protocol rows; qualified the Split-42 difference as a **descriptive 1-sample test** of 20 stochastic MO-TPE fronts against a single fixed 27-point DOE front on split 42; explained that historical `v1.0.0` compared a 25-point DOE front ($18.38$) against 1 MO-TPE point ($16.86$), whereas single-point comparison is $16.92$ vs. $16.86$ ($+0.3\\%$). |",
+        f"| **C-19** | Main Abstract and Sec. 7 with Pareto figure; Supplement Sec. 8 and Table 12; `REPORT.md` Secs. 7.2--7.3 | Holdout non-dominated set of {hvs['holdout_nd']} configurations ($\\text{{HV}} = {hvs['holdout_frozen_060']:.4f}$ at $[{r1_rmse:.2f}, {r1_lat:.1f}]$; ${hvs['holdout_frozen_065']:.4f}$ at $[{r2_rmse:.2f}, {r2_lat:.1f}]$): 3 DOE-MO, 3 MO-TPE, 5 Constrained TPE, 1 SO-TPE | **NEEDS QUALIFICATION** | Added paired cluster bootstrap ($B=2,000$ resamples over the 20 shared evaluation seeds `2001..2020`, `seed=20261011`): $\\text{{HV}} = {hpb['seed_only_060_mean']:.4f} \\pm {hpb['seed_only_060_sd']:.4f}$ (95% CI $[{hpb['seed_only_060_ci95'][0]:.4f}, {hpb['seed_only_060_ci95'][1]:.4f}]$) at $[{r1_rmse:.2f}, {r1_lat:.1f}]$, ${hpb['seed_only_065_mean']:.4f} \\pm {hpb['seed_only_065_sd']:.4f}$ (95% CI $[{hpb['seed_only_065_ci95'][0]:.4f}, {hpb['seed_only_065_ci95'][1]:.4f}]$) at $[{r2_rmse:.2f}, {r2_lat:.1f}]$, joint seed+session $\\text{{HV}} = {hpb['joint_060_mean']:.4f} \\pm {hpb['joint_060_sd']:.4f}$ ($[{hpb['joint_060_ci95'][0]:.4f}, {hpb['joint_060_ci95'][1]:.4f}]$), and per-optimizer frontier presence (${hpb['by_optimizer']['repeated_preplanned_doe_multi_objective']['seed_only_present_pct']:.1f}\\%$ DOE-MO, MO-TPE, Constrained TPE; ${hpb['by_optimizer']['single_objective_tpe']['seed_only_present_pct']:.1f}\\%$ SO-TPE). |",
+        f"| **C-20** | Main Secs. 7 & 8; Supplement Sec. 8 and Table 11; `REPORT.md` Sec. 7.3 | Constrained TPE feasibility degradation from ${ctpe.search_feasible_count}/{ctpe.n_replicates}$ ($100\\%$) during online 30-call search to ${ctpe.benchmark_feasible_count}/{ctpe.n_replicates}$ (${ctpe.benchmark_feasible_pct}\\%$) under 1,000-call benchmark verification (depth 6: ${ds.ctpe_depth6_feasible}/{ds.ctpe_depth6_count}$ feasible at ${ds.ctpe_depth6_latency_mean:.2f} \\pm {ds.ctpe_depth6_latency_sd:.2f}\\,\\mu\\text{{s}}$; depth 7: ${ds.ctpe_depth7_feasible}/{ds.ctpe_depth7_count}$ feasible at ${ds.ctpe_depth7_latency_mean:.2f} \\pm {ds.ctpe_depth7_latency_sd:.2f}\\,\\mu\\text{{s}}$) | **SUPPORTED** | Verified from `finalized_selections.json` and `final_summary.csv`; framed explanations (30-call noise, warmup protocol difference, winner's-curse selection near $145\\,\\mu\\text{{s}}$) as plausible mechanisms. |",
+        f"| **C-21** | Main Sec. 7; Supplement computational-budget table; `REPORT.md` Sec. 7.4 | Complete computational budget (${ds.total_model_fits:,}$ model fits, ${ds.total_timed_inferences:,}$ timed single-row calls, ${ds.total_warmup_inferences:,}$ warmup calls, ${ds.total_all_inferences:,}$ total calls) and per-method search wall-clock times | **NEEDS QUALIFICATION** | Added Table 13 (`tables/tab_computational_budget.tex`) and Section 7.4 reconciling every fit, timed call, warmup call, mean fit duration (`{mt['multi_objective_tpe']['train_ms_per_fit_mean']:.1f} ms` MO-TPE to `{mt['single_objective_tpe']['train_ms_per_fit_mean']:.1f} ms` SO-TPE; `{mt['repeated_preplanned_doe_multi_objective']['train_ms_per_fit_mean']:.1f} ms` DOE), and replicate wall-clock time (`{mt['repeated_preplanned_doe_multi_objective']['wall_clock_s_mean']:.2f} ± {mt['repeated_preplanned_doe_multi_objective']['wall_clock_s_sd']:.2f} s` DOE vs. `{mt['single_objective_tpe']['wall_clock_s_mean']:.2f} ± {mt['single_objective_tpe']['wall_clock_s_sd']:.2f} s` SO-TPE). |",
+        f"| **C-22** | Main Secs. 3 & 10; Supplement latency and code-availability sections; `REPORT.md` Secs. 7.3 & 9 | Historical vs. prospective latency differences and reproducibility provenance | **SUPPORTED** | Verified that both historical and prospective scripts applied Win32 CPU Core 0 affinity pinning (attributing differences to between-session drift, $\\text{{SD}} = {ds.between_session_latency_sd_mean:.2f}\\,\\mu\\text{{s}}$), cited specific Montgomery chapters (4, 5, 6, 7, 10, 11, 13), recorded immutable commit SHAs (`cd63135d...`, `421cf242...`, `6b53dac8...`), retained detailed version hashes in repository provenance records, and kept the reader manuscript focused on scientifically relevant timing limitations. |",
         "",
         "---",
         "",
         "## 3. Detailed Claim-by-Claim Scientific Audit",
         "",
         "### Claim C-01 — Study Chronology: Pre-Planned vs. Sequential DOE",
-        "- **Location**: Title, Abstract, Section 1, Section 2.2 (`report.tex`); Title, Executive Summary, Section 1.3 (`REPORT.md`); Figure 6 (`figures/efficiency_comparison_curve.png`).",
+        "- **Location**: Main Abstract and Sections 1 and 3; Supplement Sections 1 and 2; `REPORT.md` Executive Summary and Section 1.3.",
         "- **Scientific Question**: Was the 140-run Face-Centered Central Composite Design executed as a two-stage adaptive sequence (running 100 factorial+center trials, testing curvature, and only then scheduling 40 axial trials), or as a single pre-planned 140-run design?",
         f"- **Experimental Evidence & Source Artifact**: Inspection of `pipeline.py` and `run_pipeline.py` (`generate_design()` and `run_experiments()`) and `results/runs.csv` (`phase` vs. `run_order` columns) shows that all 28 runs per block ($16$ factorial + $4$ center + $8$ axial) were generated up front and shuffled together across all 140 runs (`rng = np.random.default_rng(42)`). Specifically, **{ds.doe_axial_before_run100} of the 40 `Phase2_Axial` runs have `run_order <= 100`** in `results/runs.csv`.",
         "- **Pre-Audit Classification**: **UNSUPPORTED** (calling the executed historical campaign \"sequential\" in the title and prose conflated textbook RSM pedagogy with the actual simultaneous randomized execution).",
@@ -879,14 +879,14 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "  3. Rebuilt `figures/efficiency_comparison_curve.png` (`plots.py`) into a two-panel figure removing the misleading vertical divider at `run_order = 100`.",
         "",
         "### Claim C-02 — Evaluation Budget Allocation: 25 Replicated Coordinates vs. 140 Adaptive Coordinates",
-        "- **Location**: Section 2.2 (`report.tex`), Section 1.3 (`REPORT.md`), Table 1 (`tables/tab_design_block_seeds.tex`).",
+        "- **Location**: Main Sections 3 and 7; Supplement Section 2 and design-seed table; `REPORT.md` Section 1.3.",
         "- **Scientific Question**: How does the 140-evaluation budget allocation differ structurally between the blocked FCCD and heuristic/Bayesian optimizers?",
         f"- **Experimental Evidence & Source Artifact**: `results/runs.csv` and `results/revision_v2/full_run_001/doe_selection_runs.csv` evaluate $m = 25$ distinct coded coordinates replicated across 5 seed blocks ($16\\times 5 = 80$ corners, $1\\times 4\\times 5 = 20$ center runs, $8\\times 5 = 40$ axial runs). Of these 140 runs, **{ds.doe_low_eta_run_count} runs (`{ds.doe_low_eta_run_pct:.2f}%`) lie on the $x_1 = -1$ ($\\eta = 0.01$) face** ($8\\times 5 = 40$ factorial corners + $1\\times 5 = 5$ axial runs), where 100 boosting trees severely underfit (mean validation RMSE `{ds.doe_low_eta_mean_rmse:.4f}` vs. `{ds.doe_high_eta_mean_rmse:.4f}` for $x_1 \\in \\{{0, +1\\}}$). By contrast, Optuna TPE and Random Search (`results/revision_v2/full_run_001/optimizer_trials.csv`) evaluate **140 distinct hyperparameter coordinates** on a single development split (seed 42).",
         "- **Pre-Audit Classification**: **NEEDS QUALIFICATION**.",
         f"- **Implemented Correction**: Explicitly documented the 25-coordinate vs. 140-coordinate trade-off and the `{ds.doe_low_eta_run_count}/140` (`{ds.doe_low_eta_run_pct:.2f}%`) low-$\\eta$ budget allocation in `report.tex` (Section 2.2 & Discussion) and `REPORT.md` (Section 1.3 & Section 8).",
         "",
         "### Claim C-03 — Single-Sample CPU Latency Protocols and Prediction Interface Overhead",
-        "- **Location**: Section 2.4 (`report.tex`), Section 1.3 (`REPORT.md`).",
+        "- **Location**: Main Section 3; Supplement Section 2; `REPORT.md` Section 1.3.",
         "- **Scientific Question**: How is inference latency measured across historical search, prospective online search, and final holdout evaluation, and how much overhead does `Booster.predict(DMatrix)` add over `XGBRegressor.inplace_predict`?",
         "- **Experimental Evidence & Source Artifact**:",
         f"  - Historical DOE (`results/runs.csv`): 50 warmup per interface (100 total) + 1,000 timed single-row calls on CPU Core 0; `predict - inplace_predict` overhead is **`{ds.hist_runs_interface_overhead_mean:.2f} ± {ds.hist_runs_interface_overhead_sd:.2f} µs`** (range `{ds.hist_runs_interface_overhead_min:.2f}`–`{ds.hist_runs_interface_overhead_max:.2f} µs`).",
@@ -898,14 +898,14 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "- **Implemented Correction**: Added explicit protocol tier breakdown and interface overhead reconstructions across all four artifact sources in `scripts/reporting_data.py`, `report.tex` (Section 2.4), and `REPORT.md` (Section 1.3).",
         "",
         "### Claim C-04 — Phase 1 Factorial Main Effects and Two-Factor Interactions",
-        "- **Location**: Abstract, Section 3 (`report.tex`), Section 2.1 (`REPORT.md`), Table 3 (`tables/tab_anova_phase1.tex`).",
+        "- **Location**: Main Section 4; Supplement Section 3 and Phase-1 ANOVA table; `REPORT.md` Section 2.1.",
         "- **Scientific Question**: Which hyperparameters and two-factor interactions drive validation RMSE in the $2^4$ factorial + center screening stage?",
         f"- **Experimental Evidence & Source Artifact**: `results/runs.csv` subset `Phase1_Factorial` ($n_F = 80$) and `Phase1_Center` ($n_C = 20$). Type III OLS ANOVA (`val_rmse ~ C(block) + (x1+x2+x3+x4)^2`, $\\text{{df}}_{{\\text{{res}}}} = 85$, $\\text{{SS}}_E = {ss_res_p1:.6f}$, $\\text{{MS}}_E = {ms_e_p1:.6f}$): Factor A ($\\ln \\eta$) accounts for $\\text{{SS}} = {ss_x1_p1:.6f}, F = {f_x1_p1:.2f}, p < 10^{{-15}}, \\eta_p^2 = {eta_x1_p1:.4f}$; Interaction $x_1 x_2$ accounts for $\\text{{SS}} = {ss_x1x2_p1:.6f}, F = {f_x1x2_p1:.2f}, p < 0.0001, \\eta_p^2 = {eta_x1x2_p1:.4f}$; Factor B (depth) accounts for $\\text{{SS}} = {ss_x2_p1:.6f}, F = {f_x2_p1:.2f}, p < 0.0001, \\eta_p^2 = {eta_x2_p1:.4f}$; Block effect $C(\\text{{block}})$ is masked by unmodeled curvature ($\\text{{SS}} = {ss_blk_p1:.6f}, F = {f_blk_p1:.2f}, p = {p_blk_p1:.4f}$).",
         "- **Pre-Audit Classification**: **SUPPORTED**.",
         "- **Implemented Correction**: Maintained exact Type III ANOVA reconstruction and verified macro bindings.",
         "",
         f"### Claim C-05 — Phase 1 Curvature Test ($F_{{\\text{{Curvature}}}} = {p1['f_curvature']:,.2f}$) and Denominator Sensitivity",
-        "- **Location**: Abstract, Section 3.1 (`report.tex`), Section 2.2–2.3 (`REPORT.md`).",
+        "- **Location**: Main Section 4; Supplement Section 3; `REPORT.md` Sections 2.2--2.3.",
         "- **Scientific Question**: Why is the single-df curvature $F$-statistic $O(10^5)$, does curvature significance depend on using within-block center subsampling error as the denominator, and does rejecting $H_0: \\sum \\beta_{ii} = 0$ prove that a quadratic surface is adequate?",
         f"- **Experimental Evidence & Source Artifact**: From `results/phase1.json` and `results/runs.csv` ($n_F = 80, \\bar{{y}}_F = {p1['yF_bar']:.6f}$; $n_C = 20, \\bar{{y}}_C = {p1['yC_bar']:.6f}$; $\\bar{{y}}_F - \\bar{{y}}_C = {p1['diff_F_minus_C']:+.6f}$ RMSE or ${curv_pct_inc:+.2f}\\%$; $\\text{{SS}}_{{\\text{{Curv}}}} = {p1['ss_curvature']:.6f}$):",
         f"  1. **Within-block center pure error ($\\text{{df}} = {int(cs['df_pe_center'])}$)**: $\\text{{SS}}_{{\\text{{PE, center}}}} = {ld['ss_pure_center_y1']:.6f}$, $\\text{{MS}}_{{\\text{{PE, center}}}} = {_fmt_sci_md(cs['ms_pe_center'])}$ (`{cs['ms_pe_center']:.9e}`, $\\text{{SD}} = {np.sqrt(cs['ms_pe_center']):.5f}$ RMSE, reflecting only row-subsampling seed noise at $s = 0.75$ on a fixed data split $S_b$), giving $F = {cs['f_pe_center']:,.2f}$ ($p < 10^{{-15}}$).",
@@ -919,21 +919,21 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "- **Implemented Correction**: Added the complete 7-denominator sensitivity table in `REPORT.md` (Section 2.3) and itemized sensitivity analysis in `report.tex` (Section 3.1), explicitly explaining why $\\text{MS}_{\\text{PE, center}}$ is micro-scale subsampling noise and distinguishing non-planarity detection from quadratic adequacy.",
         "",
         f"### Claim C-06 — Stochastic Nuisance Blocking and Intraclass Correlation ($\\text{{ICC}} = {icc_anova_pct:.2f}\\%$)",
-        "- **Location**: Abstract, Section 2.3 & Section 4 (`report.tex`), Section 3.2 (`REPORT.md`).",
+        "- **Location**: Main Section 3; Supplement Sections 2 and 4; `REPORT.md` Section 3.2.",
         "- **Scientific Question**: How much residual validation RMSE variance is attributable to random train/validation split partitioning across the 5 seed blocks?",
         f"- **Experimental Evidence & Source Artifact**: `results/icc.json` and `results/runs.csv` Phase 2 ANOVA: $\\text{{SS}}_{{\\text{{block}}}} = {ss_blk_p2:.6f}, \\text{{MS}}_{{\\text{{block}}}} = {ms_blk_p2:.6f}$, $\\text{{SS}}_E = {ss_e_p2:.6f}, \\text{{MS}}_E = {ms_e_p2:.6f}$, $F_{{\\text{{block}}}} = {f_block_ccd:.2f}$ ($p = {_fmt_sci_md(p_block_ccd)}$). ANOVA variance component $\\hat{{\\sigma}}^2_{{\\text{{block}}}} = (\\text{{MS}}_{{\\text{{block}}}} - \\text{{MS}}_E)/28 = {_fmt_sci_md(s2b_anova)}$ ($\\hat{{\\sigma}}_{{\\text{{block}}}} = {sigma_block:.4f}$ RMSE), giving $\\text{{ICC}}_{{\\text{{ANOVA}}}} = {icc['Y1']['icc_anova']:.4f}$ (${icc_anova_pct:.2f}\\%$) and $\\text{{ICC}}_{{\\text{{REML}}}} = {icc_reml:.4f}$.",
         "- **Pre-Audit Classification**: **SUPPORTED**.",
         f"- **Implemented Correction**: Verified exact reconstruction and explained why Phase 1 unmodeled curvature ($\\text{{MS}}_E = {ms_e_p1:.6f}$) masked block effects ($F = {f_blk_p1:.2f}, p = {p_blk_p1:.4f}$) until quadratic terms reduced $\\text{{MS}}_E$ by ${mse_reduction_factor}\\times$ to ${ms_e_p2:.6f}$ in Phase 2.",
         "",
         f"### Claim C-07 — Phase 2 Second-Order FCCD Fit ($R^2 = {ds.ccd_y1_rsq:.4f}$) and HC3 Robust Covariance",
-        "- **Location**: Section 4.1 (`report.tex`), Section 3.1 (`REPORT.md`), Table 4 (`tables/tab_anova_ccd_rmse.tex`).",
+        "- **Location**: Main Section 4; Supplement Section 4 and second-order RMSE ANOVA table; `REPORT.md` Section 3.1.",
         "- **Scientific Question**: Does the 19-parameter blocked second-order polynomial capture the primary response topography, and are factor inferences robust to heteroscedasticity?",
         f"- **Experimental Evidence & Source Artifact**: `results/runs.csv` ($N = 140$, $\\text{{df}}_{{\\text{{res}}}} = 121$). OLS $R^2 = {ds.ccd_y1_rsq:.4f}$, $\\text{{Adj }} R^2 = {ds.ccd_y1_adj_rsq:.4f}$. Under MacKinnon-White HC3 robust standard errors, $x_1, x_2, x_3, x_1^2, x_2^2, x_1 x_2, x_1 x_3$, and $x_1 x_4$ remain statistically significant.",
         "- **Pre-Audit Classification**: **NEEDS QUALIFICATION**.",
         f"- **Implemented Correction**: Qualified that $R^2 = {ds.ccd_y1_rsq:.4f}$ reflects macro-scale variation across $\\eta \\in [0.01, 0.30]$ rather than absence of local approximation bias, and noted that HC3 standard errors correct parameter inference for heteroscedasticity without eliminating deterministic polynomial bias in prediction intervals.",
         "",
         "### Claim C-08 — Lack-of-Fit Variance Decomposition (121 df) and Restricted-Domain Aliasing",
-        "- **Location**: Section 4.2 (`report.tex`), Section 3.3 (`REPORT.md`), Table 6 (`tables/tab_lof.tex`).",
+        "- **Location**: Main Section 4; Supplement Section 4 and lack-of-fit table; `REPORT.md` Section 3.3.",
         "- **Scientific Question**: How do the 121 residual degrees of freedom partition into structural lack of fit, treatment-by-block interaction, and center pure error, and what happens when refitting on $x_1 \\ge -0.5$?",
         "- **Experimental Evidence & Source Artifact**: `results/lof.json` and `results/runs.csv`:",
         f"  - Total residual ($121\\text{{ df}}, \\text{{SS}} = {ss_e_p2:.6f}, \\text{{MS}} = {_fmt_sci_md(ms_e_p2)}$) $=$ Structural LoF (${lof['Y1']['df_LoF']}\\text{{ df}}, \\text{{SS}} = {lof['Y1']['SS_LoF']:.6f}, \\text{{MS}} = {lof['Y1']['MS_LoF']:.6f}, \\sqrt{{\\text{{MS}}_{{\\text{{LoF}}}}}} = {lof['Y1']['sqrt_MS_LoF']:.4f}$) $+$ Treatment $\\times$ Block interaction (${int(ld['df_interact'])}\\text{{ df}}, \\text{{SS}} = {ld['ss_interact_y1']:.6f}, \\text{{MS}} = {_fmt_sci_md(ld['ms_interact_y1'])}$) $+$ Within-block center pure error (${int(ld['df_pure_center'])}\\text{{ df}}, \\text{{SS}} = {ld['ss_pure_center_y1']:.6f}, \\text{{MS}} = {_fmt_sci_md(ld['ms_pure_center_y1'])}$).",
@@ -943,14 +943,14 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "- **Implemented Correction**: Preserved the complete multi-scale decomposition and aliasing explanation in both documents.",
         "",
         "### Claim C-09 — Quadratic Latency Model Adequacy and Jacobian-Adjusted AIC",
-        "- **Location**: Section 4.2 (`report.tex`), Section 3.1 (`REPORT.md`), Table 5 (`tables/tab_anova_ccd_latency.tex`), Table 7 (`tables/tab_latency_models.tex`), Figure 3 (`figures/response_surface_latency_2d_3d.png`).",
+        "- **Location**: Main Section 4; Supplement Section 4, latency tables, and latency-surface figure; `REPORT.md` Section 3.1.",
         "- **Scientific Question**: What functional form best describes single-sample CPU inference latency across tree depths $d \\in \\{3, 6, 9\\}$?",
         f"- **Experimental Evidence & Source Artifact**: `results/latency_models_comparison.csv`, `results/lof.json`, and `results/runs.csv`. The full second-order latency model achieves $R^2 = {float(m_full['R2']):.4f}$ ($\\text{{Adj }} R^2 = {float(m_full['Adj_R2']):.4f}, \\text{{AIC}} = {float(m_full['AIC']):.1f}$), while the parsimonious quadratic-depth model achieves $R^2 = {float(m_quad['R2']):.4f}$ ($\\text{{AIC}} = {float(m_quad['AIC']):.1f}$, compared to linear-depth $R^2 = {float(m_lin['R2']):.4f}, \\text{{AIC}} = {float(m_lin['AIC']):.1f}$ and Jacobian-adjusted log-linear $\\text{{AIC}} = {float(m_log['AIC']):.1f} + {ds.latency_jacobian_adjustment:,.1f} = {log_adj_aic:.1f}$). In the second-order ANOVA, linear depth ($x_2$: $F = {f_x2_y2:.2f}, p < 10^{{-15}}$) and quadratic depth ($x_2^2$: $F = {f_x2sq_y2:.2f}, p < 0.0001$) govern latency, while block effects ($F = {f_blk_y2:.2f}, p = {p_blk_y2:.4f}, \\text{{ICC}} = {icc['Y2']['icc_anova']:.4f}$) and lack of fit ($F = {ld['f_lof_center_y2']:.2f}, p = {ld['p_lof_center_y2']:.4f}$ vs. center PE; $F = {lof['Y2']['F_LoF']:.2f}, p = {lof['Y2']['p_LoF']:.4f}$ vs. additive baseline) are non-significant.",
         "- **Pre-Audit Classification**: **SUPPORTED**.",
         f"- **Implemented Correction**: Verified Jacobian likelihood adjustment ($+2\\sum\\ln y_i = {ds.latency_jacobian_adjustment:,.1f}$) and added interface overhead context.",
         "",
         "### Claim C-10 — Residual Homoscedasticity: Reconciling Levene, Brown-Forsythe, and Breusch-Pagan",
-        "- **Location**: Section 5 (`report.tex`), Section 3.3 (`REPORT.md`), Figure 1 (`figures/diagnostics_panel_4in1.png`).",
+        "- **Location**: Main Section 4; Supplement Section 5 and diagnostics figure; `REPORT.md` Section 3.3.",
         f"- **Scientific Question**: Why do Levene ($p = {diag['levene_p']:.4f}$) and Brown-Forsythe ($p = {diag['brown_forsythe_points_p']:.4f}$) fail to reject homoscedasticity while Breusch-Pagan ($\\text{{LM}} = {diag['breusch_pagan_stat']:.2f}, p < 0.0001$) is highly significant?",
         "- **Experimental Evidence & Source Artifact**: Direct reconstruction from `results/runs.csv` and `results/diagnostics.json`:",
         f"  - `levene_stat = {diag['levene_stat']:.4f}, levene_p = {diag['levene_p']:.4f}`: `scipy.stats.levene(*groups, center='mean')` grouped across the **5 seed blocks** (`block` $1\\dots5$, 28 runs/block). This confirms that residual variance is uniform across data splits.",
@@ -960,21 +960,21 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "- **Implemented Correction**: Explicitly documented the exact grouping factors (5 blocks vs. 25 coordinates vs. continuous regressors) and the algebraic decomposition $e_{ij} = (\\bar{y}_{i\\cdot} - \\hat{y}_i) + (y_{ij} - \\bar{y}_{i\\cdot})$ in `report.tex` (Section 5) and `REPORT.md` (Section 3.3).",
         "",
         "### Claim C-11 — Canonical Spectral Decomposition and Stationary/Rising Ridge Classification",
-        "- **Location**: Section 6 (`report.tex`), Section 4 (`REPORT.md`), Table 8 (`tables/tab_depth_opt.tex`), Figure 2 (`figures/response_surface_rmse_2d_3d.png`).",
+        "- **Location**: Main Section 5; Supplement Section 6, depth table, and RMSE-surface figure; `REPORT.md` Section 4.",
         "- **Scientific Question**: What is the global curvature geometry of the fitted second-order validation RMSE surface?",
         f"- **Experimental Evidence & Source Artifact**: `results/phase3.json`. Eigenvalues of $\\hat{{\\mathbf{{B}}}}$ are $\\lambda = [{eigs[0]:.6f}, {eigs[1]:.6f}, {eigs[2]:.6f}, {eigs[3]:.6f}]$ ($\\text{{trace}}(\\hat{{\\mathbf{{B}}}}) = {p3['trace_B']:.6f}$). Rademacher wild bootstrap ($B=2,000$) yields a 95% CI for $\\lambda_1$ of $[{boot_p[0][0]:.4f}, {boot_p[2][0]:+.4f}]$ with ${p3['fraction_min_eigenvalue_le_zero']*100:.1f}\\%$ of resamples $\\le 0$, confirming a flat ridge along subsample ($x_3$) and regularization ($x_4$) and an exterior stationary point ($\\mathbf{{x}}_0 = [{st_pt[0]:+.4f}, {st_pt[1]:+.4f}, {st_pt[2]:+.4f}, {st_pt[3]:+.4f}]^T, \\|\\mathbf{{x}}_0\\|_2 = {p3['distance_coded']:.2f}, \\hat{{y}}_0 = {p3['y0_hat_unconstrained']:.4f}$). Constrained optimization over integer depths $d \\in \\{{3, \\dots, 9\\}}$ identifies $\\mathbf{{x}}^*_{{\\text{{SO}}}}$ at depth {cube['depth']} ($[{cube_x[0]:+.4f}, {cube_x[1]:+.4f}, {cube_x[2]:+.4f}, {cube_x[3]:+.4f}]^T \\implies \\eta = {cube_nat['eta']:.4f}, d = {cube['depth']}, s = {cube_nat['subsample']:.4f}, \\lambda = {cube_nat['reg_lambda']:.4f}, \\hat{{y}} = {cube['pred_rmse']:.4f}$).",
         "- **Pre-Audit Classification**: **SUPPORTED**.",
         "- **Implemented Correction**: Verified all spectral macros and table entries.",
         "",
         "### Claim C-12 — Multi-Objective Derringer-Suich Desirability Compromise ($\\mathbf{x}^*_{\\text{MO}}$)",
-        "- **Location**: Section 7 (`report.tex`), Section 5 (`REPORT.md`), Table 9 (`tables/tab_desirability_sensitivity.tex`), Figure 4 (`figures/desirability_pareto_front.png`).",
+        "- **Location**: Main Section 5; Supplement Section 7, sensitivity table, and desirability figure; `REPORT.md` Section 5.",
         "- **Scientific Question**: Which operating coordinate balances validation RMSE ($[0.450, 0.700]$) and single-sample latency ($[100.0, 180.0]\\,\\mu\\text{s}$) while avoiding boundary extrapolation?",
         f"- **Experimental Evidence & Source Artifact**: `results/confirmation.json` and `results/desirability_sensitivity.csv`. At $\\mathbf{{x}}^*_{{\\text{{MO}}}} = [{mo_coded[0]:+.4f}, {mo_coded[1]:+.4f}, {mo_coded[2]:+.4f}, {mo_coded[3]:+.4f}]^T$ ($\\eta = {mo_nat['eta']:.4f}, d = {mo_nat['depth']}, s = {mo_nat['subsample']:.4f}, \\lambda = {mo_nat['reg_lambda']:.4f}$), predicted responses are $\\hat{{Y}}_1 = {d_star['pred_y1']:.4f}$ and $\\hat{{Y}}_2 = {d_star['pred_y2']:.2f}\\,\\mu\\text{{s}}$ ($d_1 = {d_star['d1']:.4f}, d_2 = {d_star['d2']:.4f}, D = {d_star['D']:.4f}$).",
         "- **Pre-Audit Classification**: **SUPPORTED**.",
         "- **Implemented Correction**: Verified interior desirability sweep macros and sensitivity table.",
         "",
         "### Claim C-13 — Phase 5 Satterthwaite Confirmation Intervals ($m = 10$ Fresh Seeds)",
-        "- **Location**: Section 8.1 (`report.tex`), Section 6 (`REPORT.md`), Table 10 (`tables/tab_confirmation.tex`).",
+        "- **Location**: Main Section 6 and confirmation table; Supplement Section 8; `REPORT.md` Section 6.",
         "- **Scientific Question**: Do empirical confirmation runs across $m = 10$ fresh seeds (`505..1414`) validate the second-order surrogate predictions at $\\mathbf{x}^*_{\\text{MO}}$ (depth 4) and $\\mathbf{x}^*_{\\text{SO}}$ (depth 7)?",
         "- **Experimental Evidence & Source Artifact**: `results/confirmation.json`, `results/confirmation_runs.csv`, and `results/confirmation_runs_single_obj.csv`:",
         f"  - At $\\mathbf{{x}}^*_{{\\text{{MO}}}}$ ($h_0 = {conf['leverage_h']:.4f}, \\nu_{{\\text{{eff}}}} = {mo_val['nu_eff']:.1f}$), empirical validation RMSE is ${mo_val['empirical_mean']:.4f} \\pm {mo_val['empirical_std']:.4f} \\in [{mo_val['prediction_interval_95'][0]:.4f}, {mo_val['prediction_interval_95'][1]:.4f}]$ (confirmed; holdout test RMSE ${mo_test['empirical_mean']:.4f} \\pm {mo_test['empirical_std']:.4f}$), and empirical latency is ${mo_lat['empirical_mean']:.2f} \\pm {mo_lat['empirical_std']:.2f}\\,\\mu\\text{{s}}$ (${mo_lat['empirical_mean']:.1f} \\pm {mo_lat['empirical_std']:.1f}\\,\\mu\\text{{s}} \\in [{mo_lat['prediction_interval_95'][0]:.1f}, {mo_lat['prediction_interval_95'][1]:.1f}]\\,\\mu\\text{{s}}$, confirmed).",
@@ -983,7 +983,7 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "- **Implemented Correction**: Explicitly noted that Satterthwaite intervals pool structural lack of fit into $\\text{MS}_E$ and do not protect against local deterministic polynomial bias.",
         "",
         "### Claim C-14 — Provenance of Three- and Four-Decimal-Place Numerical Similarities Across Tables",
-        "- **Location**: Section 8.2 (`report.tex`), Section 6.1 (`REPORT.md`), Table 10 & Table 11.",
+        "- **Location**: Main Section 6 summary; Supplement Section 8 and confirmation/benchmark tables; `REPORT.md` Section 6.1.",
         f"- **Scientific Question**: Why do numbers such as `{doe_so.test_rmse_mean:.4f}`/`{doe_so.val_rmse_mean:.4f}`/`{h_so_test:.4f}`/`{c_so_test:.4f}`, `{c_mo_val:.4f}`, `{h_mo_test:.4f}`/`{c_mo_test:.4f}`, and `{c_so_val:.4f}` appear across confirmation ($m=10$ seeds `505..1414`), historical benchmark ($m=20$ seeds `2001..2020`), and Revision-v2 tables?",
         "- **Experimental Evidence & Source Artifact**: Reconstructed from `results/confirmation_runs*.csv`, `results/benchmark.csv`, `results/revision_v2/full_run_001/finalized_selections.json`, and `results/revision_v2/full_run_001/final_evaluations.csv`:",
         f"  1. **Shared Configuration Hash vs. Adjacent Grid Point Across 20-Seed Benchmark Evaluations (`2001..2020`)**: Both `results/benchmark.csv` and `results/revision_v2/full_run_001/final_evaluations.csv` evaluate `doe-so-historical` (`config_hash = {ds.doe_so_hist_hash16}`: $\\eta = {cube_nat['eta']:.4f}, d = {cube['depth']}, s = 1.0, \\lambda = 10.0$) and `doe-mo-historical` (`config_hash = {ds.doe_mo_hist_hash16}`: $\\eta = {mo_nat['eta']:.4f}, d = {mo_nat['depth']}, s = 1.0, \\lambda = {mo_nat['reg_lambda']:.4f}$) on the exact same 20 seeds `2001..2020`, yielding identical full-precision RMSEs (`test_rmse = {h_so_test:.6f}, val_rmse = {h_so_val:.6f}` for $\\mathbf{{x}}^*_{{\\text{{SO}}}}$; `test_rmse = {h_mo_test:.6f}, val_rmse = {h_mo_val:.6f}` for $\\mathbf{{x}}^*_{{\\text{{MO}}}}$). All 20 `doe-so-rep-0..19` selections choose the adjacent predeclared grid point `grid_index = {ds.doe_so_rep_grid_index}` (`config_hash = {ds.doe_so_rep_hash16}`: coded $[+0.6, +1/3, +1.0, +1.0]^T, \\eta = {ds.doe_so_rep_eta:.4f}, d = {cube['depth']}, s = 1.0, \\lambda = 10.0$), which is deduplicated across all 20 replicates on seeds `2001..2020` (`test_rmse = {doe_so.test_rmse_mean:.6f}, val_rmse = {doe_so.val_rmse_mean:.6f}`, between-search $\\text{{SD}} = 0.00000$).",
@@ -992,14 +992,14 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "- **Implemented Correction**: Added Section 8.2 in `report.tex` and Section 6.1 in `REPORT.md` documenting the exact 6-decimal-place values, configuration hashes, and seed sets.",
         "",
         "### Claim C-15 — Holdout Test Set Isolation History",
-        "- **Location**: Section 2.1 & Section 8.3 (`report.tex`), Executive Summary & Section 7 (`REPORT.md`).",
+        "- **Location**: Main Sections 3, 6, and 8; Supplement Sections 1 and 8; `REPORT.md` Section 7.",
         "- **Scientific Question**: Was the 4,128-row external holdout test set strictly untouched across the entire history of the project?",
         "- **Experimental Evidence & Source Artifact**: In historical `v1.0.0` (`pipeline.py`, `results/runs.csv`), `test_rmse` was logged during exploratory runs, whereas in `Revision-v2` (`final_evaluation.py`, `results/revision_v2/full_run_001/optimizer_trials.csv`, `results/revision_v2/full_run_001/doe_selection_runs.csv`), test labels were excluded from all search functions until `results/revision_v2/full_run_001/finalized_selections.json` was frozen.",
         "- **Pre-Audit Classification**: **SUPPORTED** (already qualified in D.2, preserved in Work Package F/F.1).",
         "- **Implemented Correction**: Maintained explicit disclosure that `Revision-v2` programmatic safeguards isolate the revised search pipeline but cannot undo prior historical exposure of the dataset.",
         "",
         f"### Claim C-16 — Meaning of the 20 Repeated DOE Replicates and {ds.doe_grid_size:,}-Point Grid Selection",
-        "- **Location**: Section 8.3 (`report.tex`), Section 7.3 (`REPORT.md`), Table 11 (`tables/tab_benchmarks.tex`).",
+        "- **Location**: Main Section 6; Supplement Section 8 and benchmark table; `REPORT.md` Section 7.3.",
         "- **Scientific Question**: What varies across the $N = 20$ Repeated DOE replicates, how are $\\mathbf{x}^*_{\\text{MO}}$ and $\\mathbf{x}^*_{\\text{SO}}$ selected in each replicate, and why is between-search SD zero for DOE-SO?",
         "- **Experimental Evidence & Source Artifact**: Inspection of `desirability_provenance.py`, `results/revision_v2/full_run_001/doe_selection_protocol.json`, and `results/revision_v2/full_run_001/doe_selection_replicates.csv`:",
         f"  - Each replicate $r \\in \\{{0, \\dots, 19\\}}$ draws 5 fresh block seeds `3001 + 5r` through `3005 + 5r` (100 distinct block seeds `3001..3100` across the 20 replicates), runs the 140-fit blocked FCCD, fits second-order OLS models for validation RMSE and online latency, and evaluates them on a deterministic **{ds.doe_grid_size:,}-point candidate grid** ($21$ coded learning-rate levels $x_1 \\in [-1, +1]$ in steps of $0.1 \\times 7$ integer depths $d \\in \\{{3, \\dots, 9\\}} \\times 3$ coded subsample levels $x_3 \\in \\{{-1, 0, +1\\}} \\times 3$ coded regularization levels $x_4 \\in \\{{-1, 0, +1\\}}$).",
@@ -1009,7 +1009,7 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         f"- **Implemented Correction**: Explicitly documented the {ds.doe_grid_size:,}-point grid specification, block seed range `3001..3100`, and variance decomposition in `report.tex` (Section 8.3, Finding 2) and `REPORT.md` (Section 7.3, Finding 2).",
         "",
         "### Claim C-17 — Statistical Comparison of Repeated DOE MO vs. Multi-Objective TPE",
-        "- **Location**: Abstract, Section 8.3 (`report.tex`), Executive Summary & Section 7.3 (`REPORT.md`), `results/revision_v2/full_run_001/paired_comparisons.json`.",
+        "- **Location**: Main Abstract and Section 7; Supplement Section 8 and benchmark table; `REPORT.md` Section 7.3.",
         "- **Scientific Question**: Which statistical test is primary when comparing Repeated DOE MO ($N=20$) and Multi-Objective TPE ($N=20$), and what does a non-significant $p$-value establish?",
         f"- **Experimental Evidence & Source Artifact**: Replicate $r \\in \\{{0, \\dots, 19\\}}$ for Repeated DOE uses block seeds `3001+5r..3005+5r` (holdout test RMSE ${doe_mo.test_rmse_mean:.5f} \\pm {doe_mo.test_rmse_sd:.5f}$, `predict` latency ${doe_mo.predict_latency_mean:.2f} \\pm {doe_mo.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$), whereas replicate $r$ for MO-TPE uses Optuna sampler seed `1000+r` on fixed development split 42 (holdout test RMSE ${mo_tpe.test_rmse_mean:.5f} \\pm {mo_tpe.test_rmse_sd:.5f}$, `predict` latency ${mo_tpe.predict_latency_mean:.2f} \\pm {mo_tpe.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$). Because replicate index $r$ does **not** represent a shared random data split or common experimental block, the two samples are independent rather than naturally paired.",
         f"  - **Primary Test (Welch's two-sample $t$-test)**: $\\Delta = {ds.doe_mo_vs_motpe_diff:+.5f}$ RMSE, $t = {ds.doe_mo_vs_motpe_welch_t:.4f}, p = {ds.doe_mo_vs_motpe_welch_p:.4f}$.",
@@ -1018,7 +1018,7 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "- **Implemented Correction**: Designated Welch's two-sample $t$-test as the primary inferential comparison and index-paired $t$-testing as a secondary sensitivity check in `report.tex` and `REPORT.md`, and reiterated that non-significance indicates no detected difference rather than formal equivalence (`rmse_equivalence_margin: null`).",
         "",
         "### Claim C-18 — Development Candidate Hypervolume Comparability Across Protocols",
-        "- **Location**: Section 8.3 (`report.tex`), Section 7.2 (`REPORT.md`), Table 12 (`tables/tab_hypervolume_comparison.tex`).",
+        "- **Location**: Main Section 7; Supplement Section 8 and hypervolume table; `REPORT.md` Section 7.2.",
         "- **Scientific Question**: Are the development hypervolume rows in Panel A of Table 12 directly comparable two-sample experiments?",
         "- **Experimental Evidence & Source Artifact**: `results/revision_v2/full_run_001/hypervolume.json` and `results/benchmark_summary.json`:",
         f"  - Row 1 (`MO-TPE Candidates`): 20 searches $\\times$ 140 adaptive trials on single split 42, timed with 30 calls/trial ($\\text{{HV}} = {hvs['motpe_dev_060_mean']:.4f} \\pm {hvs['motpe_dev_060_sd']:.4f}$ at $[{r1_rmse:.2f}, {r1_lat:.1f}]$; ${hvs['motpe_dev_065_mean']:.4f} \\pm {hvs['motpe_dev_065_sd']:.4f}$ at $[{r2_rmse:.2f}, {r2_lat:.1f}]$).",
@@ -1030,7 +1030,7 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "- **Implemented Correction**: Updated `tables/tab_hypervolume_comparison.tex`, `report.tex` (Section 8.3), and `REPORT.md` (Section 7.2) to label the Split-42 difference as `(1-sample p < 0.0001)` and explain all protocol and candidate-pool differences.",
         "",
         "### Claim C-19 — Holdout Non-Dominated Set and Paired Seed-Bootstrap Uncertainty",
-        "- **Location**: Abstract, Section 8.3 (`report.tex`), Section 7.2–7.3 (`REPORT.md`), Table 12 (`tables/tab_hypervolume_comparison.tex`), Figure 5 (`figures/revision_v2_pareto_front.png`).",
+        "- **Location**: Main Abstract and Section 7 with Pareto figure; Supplement Section 8 and hypervolume table; `REPORT.md` Sections 7.2--7.3.",
         f"- **Scientific Question**: How sensitive is the {hvs['holdout_nd']}-configuration empirical holdout non-dominated set ($\\text{{HV}} = {hvs['holdout_frozen_060']:.4f}$ at $[{r1_rmse:.2f}, {r1_lat:.1f}]$ and ${hvs['holdout_frozen_065']:.4f}$ at $[{r2_rmse:.2f}, {r2_lat:.1f}]$) to resampling the 20 evaluation seeds (`2001..2020`) and 5 latency sessions?",
         "- **Experimental Evidence & Source Artifact**: Reconstructed in `scripts/reporting_data.py` (`_compute_holdout_pareto_bootstrap`, $B = 2,000$ paired cluster bootstrap resamples over the 20 evaluation seeds `2001..2020` and 5 latency sessions, `seed = 20261011`):",
         f"  - **Seed-Bootstrap Holdout Hypervolume at $[{r1_rmse:.2f}, {r1_lat:.1f}]$**: **`{hpb['seed_only_060_mean']:.4f} ± {hpb['seed_only_060_sd']:.4f}`**, 95% CI **`[{hpb['seed_only_060_ci95'][0]:.4f}, {hpb['seed_only_060_ci95'][1]:.4f}]`**, mean non-dominated frontier size **`{hpb['seed_only_nd_mean']:.2f} ± {hpb['seed_only_nd_sd']:.2f}`**.",
@@ -1045,14 +1045,14 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "- **Implemented Correction**: Added the Holdout Frontier Seed-Bootstrap row and per-optimizer bootstrap presence rates to `tables/tab_hypervolume_comparison.tex`, `report.tex` (Section 8.3), `REPORT.md` (Section 7.2–7.3), and `docs/generated/scientific_results_manifest.json`.",
         "",
         f"### Claim C-20 — Constrained TPE Feasibility Degradation (${ctpe.search_feasible_count}/{ctpe.n_replicates} \\to {ctpe.benchmark_feasible_count}/{ctpe.n_replicates}$)",
-        "- **Location**: Section 8.3 (`report.tex`), Section 7.3 (`REPORT.md`), Table 11 (`tables/tab_benchmarks.tex`).",
+        "- **Location**: Main Sections 7 and 8; Supplement Section 8 and benchmark table; `REPORT.md` Section 7.3.",
         f"- **Scientific Question**: Why does Constrained TPE ($\\le 145\\,\\mu\\text{{s}}$) drop from ${ctpe.search_feasible_count}/{ctpe.n_replicates}$ ($100\\%$) search-time feasibility to ${ctpe.benchmark_feasible_count}/{ctpe.n_replicates}$ (${ctpe.benchmark_feasible_pct}\\%$) benchmark feasibility?",
         f"- **Experimental Evidence & Source Artifact**: `results/revision_v2/full_run_001/finalized_selections.json` and `results/revision_v2/full_run_001/final_summary.csv`. All {ds.ctpe_depth6_count} depth-6 selections remain feasible (${ds.ctpe_depth6_feasible}/{ds.ctpe_depth6_count}$ at ${ds.ctpe_depth6_latency_mean:.2f} \\pm {ds.ctpe_depth6_latency_sd:.2f}\\,\\mu\\text{{s}}$), whereas all {ds.ctpe_depth7_count} depth-7 selections exceed $145\\,\\mu\\text{{s}}$ under 1,000-call warmed verification (${ds.ctpe_depth7_feasible}/{ds.ctpe_depth7_count}$ feasible at ${ds.ctpe_depth7_latency_mean:.2f} \\pm {ds.ctpe_depth7_latency_sd:.2f}\\,\\mu\\text{{s}}$; overall mean ${ctpe.predict_latency_mean:.2f} \\pm {ctpe.predict_latency_sd:.2f}\\,\\mu\\text{{s}}$) after passing the noisy 30-call online check during search.",
         "- **Pre-Audit Classification**: **SUPPORTED**.",
         "- **Implemented Correction**: Maintained exact depth-stratified breakdown and qualified the mechanisms (30-call measurement variance, warmup protocol differences, and winner's-curse selection near the constraint boundary).",
         "",
         "### Claim C-21 — Complete Computational Budget Ledger and Wall-Clock Cost",
-        "- **Location**: Section 8.3 (`report.tex`), Section 7.4 (`REPORT.md`), Table 13 (`tables/tab_computational_budget.tex`).",
+        "- **Location**: Main Section 7; Supplement computational-budget table; `REPORT.md` Section 7.4.",
         f"- **Scientific Question**: How do the {ds.total_model_fits:,} XGBoost fits, {ds.total_timed_inferences:,} timed calls, {ds.total_warmup_inferences:,} warmup calls, and per-replicate wall-clock times break down across optimizers and evaluation stages?",
         "- **Experimental Evidence & Source Artifact**: `results/revision_v2/full_run_001/computational_budget.json`, `results/revision_v2/full_run_001/optimizer_replicates.csv`, `results/revision_v2/full_run_001/optimizer_trials.csv`, `results/revision_v2/full_run_001/doe_selection_replicates.csv`, and `results/revision_v2/full_run_001/doe_selection_runs.csv`:",
         "  - Search fits: $2,800$ Repeated DOE + $4 \\times 2,800 = 11,200$ optimizer trials + $27$ Split-42 DOE baseline = $14,027$ online-timed fits ($420,810$ timed calls + $140,270$ warmup calls).",
@@ -1064,7 +1064,7 @@ def render_scientific_claims_audit(ds: Optional[ReportingDataset] = None) -> str
         "- **Implemented Correction**: Added Table 13 (`tables/tab_computational_budget.tex`) in `report.tex` and Section 7.4 in `REPORT.md`.",
         "",
         "### Claim C-22 — Historical Latency Pinning, Literature Specificity, Immutable Commit SHAs, and AI Disclosure",
-        "- **Location**: Section 8.3 & Section 10 (`report.tex`), Section 7.3 & Section 9 (`REPORT.md`), Bibliography.",
+        "- **Location**: Main Sections 3 and 10; Supplement latency and code-availability sections; `REPORT.md` Sections 7.3 and 9.",
         "- **Scientific Question**: Were historical `v1.0.0` runs unpinned, which specific chapters of Montgomery (2017) and Myers et al. (2016) ground each statistical method, which Git commit SHAs lock each project phase, and how were AI assistants used and audited?",
         "- **Experimental Evidence & Source Artifact**:",
         f"  - `scripts/run_confirmation.py` and `scripts/run_benchmarks.py` both call `SetProcessAffinityMask(GetCurrentProcess(), 1)` (CPU Core 0 pinning), so historical vs. prospective latency differences reflect between-session drift ($\\text{{SD}} = {ds.between_session_latency_sd_mean:.2f}\\,\\mu\\text{{s}}$) rather than unpinned execution.",
@@ -1518,15 +1518,15 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "",
         "To prevent any future validation report or supplementary document from bypassing numerical verification, `scripts/generate_research_reporting.py` implements an automated **Scientific Artifact Registry and Discovery Gate** (`discover_scientific_and_documentation_files`, `build_scientific_artifact_registry`, and `verify_scientific_artifact_registry`):",
         "",
-        "1. **Automatic File Discovery (`discover_scientific_and_documentation_files`)**: Scans the repository root, `docs/`, `tables/`, `results/macros.tex`, `results/revision_v2/scientific_audit_c1/`, and `plots.py` for all tracked scientific reports, validation documents, supplementary numerical analyses, tables, macros, provenance manifests, and figure scripts (`45` total artifacts discovered: `43` verified scientific artifacts + `2` justified exclusions).",
+        "1. **Automatic File Discovery (`discover_scientific_and_documentation_files`)**: Scans the repository root, `docs/`, `figures/`, `tables/`, `results/macros.tex`, `results/revision_v2/scientific_audit_c1/`, and registered figure scripts for all tracked scientific reports, validation documents, supplementary numerical analyses, tables, macros, provenance manifests, figures, and figure scripts (`61` total artifacts discovered: `59` verified scientific artifacts + `2` justified exclusions).",
         "2. **Mandatory Registration & Fail-Closed Enforcement**: Every discovered file must be explicitly registered in `build_scientific_artifact_registry(ds)` with a declared verification mechanism. Any newly added or renamed scientific document lacking registration causes `verify_scientific_artifact_registry(ds)` and `check_research_reporting(ds)` to fail immediately.",
         "3. **Independent Verification by Mechanism**:",
         "   - `generated_full_document` (19 files): Deterministically generated from `ReportingDataset` (`CHANGELOG.md`, `docs/scientific_claims_audit.md`, `docs/f_scientific_review_validation.md`, `docs/proposed_followup_experiments.md`, `docs/f1_final_audit_validation.md`, `docs/generated/scientific_results_manifest.json`, `results/macros.tex`, and all 12 `tables/tab_*.tex` tables). Verified by exact content comparison against canonical reconstruction (plus row-and-context-bound claim validation for `CHANGELOG.md`).",
         "   - `generated_sections_with_zero_outside_floats` (1 file): `REPORT.md`, verified by exact section-marker reconstruction plus zero floating-point tokens permitted outside auto-generated blocks.",
-        "   - `latex_macro_bound_zero_hardcoded_floats` (1 file): `report.tex`, verified by macro definition coverage (`results/macros.tex`) and zero unpermitted hardcoded empirical floats in prose.",
-        "   - `compiled_pdf_verified` (1 file): `report.pdf`, verified for non-empty PDF header (`%PDF-`) and text-layer parity with `report.tex` / `REPORT.md` in `scripts/audit_scientific_consistency.py`.",
-        "   - `cryptographic_sha256_provenance` (6 files): `docs/provenance/baseline_v1.0.0.json`, `docs/provenance/historical_desirability_selection.json`, and the 4 `tables/anova_*.csv` exports, verified by line-ending-normalized SHA-256 digests (`_file_matches_sha256`).",
-        "   - `claim_registry_verified` (15 files): Milestone C.1, D, D.1, D.2, and audit documents (`docs/c1_*.md`, `docs/d*.md`, `docs/full_experiment_plan.md`, `docs/progress.md`, `docs/scientific_audit.md`, `plots.py`, and `results/revision_v2/scientific_audit_c1/budget_reconciliation.json`). Verified against both (a) non-empty `required_claims` dynamically constructed from `ReportingDataset` and (b) the canonical floating-point vocabulary (`_build_canonical_float_vocabulary(ds)`) so any corrupted empirical number fails closed.",
+        "   - `latex_macro_bound_zero_hardcoded_floats` (2 files): `report.tex` and `technical_supplement.tex`, verified by macro definition coverage (`results/macros.tex`) and zero unpermitted hardcoded empirical floats in prose.",
+        "   - `compiled_pdf_verified` (2 files): `report.pdf` and `technical_supplement.pdf`, verified for valid non-empty PDF structure.",
+        "   - `cryptographic_sha256_provenance` (19 files): the provenance manifests, 4 `tables/anova_*.csv` exports, all 12 empirical/explanatory figures, and `scripts/generate_explanatory_figures.py`, verified by SHA-256 digests (`_file_matches_sha256`).",
+        "   - `claim_registry_verified` (16 files): Milestone C.1, D, D.1, D.2, audit documents, the reader-focused coverage inventory, `plots.py`, and `results/revision_v2/scientific_audit_c1/budget_reconciliation.json`. Verified against both (a) non-empty `required_claims` dynamically constructed from `ReportingDataset` and (b) the canonical floating-point vocabulary (`_build_canonical_float_vocabulary(ds)`) so any corrupted empirical number fails closed.",
         "   - `justified_exclusion` (2 files): Non-canonical/external historical records that are explicitly excluded from current empirical claim endorsement and locked by SHA-256 digest:",
         "     - `CODEX_REVIEW.md`: External reviewer handoff prompt pinned to historical commit `caf3a5bf59f2eae2541d3478d5fc370f0b339717` (2026-10-08); preserved verbatim as review provenance.",
         "     - `results_summary.json`: Pre-`v1.0.0` initial-commit (`4528425`) prototype summary ($m=5$ confirmation trials, pre-refactoring coding) superseded by `results/phase1.json`, `results/lof.json`, `results/diagnostics.json`, `results/phase3.json`, `results/confirmation.json`, and `results/benchmark_summary.json`; retained solely because `docs/provenance/baseline_v1.0.0.json` and `scripts/capture_provenance.py` record its historical hash.",
@@ -1555,10 +1555,10 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "| Verification Gate | Command | Result |",
         "| :--- | :--- | :--- |",
         "| LaTeX Artifacts Non-Mutating Check | `python scripts/generate_report_artifacts.py --check` | **PASSED** (`results/macros.tex` and 12 `tables/tab_*.tex` verified) |",
-        "| Full Research Reporting & Artifact Registry Check | `python scripts/generate_research_reporting.py --check` | **PASSED** (`REPORT.md`, `CHANGELOG.md`, manifest, all 43 verified scientific artifacts, and 2 justified exclusions verified) |",
+        "| Full Research Reporting & Artifact Registry Check | `python scripts/generate_research_reporting.py --check` | **PASSED** (`REPORT.md`, `CHANGELOG.md`, manifest, all 59 verified scientific artifacts, and 2 justified exclusions verified) |",
         "| Standalone Scientific Consistency Auditor | `python scripts/audit_scientific_consistency.py` | **PASSED** (40 SHA-256 evidence hashes + 65 manifest metrics + repository-wide artifact registry verified) |",
         "| Automated Pytest Suite (incl. Negative Coverage Tests) | `python -m pytest -q` | **PASSED** |",
-        "| LaTeX Manuscript Compilation | `tectonic report.tex` | **PASSED** (`report.pdf` compiled and text-layer verified) |",
+        "| LaTeX Manuscript Compilation | `tectonic report.tex` and `tectonic technical_supplement.tex` | **PASSED** (both PDFs compiled and verified) |",
         "| Frozen Experimental Evidence Integrity | `git diff --exit-code results/ config.yaml` | **PASSED** (0 bytes modified across all 40 frozen files) |",
         "",
         "READY FOR FINAL MERGE REVIEW",
@@ -2264,21 +2264,32 @@ def discover_scientific_and_documentation_files(root_dir: Optional[Path | str] =
         if item.suffix.lower() in {".md", ".tex", ".pdf"} or name in {"results_summary.json", "plots.py"}:
             discovered.add(name)
 
-    # 2. All files under docs/
+    # 2. Reader-facing empirical and explanatory figures
+    figures_dir = base / "figures"
+    if figures_dir.is_dir():
+        for p in figures_dir.rglob("*"):
+            if p.is_file() and p.suffix.lower() in {".pdf", ".png"}:
+                discovered.add(p.relative_to(base).as_posix())
+
+    explainer_script = base / "scripts" / "generate_explanatory_figures.py"
+    if explainer_script.is_file():
+        discovered.add("scripts/generate_explanatory_figures.py")
+
+    # 3. All files under docs/
     docs_dir = base / "docs"
     if docs_dir.is_dir():
         for p in docs_dir.rglob("*"):
             if p.is_file() and p.suffix.lower() in {".md", ".json", ".tex", ".csv", ".yaml", ".yml"}:
                 discovered.add(p.relative_to(base).as_posix())
 
-    # 3. All files under tables/
+    # 4. All files under tables/
     tables_dir = base / "tables"
     if tables_dir.is_dir():
         for p in tables_dir.rglob("*"):
             if p.is_file() and p.suffix.lower() in {".tex", ".csv", ".md", ".json"}:
                 discovered.add(p.relative_to(base).as_posix())
 
-    # 4. Generated LaTeX macros and C.1 scientific audit JSON in results/
+    # 5. Generated LaTeX macros and C.1 scientific audit JSON in results/
     macros_file = base / "results" / "macros.tex"
     if macros_file.is_file():
         discovered.add("results/macros.tex")
@@ -2331,6 +2342,16 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
             "mechanism": "compiled_pdf_verified",
             "source_artifacts": ["report.tex", "results/macros.tex"],
             "description": "Compiled PDF deliverable verified for PDF structure and text-layer parity.",
+        },
+        "technical_supplement.tex": {
+            "mechanism": "latex_macro_bound_zero_hardcoded_floats",
+            "source_artifacts": ["results/macros.tex", "config.yaml"],
+            "description": "Technical supplement preserving the complete approved scientific analysis and generated tables.",
+        },
+        "technical_supplement.pdf": {
+            "mechanism": "compiled_pdf_verified",
+            "source_artifacts": ["technical_supplement.tex", "results/macros.tex"],
+            "description": "Compiled technical supplement verified for PDF structure and manuscript consistency.",
         },
         "results/macros.tex": {
             "mechanism": "generated_full_document",
@@ -2433,6 +2454,58 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
             "8505f00b5c74a5970fb04d82340dbcff2ad2fc25561e4e613fc6dc057ddc2cf7",
             "Frozen Type III ANOVA export for Phase 1 factorial validation RMSE.",
         ),
+        "scripts/generate_explanatory_figures.py": (
+            "6c31c574c741feaabc4fdb5f0758e557504808df07aff894f3f9a93da27de151",
+            "Deterministic generator for reader-focused conceptual and empirical vector figures.",
+        ),
+        "figures/desirability_pareto_front.png": (
+            "33014abb8721672d4013fbc9fa2f0eedb68f51687b7d1863ff206024d842a952",
+            "Historical desirability and Pareto evidence figure.",
+        ),
+        "figures/diagnostics_panel_4in1.png": (
+            "154fc6d35370a14f0e9b3c724fd41f41dbdc393c33684765ea6b24249cc99993",
+            "Historical residual diagnostics figure.",
+        ),
+        "figures/efficiency_comparison_curve.png": (
+            "2eaf74850742093d488d2e81bb8fffedd8113fd9946280062bef21184ae9bf5e",
+            "Canonical evaluation-efficiency comparison figure.",
+        ),
+        "figures/response_surface_latency_2d_3d.png": (
+            "221e3f6cda01b3ee98c1fc76e55cd7c6e7fcc4a4a46acab86b064a2da472162f",
+            "Historical latency response-surface figure.",
+        ),
+        "figures/response_surface_rmse_2d_3d.png": (
+            "fc961f7e09239e89fa1b311bec3276204ad384ba30b18b01dc10d3ef4bbfc109",
+            "Historical validation-RMSE response-surface figure.",
+        ),
+        "figures/revision_v2_pareto_front.png": (
+            "761844a94ab6373fe17dea5a2b095b92a85849cbb5e475f73e966548e9596742",
+            "Canonical Revision-v2 development and holdout Pareto evidence figure.",
+        ),
+        "figures/explainer_accuracy_latency.pdf": (
+            "7549da81b7f07bae7d870b2b462b6e30cc1c7ec768cd33e092340fc95b073903",
+            "Reader-focused accuracy and latency trade-off figure generated from frozen selections.",
+        ),
+        "figures/explainer_blocking.pdf": (
+            "6b578abae32d5bee940dd08853ff0dc002d9fb0577ac59cce2ffec48ff1d4fd0",
+            "Reader-focused blocking figure generated from canonical center-point observations.",
+        ),
+        "figures/explainer_design_projection.pdf": (
+            "7ffee6253ef190d76b20b1d0ced3fedbc986571737177120aad2aa6c089b76bc",
+            "Reader-focused conceptual FCCD projection.",
+        ),
+        "figures/explainer_efficiency_comparison.pdf": (
+            "462ded98e280e34903354905406a7bab1e31256adbb394ea8c75e91323d79c22",
+            "Reader-focused efficiency comparison regenerated from canonical search trajectories.",
+        ),
+        "figures/explainer_research_pipeline.pdf": (
+            "402bf27dd9699582a04520284d7b81be3ce9667ed6d70d7174c2fa9b33fdb11e",
+            "Reader-focused conceptual research pipeline.",
+        ),
+        "figures/explainer_response_surface.pdf": (
+            "d3dfa66701e39dcd6b4eb8dd556315c902648432e6b4179d812aa0f0b2ee7a1f",
+            "Reader-focused observed-versus-fitted response-surface figure generated from canonical DOE runs.",
+        ),
     }
     for rel_p, (sha_hex, desc) in sha256_artifacts.items():
         registry[rel_p] = {
@@ -2444,6 +2517,12 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
 
     # 5. Claim-registry verified milestone reports, supplementary analyses, and figure scripts (15 files)
     claim_verified_entries: Dict[str, Dict[str, Any]] = {
+        "docs/report_rewrite_coverage.md": {
+            "source_artifacts": ["docs/scientific_claims_audit.md", "report.tex", "technical_supplement.tex"],
+            "required_claims": [f"C-{i:02d}" for i in range(1, 23)],
+            "allowed_context_floats": (),
+            "description": "Old-to-new scientific result, table, figure, test, and limitation coverage inventory.",
+        },
         "docs/c1_computational_efficiency.md": {
             "source_artifacts": ["results/revision_v2/full_run_001/computational_budget.json", "results/revision_v2/scientific_audit_c1/budget_reconciliation.json"],
             "required_claims": [tot_fits, tot_inf, w_doe, w_sotpe],
@@ -2669,6 +2748,9 @@ def verify_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) -
             if rel_p in {
                 "REPORT.md",
                 "report.tex",
+                "report.pdf",
+                "technical_supplement.tex",
+                "technical_supplement.pdf",
                 "CHANGELOG.md",
                 "results/macros.tex",
                 "docs/generated/scientific_results_manifest.json",
@@ -2676,6 +2758,7 @@ def verify_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) -
                 "docs/f_scientific_review_validation.md",
                 "docs/proposed_followup_experiments.md",
                 "docs/f1_final_audit_validation.md",
+                "docs/report_rewrite_coverage.md",
             } or rel_p in _CUSTOM_REGISTERED_ARTIFACTS:
                 errors.append(f"Registered scientific artifact is missing on disk: '{rel_p}'")
             continue
@@ -2779,6 +2862,8 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
     errors: List[str] = []
     report_md_path = ds.root_dir / "REPORT.md"
     report_tex_path = ds.root_dir / "report.tex"
+    supplement_tex_path = ds.root_dir / "technical_supplement.tex"
+    coverage_path = ds.root_dir / "docs" / "report_rewrite_coverage.md"
     changelog_path = ds.root_dir / "CHANGELOG.md"
     macros_tex_path = ds.root_dir / "results" / "macros.tex"
     manifest_path = ds.root_dir / "docs" / "generated" / "scientific_results_manifest.json"
@@ -2790,6 +2875,8 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
     for p in (
         report_md_path,
         report_tex_path,
+        supplement_tex_path,
+        coverage_path,
         changelog_path,
         macros_tex_path,
         manifest_path,
@@ -2805,6 +2892,8 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
 
     md_text = report_md_path.read_text(encoding="utf-8")
     tex_text = report_tex_path.read_text(encoding="utf-8")
+    supplement_text = supplement_tex_path.read_text(encoding="utf-8")
+    coverage_text = coverage_path.read_text(encoding="utf-8")
     changelog_text = changelog_path.read_text(encoding="utf-8")
     macros_text = macros_tex_path.read_text(encoding="utf-8")
     claims_text = claims_audit_path.read_text(encoding="utf-8")
@@ -2864,6 +2953,7 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
         ("docs/f_scientific_review_validation.md", f_val_text),
         ("docs/proposed_followup_experiments.md", followup_text),
         ("docs/f1_final_audit_validation.md", f1_val_text),
+        ("docs/report_rewrite_coverage.md", coverage_text),
     ]
     for doc_rel, doc_content in docs_to_check_paths:
         errors.extend(_audit_referenced_repo_paths(ds, doc_rel, doc_content))
@@ -2891,50 +2981,60 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
         if f"[{r2_rmse:.2f}, {r2_lat:.0f}]" not in doc_content and f"[{r2_rmse:.2f}, {r2_lat:.1f}]" not in doc_content:
             errors.append(f"Secondary hypervolume reference point [{r2_rmse:.2f}, {r2_lat:.1f}] missing from {doc_name}")
 
-    # 6. Verify all \num... and \vecB... and \matB... and \eigVec... macros used in report.tex are defined in results/macros.tex
+    # 6. Verify all generated macros used in either publication manuscript are defined.
     defined_macros = dict(
         re.findall(r"\\newcommand\{\\([A-Za-z]+)\}\{(.+)\}", macros_text)
     )
-    used_macros = set(re.findall(r"\\((?:num|vecB|matB|eigVec|env)[A-Za-z]+)\b", tex_text))
-    undefined = sorted(used_macros - set(defined_macros.keys()))
-    if undefined:
-        errors.append(f"Macros used in report.tex but undefined in results/macros.tex: {undefined}")
+    for doc_name, doc_content in [
+        ("report.tex", tex_text),
+        ("technical_supplement.tex", supplement_text),
+    ]:
+        used_macros = set(re.findall(r"\\((?:num|vecB|matB|eigVec|env)[A-Za-z]+)\b", doc_content))
+        undefined = sorted(used_macros - set(defined_macros.keys()))
+        if undefined:
+            errors.append(f"Macros used in {doc_name} but undefined in results/macros.tex: {undefined}")
 
-    # 7. Enforce that no empirical result floating-point numbers are hardcoded in report.tex prose
+    # 7. Enforce that no empirical result floating-point numbers are hardcoded in either LaTeX manuscript.
     allowed_tex_floats = _allowed_report_tex_specification_floats(ds)
-    unpermitted_tex_floats: List[str] = []
-    for line_no, raw_line in enumerate(tex_text.splitlines(), start=1):
-        stripped = raw_line.strip()
-        if stripped.startswith("%"):
-            continue
-        # Strip inline LaTeX comments
-        line_clean = re.sub(r"(?<!\\)%.*$", "", raw_line)
-        # Strip LaTeX layout/formatting commands and explicit software version tags
-        line_clean = re.sub(r"\\renewcommand\{\\arraystretch\}\{[0-9.]+\}", "", line_clean)
-        line_clean = re.sub(
-            r"\b(?:v1\.0\.0|Python\s+3\.11(?:\.9)?|XGBoost\s+3\.2(?:\.0)?|Scikit-Learn\s+1\.8(?:\.0)?|Statsmodels\s+0\.15(?:\.0)?|Scipy\s+1\.17(?:\.1)?|Optuna\s+5\.0(?:\.0)?)\b",
-            "",
-            line_clean,
-            flags=re.IGNORECASE,
-        )
-        for m in re.finditer(r"(?<![A-Za-z\\])\d+\.\d+(?![A-Za-z])", line_clean):
-            # Ignore layout lengths like 0.48\textwidth, 0.35em, 1.2pt
-            tail = line_clean[m.start() : m.end() + 18]
-            if re.match(r"^\d+\.\d+\s*\\?(?:textwidth|linewidth|columnwidth|em|pt|mm|cm|in|ex)\b", tail):
+    for doc_name, doc_content in [
+        ("report.tex", tex_text),
+        ("technical_supplement.tex", supplement_text),
+    ]:
+        unpermitted_tex_floats: List[str] = []
+        for line_no, raw_line in enumerate(doc_content.splitlines(), start=1):
+            stripped = raw_line.strip()
+            if stripped.startswith("%"):
                 continue
-            val_str = m.group(0)
-            if val_str not in allowed_tex_floats:
-                unpermitted_tex_floats.append(f"L{line_no}: {val_str}")
-    if unpermitted_tex_floats:
-        errors.append(
-            "Hardcoded empirical floating-point numbers found in report.tex prose "
-            f"(must use generated macros from results/macros.tex): {unpermitted_tex_floats}"
-        )
+            line_clean = re.sub(r"(?<!\\)%.*$", "", raw_line)
+            line_clean = re.sub(r"\\renewcommand\{\\arraystretch\}\{[0-9.]+\}", "", line_clean)
+            line_clean = re.sub(r"\\linespread\{[0-9.]+\}", "", line_clean)
+            line_clean = re.sub(
+                r"\b(?:v1\.0\.0|Python\s+3\.11(?:\.9)?|XGBoost\s+3\.2(?:\.0)?|Scikit-Learn\s+1\.8(?:\.0)?|Statsmodels\s+0\.15(?:\.0)?|Scipy\s+1\.17(?:\.1)?|Optuna\s+5\.0(?:\.0)?)\b",
+                "",
+                line_clean,
+                flags=re.IGNORECASE,
+            )
+            for m in re.finditer(r"(?<![A-Za-z\\])\d+\.\d+(?![A-Za-z])", line_clean):
+                tail = line_clean[m.start() : m.end() + 18]
+                if re.match(r"^\d+\.\d+\s*\\?(?:textwidth|linewidth|columnwidth|em|pt|mm|cm|in|ex)\b", tail):
+                    continue
+                val_str = m.group(0)
+                if val_str not in allowed_tex_floats:
+                    unpermitted_tex_floats.append(f"L{line_no}: {val_str}")
+        if unpermitted_tex_floats:
+            errors.append(
+                f"Hardcoded empirical floating-point numbers found in {doc_name} prose "
+                f"(must use generated macros from results/macros.tex): {unpermitted_tex_floats}"
+            )
 
     # 8. Check that no unsupported TOST equivalence claims appear when rmse_equivalence_margin is None
     if ds.config["revision_v2"].get("rmse_equivalence_margin") is None:
         forbidden_equiv = re.compile(r"\b(?:TOST\s+confirmed|statistically\s+equivalent|formal\s+equivalence\s+established)\b", re.IGNORECASE)
-        for doc_name, doc_content in [("REPORT.md", md_text), ("report.tex", tex_text)]:
+        for doc_name, doc_content in [
+            ("REPORT.md", md_text),
+            ("report.tex", tex_text),
+            ("technical_supplement.tex", supplement_text),
+        ]:
             m_eq = forbidden_equiv.search(doc_content)
             if m_eq:
                 errors.append(

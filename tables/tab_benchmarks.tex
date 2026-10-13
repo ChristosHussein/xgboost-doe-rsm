@@ -2,7 +2,7 @@
 \toprule
 \makecell{\textbf{Optimization}\\\textbf{Method}} & \makecell{\textbf{Search Basis}\\\scriptsize($N$ Reps)} & \makecell{\textbf{Val RMSE}\\\scriptsize Mean $\pm$ SD} & \makecell{\textbf{Holdout}\\\textbf{Test RMSE}\\\scriptsize Mean $\pm$ SD} & \makecell{\textbf{Retrain}\\\bm{$\sigma_{\text{eval}}$}} & \makecell{\textbf{Latency}\\\scriptsize($\mu\text{s} \pm \text{SD}$)} & \makecell{\textbf{Feasible}\\\scriptsize($\le 145\,\mu\text{s}$)} \\
 \midrule
-\multicolumn{7}{l}{\textbf{Panel A: Prospective Revision-v2 Full Benchmark ($N=20$ Search Replicates)}} \\
+\multicolumn{7}{l}{\textbf{Panel A: Repeated Benchmark Experiments ($N=20$ Search Replicates)}} \\
 \makecell[l]{Repeated DOE MO\\($\mathbf{x}^*_{\text{MO}}$)} & RSM ($N{=}20$) & $0.4853 \pm 0.0055$ & $0.4900 \pm 0.0073$ & $0.0033$ & $122.3 \pm 2.7$ & 20/20 \\
 \makecell[l]{Multi-Objective TPE} & Parzen ($N{=}20$) & $0.4881 \pm 0.0093$ & $0.4926 \pm 0.0108$ & $0.0036$ & $121.5 \pm 3.8$ & 20/20 \\
 \makecell[l]{Constrained TPE\\($\le 145\,\mu\text{s}$)} & Parzen ($N{=}20$) & $0.4700 \pm 0.0022$ & $0.4704 \pm 0.0032$ & $0.0034$ & $144.3 \pm 7.1$ & 9/20 \\
@@ -10,7 +10,7 @@
 \makecell[l]{Single-Objective TPE} & Parzen ($N{=}20$) & $0.4675 \pm 0.0008$ & $0.4669 \pm 0.0012$ & $0.0031$ & $188.9 \pm 12.1$ & 0/20 \\
 \makecell[l]{Unguided Random Search} & Uniform ($N{=}20$) & $0.4687 \pm 0.0014$ & $0.4695 \pm 0.0021$ & $0.0030$ & $181.1 \pm 19.0$ & 0/20 \\
 \midrule
-\multicolumn{7}{l}{\textbf{Panel B: Historical Baseline Snapshot ($v1.0.0$, Single Search Replicate)}} \\
+\multicolumn{7}{l}{\textbf{Panel B: Initial Experiment Snapshot (Single Search Replicate)}} \\
 \makecell[l]{Historical DOE MO\\($\mathbf{x}^*_{\text{MO}}$)} & RSM (Single) & $0.4821$ & $0.4884$ & --- & $119.8$ & Yes \\
 \makecell[l]{Historical Multi-Obj TPE} & Parzen (Single) & $0.4812$ & $0.4870$ & --- & $118.8$ & Yes \\
 \makecell[l]{Historical Constrained TPE} & Parzen (Single) & $0.4783$ & $0.4823$ & --- & $125.4$ & Yes \\
