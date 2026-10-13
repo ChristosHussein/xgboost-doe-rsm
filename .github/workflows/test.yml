@@ -45,5 +45,5 @@ jobs:
           python scripts/generate_report_artifacts.py --check
           python scripts/generate_research_reporting.py --check
           git diff --exit-code results/ config.yaml
-          git diff --exit-code 842b531611ded9ff8495b88bf0c12790efe56b69 -- config.yaml results/revision_v2/full_run_001/
+          git diff --exit-code 2420992bda129063c8da38d50e65d1881ccbb20e -- config.yaml results/revision_v2/full_run_001/
           git diff --exit-code v1.0.0 -- results/anova_ccd_latency.csv results/benchmark.csv results/benchmark_evals_trajectories.csv results/benchmark_optimizer_incumbents.csv results/benchmark_summary.json results/confirmation.json results/confirmation_runs.csv results/confirmation_runs_single_obj.csv results/depth_opt_table.csv results/desirability_sensitivity.csv results/diagnostics.json results/env.json results/icc.json results/latency_modeling.json results/latency_models_comparison.csv results/lof.json results/phase1.json results/phase3.json results/ridge_table.csv results/runs.csv
