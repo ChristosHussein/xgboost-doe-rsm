@@ -52,6 +52,24 @@ def test_rank_deficient_surface_is_rejected():
         PolynomialRSMSurrogate(False).fit(np.zeros((30, 4)), np.arange(30.))
 
 
+def test_missing_git_is_reported_without_preventing_execution(monkeypatch):
+    from xgb_doe_xai import study
+    def unavailable(*args, **kwargs):
+        raise FileNotFoundError('git unavailable')
+    monkeypatch.setattr(study.subprocess, 'run', unavailable)
+    assert study.git_provenance() == {'git_revision': 'UNAVAILABLE', 'git_worktree_dirty': None}
+
+
+def test_single_class_evaluation_retains_binary_logloss_protocol():
+    from xgb_doe_xai import WarmedLatencyProfiler, train_and_evaluate_config
+    x = np.arange(80, dtype=np.float32).reshape(20, 4)
+    result = train_and_evaluate_config(dict.fromkeys(['x1', 'x2', 'x3', 'x4'], 0.),
+        x, np.arange(20) % 2, x[:4], np.zeros(4, dtype=int), WarmedLatencyProfiler(1, 2), n_trees=2)
+    from sklearn.metrics import log_loss
+    probabilities = np.asarray(result.validation_probabilities, dtype=result.validation_probability_dtype)
+    assert result.val_logloss == pytest.approx(log_loss(np.zeros(4), probabilities, labels=[0, 1]))
+
+
 def test_known_pair_interaction_and_undefined_ranks():
     class Pair:
         def predict(self, x):

@@ -33,6 +33,19 @@ def key(coded):
     return tuple(coded[name] for name in FACTOR_NAMES)
 
 
+def git_provenance():
+    """A wheel can run without Git; record absence rather than invent a revision."""
+    try:
+        revision = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=Path(__file__).parent.parent,
+                                  text=True, capture_output=True, check=False)
+        status = subprocess.run(['git', 'status', '--porcelain'], cwd=Path(__file__).parent.parent,
+                                text=True, capture_output=True, check=False)
+    except OSError:
+        return {'git_revision': 'UNAVAILABLE', 'git_worktree_dirty': None}
+    return {'git_revision': revision.stdout.strip() if revision.returncode == 0 else 'UNAVAILABLE',
+            'git_worktree_dirty': bool(status.stdout.strip()) if status.returncode == 0 else None}
+
+
 def source_hashes():
     root = Path(__file__).parent
     files = list(root.glob('*.py')) + [root.parent/'latency.py', root.parent/'run_explainable_doe_demo.py',
@@ -139,10 +152,7 @@ def run_study(config, evaluator, output_dir, *, dataset_id, dataset_sha256,
     contract = dict(config=asdict(config), dataset_id=dataset_id, dataset_sha256=dataset_sha256,
                     evidence_kind=evidence_kind, python=sys.version, platform=platform.platform(),
                     declared_at_utc=datetime.now(timezone.utc).isoformat(),
-                    git_revision=subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=Path(__file__).parent.parent,
-                                                text=True, capture_output=True, check=False).stdout.strip() or 'UNAVAILABLE',
-                    git_worktree_dirty=bool(subprocess.run(['git', 'status', '--porcelain'],
-                        cwd=Path(__file__).parent.parent, text=True, capture_output=True, check=False).stdout.strip()),
+                    **git_provenance(),
                     dependencies={name: version(name) for name in ('numpy', 'scipy', 'pandas',
                         'scikit-learn', 'xgboost', 'optuna', 'matplotlib')},
                     source_hashes=source_hashes(), confirmation=[asdict(p) for p in reserved],

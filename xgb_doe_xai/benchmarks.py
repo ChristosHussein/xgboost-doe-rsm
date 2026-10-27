@@ -74,7 +74,7 @@ def train_and_evaluate_config(
     y_val_preds = (y_val_probs >= 0.5).astype(int)
 
     f1 = float(f1_score(y_val, y_val_preds, average="macro"))
-    ll = float(log_loss(y_val, y_val_probs))
+    ll = float(log_loss(y_val, y_val_probs, labels=[0, 1]))
     training_seconds = time.perf_counter() - started
 
     # Single-sample warmed latency profiling on a representative slice

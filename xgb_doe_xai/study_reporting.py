@@ -43,7 +43,7 @@ def reconstruct_summary(output):
             raise ValueError('Missing primary classification observations')
         probabilities = np.asarray(probabilities, dtype=row['validation_probability_dtype'])
         expected_f1 = f1_score(truth, probabilities >= .5, average='macro')
-        expected_logloss = log_loss(truth, probabilities)
+        expected_logloss = log_loss(truth, probabilities, labels=[0, 1])
         if not np.allclose([row['val_macro_f1'], row['val_loss'], row['val_logloss']],
                            [expected_f1, 1-expected_f1, expected_logloss], rtol=1e-12, atol=1e-12):
             raise ValueError('Classification metrics differ from primary prediction observations')
