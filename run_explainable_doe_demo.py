@@ -30,10 +30,12 @@ def main():
         return 0
     if args.plan:
         cfg = BenchmarkConfig(**json.loads(Path(args.config).read_text())) if args.config else BenchmarkConfig()
-        coordinates = 24 + cfg.center_replicates + cfg.adaptive_cycles*cfg.infill_per_cycle
-        search = 2*coordinates*cfg.n_nuisance_blocks*cfg.search_replicates
-        confirmation = 2*cfg.confirmation_points*cfg.n_nuisance_blocks*cfg.search_replicates
-        final = 2*cfg.search_replicates
+        from xgb_doe_xai.design import search_budget
+        coordinates = search_budget(cfg)['total_coordinates']
+        methods = 3 if cfg.include_static_baseline else 2
+        search = methods*coordinates*cfg.n_nuisance_blocks*cfg.search_replicates
+        confirmation = methods*cfg.confirmation_points*cfg.n_nuisance_blocks*cfg.search_replicates
+        final = methods*cfg.search_replicates
         print(json.dumps(dict(config=asdict(cfg), planned_search_fits=search,
             planned_confirmation_fits=confirmation, planned_final_fits=final,
             planned_total_fits=search+confirmation+final), indent=2))

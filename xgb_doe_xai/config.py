@@ -20,16 +20,22 @@ class FactorSpec:
     center: float
     high: float
     is_integer: bool = False
+    log_scale: bool = False
 
     def to_coded(self, natural_value: float) -> float:
         """Transform natural coordinate to [-1, +1] coded space."""
-        half_range = (self.high - self.low) / 2.0
-        return (natural_value - self.center) / half_range
+        low, center, high = (np.log([self.low, self.center, self.high])
+                             if self.log_scale else (self.low, self.center, self.high))
+        value = np.log(natural_value) if self.log_scale else natural_value
+        return (value - center) / ((high - low) / 2.0)
 
     def to_natural(self, coded_value: float) -> float | int:
         """Transform [-1, +1] coded coordinate to natural space."""
-        half_range = (self.high - self.low) / 2.0
-        nat = self.center + coded_value * half_range
+        low, center, high = (np.log([self.low, self.center, self.high])
+                             if self.log_scale else (self.low, self.center, self.high))
+        nat = center + coded_value * (high - low) / 2.0
+        if self.log_scale:
+            nat = np.exp(nat)
         nat = np.clip(nat, self.low, self.high)
         if self.is_integer:
             return int(round(nat))
@@ -63,12 +69,13 @@ DEFAULT_FACTORS: Dict[str, FactorSpec] = {
         is_integer=False,
     ),
     "x4": FactorSpec(
-        name="colsample_bytree",
+        name="reg_lambda",
         code_name="x4",
-        low=0.30,
-        center=0.65,
-        high=1.00,
+        low=0.10,
+        center=1.00,
+        high=10.00,
         is_integer=False,
+        log_scale=True,
     ),
 }
 
@@ -77,7 +84,7 @@ FACTOR_LABELS: Dict[str, str] = {
     "x1": "Learning Rate (eta)",
     "x2": "Max Depth",
     "x3": "Subsample Ratio",
-    "x4": "Feature Subsample (colsample_bytree)",
+    "x4": "Leaf-weight Regularization (lambda)",
 }
 
 
@@ -99,6 +106,7 @@ class BenchmarkConfig:
     search_replicates: int = 3
     acquisition: str = 'hybrid'
     mode: str = 'research'
+    include_static_baseline: bool = False
 
     def __post_init__(self):
         if self.mode not in ('research', 'smoke'):

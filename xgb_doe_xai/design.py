@@ -13,6 +13,15 @@ import numpy as np
 from xgb_doe_xai.config import canonical_configuration
 
 
+def search_budget(config):
+    """Count real model fits, including all adaptive trials and split blocks."""
+    initial = len(generate_fccd_points(n_center=config.center_replicates))
+    adaptive = config.adaptive_cycles * config.infill_per_cycle
+    return dict(initial_coordinates=initial, adaptive_coordinates=adaptive,
+                total_coordinates=initial + adaptive,
+                fits_per_method_search=(initial + adaptive) * config.n_nuisance_blocks)
+
+
 @dataclass(frozen=True)
 class DesignPoint:
     point_id: str

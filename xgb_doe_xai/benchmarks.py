@@ -61,7 +61,7 @@ def train_and_evaluate_config(
         "learning_rate": float(nat["learning_rate"]),
         "max_depth": int(nat["max_depth"]),
         "subsample": float(nat["subsample"]),
-        "colsample_bytree": float(nat["colsample_bytree"]),
+        "reg_lambda": float(nat["reg_lambda"]),
         "n_estimators": n_trees,
         "random_state": random_seed,
         "n_jobs": 1,

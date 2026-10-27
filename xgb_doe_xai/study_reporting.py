@@ -29,7 +29,10 @@ def reconstruct_summary(output):
     if {key(r['coded_params']) for r in search} & {key(r['coded_params']) for r in confirm_rows}:
         raise ValueError('Confirmation configurations were used in search')
     expected = contract['search_fits_per_method']
-    counts = {method: sum(r['method'] == method for r in search) for method in ('doe', 'tpe')}
+    counts = {method: sum(r['method'] == method for r in search)
+              for method in contract.get('methods', ['doe', 'tpe'])}
+    if set(r['method'] for r in search) != set(counts):
+        raise ValueError('Unregistered search method')
     if any(n != expected for n in counts.values()) or len(confirm_rows) != contract['confirmation_fits']:
         raise ValueError('Fit accounting does not match the frozen measurement contract')
     if any(r['n_trees'] != config['n_trees'] for r in rows):
@@ -223,8 +226,10 @@ def plot_study(output):
     search = [r for r in rows if r['stage'] != 'confirmation']
     cfg = json.loads((output/'measurement_contract.json').read_text())['config']
     fig, axes = plt.subplots(2, 2, figsize=(12, 9), constrained_layout=True)
-    for method, color in [('doe', '#286b94'), ('tpe', '#b15a27')]:
+    for method, color in [('static_doe', '#72833b'), ('doe', '#286b94'), ('tpe', '#b15a27')]:
         subset = [r for r in search if r['method'] == method and r['replicate'] == 0]
+        if not subset:
+            continue
         grouped = group_search(subset)
         axes[0, 0].scatter([r['latency'] for r in grouped], [1-r['loss'] for r in grouped],
                             label=method, color=color, s=20, alpha=.8)
@@ -255,8 +260,8 @@ def plot_study(output):
     matrix = np.array(snap['shap']['gp']['interaction_matrix_shap'])
     np.fill_diagonal(matrix, 0)
     im = axes[0, 1].imshow(matrix, cmap='Blues')
-    axes[0, 1].set(xticks=range(4), yticks=range(4), xticklabels=['eta', 'depth', 'subsample', 'colsample'],
-                   yticklabels=['eta', 'depth', 'subsample', 'colsample'], title='Mean absolute GP SHAP pair interactions (loss units)')
+    axes[0, 1].set(xticks=range(4), yticks=range(4), xticklabels=['eta', 'depth', 'subsample', 'lambda'],
+                   yticklabels=['eta', 'depth', 'subsample', 'lambda'], title='Mean absolute GP SHAP pair interactions (loss units)')
     fig.colorbar(im, ax=axes[0, 1], shrink=.8)
     for label in ('rsm', 'gp'):
         for name, values in snap['curvature'][label].items():
@@ -280,7 +285,7 @@ def publish_study(output):
     from .surrogates import AnovaTableResult
     from .reporting import render_latex_anova_table, render_markdown_anova_table
     config = json.loads((output/'measurement_contract.json').read_text())['config']
-    for method in ('doe', 'tpe'):
+    for method in summary['methods']:
         for rep in range(config['search_replicates']):
             suffix = str(config['adaptive_cycles']) if method == 'doe' else 'final'
             snapshot = json.loads((output/f'snapshot_{rep}_{method}_{suffix}.json').read_text())

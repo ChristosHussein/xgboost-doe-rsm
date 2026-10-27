@@ -149,7 +149,11 @@ def run_study(config, evaluator, output_dir, *, dataset_id, dataset_sha256,
             excluded.add(key(coded))
     explain_at = np.array([p.vector for p in reserved])
     coordinates = len(initial) + config.adaptive_cycles*config.infill_per_cycle
-    contract = dict(config=asdict(config), dataset_id=dataset_id, dataset_sha256=dataset_sha256,
+    methods = ['static_doe', 'doe', 'tpe'] if config.include_static_baseline else ['doe', 'tpe']
+    from .config import DEFAULT_FACTORS
+    contract = dict(config=asdict(config), methods=methods,
+                    factors={name:asdict(spec) for name,spec in DEFAULT_FACTORS.items()},
+                    dataset_id=dataset_id, dataset_sha256=dataset_sha256,
                     evidence_kind=evidence_kind, python=sys.version, platform=platform.platform(),
                     declared_at_utc=datetime.now(timezone.utc).isoformat(),
                     **git_provenance(),
@@ -158,8 +162,8 @@ def run_study(config, evaluator, output_dir, *, dataset_id, dataset_sha256,
                     source_hashes=source_hashes(), confirmation=[asdict(p) for p in reserved],
                     background=background.tolist(),
                     search_fits_per_method=coordinates*config.n_nuisance_blocks*config.search_replicates,
-                    confirmation_fits=2*len(reserved)*config.n_nuisance_blocks*config.search_replicates,
-                    final_fits=2*config.search_replicates if final_evaluator else 0,
+                    confirmation_fits=len(methods)*len(reserved)*config.n_nuisance_blocks*config.search_replicates,
+                    final_fits=len(methods)*config.search_replicates if final_evaluator else 0,
                     selection_rule='largest dominated rectangle to predeclared reference; observed coordinate',
                     acquisition_interpretation='EI uses an equally normalized loss/latency scalarization with independent GP predictive variances; not EHVI',
                     metrics={
@@ -198,12 +202,18 @@ def run_study(config, evaluator, output_dir, *, dataset_id, dataset_sha256,
         return added
 
     for replicate in range(config.search_replicates):
-        methods = ['doe', 'tpe']
+        methods = list(contract['methods'])
         rng.shuffle(methods)  # Serial profiling, randomized method order across repeats.
         for method in methods:
             search = []
             overhead = time.perf_counter()
-            if method == 'doe':
+            if method == 'static_doe':
+                static = generate_fccd_points(n_center=config.center_replicates+
+                                             config.adaptive_cycles*config.infill_per_cycle)
+                search += evaluate(static, method, replicate, 'initial')
+                snapshot, surfaces, gps = explanation_snapshot(search, background, explain_at)
+                write_json(output/f'snapshot_{replicate}_{method}_final.json', snapshot)
+            elif method == 'doe':
                 points = list(initial)
                 search += evaluate(initial, method, replicate, 'initial')
                 for cycle in range(config.adaptive_cycles + 1):

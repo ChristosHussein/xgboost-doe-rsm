@@ -172,14 +172,15 @@ def test_independent_observation_coverage_for_known_fixed_blocks():
     assert .89 < np.mean((low <= truth) & (truth <= high)) < .995
 
 
-def test_sequential_runner_has_disjoint_confirmation_and_equal_logged_fit_budgets(tmp_path, monkeypatch):
+@pytest.mark.parametrize('include_static', [False, True])
+def test_sequential_runner_has_disjoint_confirmation_and_equal_logged_fit_budgets(tmp_path, monkeypatch, include_static):
     from xgb_doe_xai.study import run_study, check_study
     from xgb_doe_xai import BenchmarkConfig
     from xgb_doe_xai.benchmarks import EvaluationResult
     from xgb_doe_xai.profiler import LatencyProfileResult
     cfg = BenchmarkConfig(n_nuisance_blocks=2, adaptive_cycles=1, infill_per_cycle=2,
                           confirmation_points=3, search_replicates=1, mode='smoke',
-                          acquisition='expected_improvement')
+                          acquisition='expected_improvement', include_static_baseline=include_static)
     import xgb_doe_xai.study as study
     acquire = study.select_adaptive_infill_points
     acquisition_calls = []
@@ -200,8 +201,10 @@ def test_sequential_runner_has_disjoint_confirmation_and_equal_logged_fit_budget
     summary = run_study(cfg, evaluator, output, dataset_id='synthetic',
                         dataset_sha256='fixture-digest', evidence_kind='synthetic_fixture')
     assert summary['search_fits']['doe'] == summary['search_fits']['tpe'] == 60
-    assert summary['confirmation_fits'] == 12
-    assert summary['total_fits'] == len(seen) == 132
+    if include_static:
+        assert summary['search_fits']['static_doe'] == 60
+    assert summary['confirmation_fits'] == (18 if include_static else 12)
+    assert summary['total_fits'] == len(seen) == (198 if include_static else 132)
     assert summary['final_evaluation_status'] == 'NOT RUN'
     check_study(output)
     import json

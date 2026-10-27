@@ -51,7 +51,7 @@ def test_calibrated_hyperparameter_domain_and_coding_roundtrip():
     assert eta_spec.center == 0.175
 
     # Center coding
-    center_nat = {"learning_rate": 0.175, "max_depth": 6, "subsample": 0.75, "colsample_bytree": 0.65}
+    center_nat = {"learning_rate": 0.175, "max_depth": 6, "subsample": 0.75, "reg_lambda": 1.0}
     coded = code_configuration(center_nat)
     assert coded["x1"] == pytest.approx(0.0)
     assert coded["x2"] == pytest.approx(0.0)

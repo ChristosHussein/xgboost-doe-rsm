@@ -1,8 +1,8 @@
 """xgb_doe_xai.profiler - Unified warmed latency profiling harness.
 
 Addresses Remark 2:
-Solves the protocol disparity between search (previously 30 un-warmed calls)
-and verification (500-1000 warmed calls). Enforces identical warmed measurement
+Addresses differences between short online and longer benchmark protocols.
+Historical online calls also had warmup. Enforces identical warmed measurement
 across all search, surrogate, and benchmark stages.
 """
 
