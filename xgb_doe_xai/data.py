@@ -1,9 +1,8 @@
 """xgb_doe_xai.data - Data ingestion, TF-IDF representations, and strictly isolated partitions.
 
 Addresses Remark 3:
-Guarantees a strictly isolated, pre-registered, cryptographic-hash-verified
-External Holdout Set that is never touched during DoE search, surrogate fitting,
-or hyperparameter tuning. Nuisance blocks partition the development pool only.
+Keeps holdout observations out of the development-facing partitions. An explicit
+final evaluator checks frozen selections before exposing observations to evaluation.
 """
 
 from __future__ import annotations
@@ -16,17 +15,17 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from scipy import sparse
+from xgb_doe_xai.final_evaluation import FinalEvaluator
 
 
 @dataclass
 class DatasetPartitions:
-    holdout_texts: List[str]
-    holdout_labels: np.ndarray
     holdout_sha256: str
+    holdout_count: int
+    final_evaluator: FinalEvaluator
     # List of (train_texts, train_labels, val_texts, val_labels) per block
     blocks: List[Tuple[List[str], np.ndarray, List[str], np.ndarray]]
-    vectorizer: Optional[TfidfVectorizer] = None
-    holdout_features: Optional[sparse.csr_matrix] = None
+    vectorizers: List[TfidfVectorizer]
     block_features: Optional[
         List[Tuple[sparse.csr_matrix, np.ndarray, sparse.csr_matrix, np.ndarray]]
     ] = None
@@ -95,12 +94,9 @@ def create_strictly_isolated_partitions(
         random_state=random_seed,
     )
 
-    # Compute SHA-256 digest of holdout partition
-    hasher = hashlib.sha256()
-    for t, l in zip(holdout_texts, holdout_labels):
-        hasher.update(t.encode("utf-8"))
-        hasher.update(str(l).encode("ascii"))
-    holdout_sha256 = hasher.hexdigest()
+    vectorizer_kwargs = dict(max_features=max_features, ngram_range=ngram_range, sublinear_tf=True)
+    final_evaluator = FinalEvaluator(dev_texts, dev_labels, holdout_texts, holdout_labels,
+                                     vectorizer_kwargs)
 
     # Partition development pool into n_blocks nuisance blocks
     skf = StratifiedKFold(n_splits=n_blocks, shuffle=True, random_state=random_seed)
@@ -114,27 +110,21 @@ def create_strictly_isolated_partitions(
         b_val_labels = dev_labels[val_idx]
         blocks.append((b_train_texts, b_train_labels, b_val_texts, b_val_labels))
 
-    # Fit TF-IDF on development pool ONLY (preventing test vocabulary leakage)
-    vectorizer = TfidfVectorizer(
-        max_features=max_features,
-        ngram_range=ngram_range,
-        sublinear_tf=True,
-    )
-    vectorizer.fit(dev_texts)
-
-    holdout_feat = vectorizer.transform(holdout_texts)
+    # Fit preprocessing separately inside each training fold.
+    vectorizers = []
     block_feats: List[Tuple[sparse.csr_matrix, np.ndarray, sparse.csr_matrix, np.ndarray]] = []
     for b_tr_t, b_tr_l, b_val_t, b_val_l in blocks:
-        tr_feat = vectorizer.transform(b_tr_t)
+        vectorizer = TfidfVectorizer(**vectorizer_kwargs)
+        tr_feat = vectorizer.fit_transform(b_tr_t)
         val_feat = vectorizer.transform(b_val_t)
         block_feats.append((tr_feat, b_tr_l, val_feat, b_val_l))
+        vectorizers.append(vectorizer)
 
     return DatasetPartitions(
-        holdout_texts=holdout_texts,
-        holdout_labels=holdout_labels,
-        holdout_sha256=holdout_sha256,
+        holdout_sha256=final_evaluator.holdout_sha256,
+        holdout_count=len(holdout_texts),
+        final_evaluator=final_evaluator,
         blocks=blocks,
-        vectorizer=vectorizer,
-        holdout_features=holdout_feat,
+        vectorizers=vectorizers,
         block_features=block_feats,
     )

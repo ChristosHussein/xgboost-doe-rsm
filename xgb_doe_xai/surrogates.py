@@ -1,7 +1,7 @@
 """xgb_doe_xai.surrogates - Parametric 2nd-order RSM and non-parametric surrogates.
 
-Provides rigorous ANOVA decomposition, Lack-of-Fit tests against center pure error,
-Satterthwaite prediction intervals, and flexible surrogate modeling for SHAP explanation.
+Provides partial-SS ANOVA, within-block replicated-cell lack-of-fit tests,
+fixed-block OLS prediction intervals, and flexible surrogate modeling.
 """
 
 from __future__ import annotations
@@ -55,6 +55,7 @@ class PolynomialRSMSurrogate:
         self.df_resid_: int = 0
         self.anova_: Optional[AnovaTableResult] = None
         self.block_var_: float = 0.0
+        self.block_levels_ = np.array([])
 
     def _build_design_matrix(
         self,
@@ -90,7 +91,8 @@ class PolynomialRSMSurrogate:
                 cols.append(b_col)
                 names.append(f"Block_{b}")
 
-        self.feature_names = names
+        if not getattr(self, '_fitted', False):
+            self.feature_names = names
         return np.hstack(cols)
 
     def fit(
@@ -100,11 +102,20 @@ class PolynomialRSMSurrogate:
         block_ids: Optional[np.ndarray] = None,
     ) -> "PolynomialRSMSurrogate":
         """Fit OLS 2nd-order response surface and compute complete ANOVA decomposition."""
+        self._fitted = False
+        X_coded, y = np.asarray(X_coded, dtype=float), np.asarray(y, dtype=float)
+        if X_coded.ndim != 2 or X_coded.shape[1] != 4 or y.shape != (len(X_coded),):
+            raise ValueError('Expected an n-by-4 design and n responses')
+        if not np.isfinite(X_coded).all() or not np.isfinite(y).all():
+            raise ValueError('Design and responses must be finite')
+        self.block_levels_ = np.unique(block_ids) if self.include_blocks and block_ids is not None else np.array([])
         X_mat = self._build_design_matrix(X_coded, block_ids)
         n, p = X_mat.shape
 
         # Solve OLS via SVD / pseudo-inverse for numerical stability
         beta, residuals, rank, s = np.linalg.lstsq(X_mat, y, rcond=1e-10)
+        if rank != p or n <= rank:
+            raise ValueError('Surface requires full column rank and positive residual degrees of freedom')
         self.beta_ = beta
         self.xtx_inv_ = np.linalg.pinv(X_mat.T @ X_mat)
 
@@ -143,23 +154,16 @@ class PolynomialRSMSurrogate:
         ss_inter = _partial_ss(idx_inter)
         ss_block = _partial_ss(idx_block)
 
-        # Lack-of-Fit vs Pure Error at center points
-        center_mask = np.all(np.isclose(X_coded, 0.0, atol=1e-4), axis=1)
-        ss_pe: Optional[float] = None
-        df_pe = 0
-        if np.sum(center_mask) > 1:
-            y_centers = y[center_mask]
-            if block_ids is not None:
-                # Within-block center pure error
-                ss_pe = 0.0
-                for b in np.unique(block_ids[center_mask]):
-                    b_yc = y_centers[block_ids[center_mask] == b]
-                    if len(b_yc) > 1:
-                        ss_pe += float(np.sum((b_yc - np.mean(b_yc)) ** 2))
-                        df_pe += len(b_yc) - 1
-            else:
-                ss_pe = float(np.sum((y_centers - np.mean(y_centers)) ** 2))
-                df_pe = len(y_centers) - 1
+        # Pure error uses all exact repeated configurations within each block.
+        # The resulting LoF tests departures from the additive fixed-block RSM,
+        # including configuration-by-block departures. It assumes equal error variance.
+        cell_keys = X_coded if block_ids is None else np.column_stack([X_coded, block_ids])
+        _, cell_ids = np.unique(cell_keys, axis=0, return_inverse=True)
+        df_pe = len(y) - len(np.unique(cell_ids))
+        ss_pe = None
+        if df_pe > 0:
+            ss_pe = float(sum(np.sum((y[cell_ids == c] - y[cell_ids == c].mean())**2)
+                              for c in np.unique(cell_ids)))
 
         ss_lof: Optional[float] = None
         df_lof = 0
@@ -167,7 +171,9 @@ class PolynomialRSMSurrogate:
         p_lof: Optional[float] = None
         if ss_pe is not None and df_pe > 0:
             ss_lof = max(0.0, ss_resid - ss_pe)
-            df_lof = max(1, df_resid - df_pe)
+            df_lof = df_resid - df_pe
+            if df_lof <= 0:
+                raise ValueError('Lack-of-fit has no estimable degrees of freedom')
             ms_lof = ss_lof / df_lof
             ms_pe = ss_pe / df_pe
             f_lof = ms_lof / max(ms_pe, 1e-12)
@@ -230,29 +236,49 @@ class PolynomialRSMSurrogate:
             f_lof=f_lof,
             p_lof=p_lof,
         )
+        self._fitted = True
         return self
 
-    def predict(self, X_coded: np.ndarray) -> np.ndarray:
-        """Predict response at coded coordinates without block bias (neutral block=0)."""
+    def _prediction_matrix(self, X_coded, block_ids=None):
+        if not getattr(self, '_fitted', False):
+            raise ValueError('Surface is not fitted')
         X_mat = self._build_design_matrix(X_coded, block_ids=None)
-        # Select beta coefficients excluding block terms
-        p_base = X_mat.shape[1]
-        return X_mat @ self.beta_[:p_base]
+        if len(self.block_levels_) > 1:
+            if block_ids is None:
+                # Equal-weight adjusted mean across the observed fixed blocks.
+                indicators = np.full((len(X_coded), len(self.block_levels_)-1),
+                                     1 / len(self.block_levels_))
+            else:
+                block_ids = np.asarray(block_ids)
+                if block_ids.shape != (len(X_coded),) or not np.isin(block_ids, self.block_levels_).all():
+                    raise ValueError('Cannot predict an unseen block with a fixed-block OLS model')
+                indicators = np.column_stack([block_ids == b for b in self.block_levels_[1:]])
+            X_mat = np.column_stack([X_mat, indicators])
+        return X_mat
+
+    def predict(self, X_coded: np.ndarray, block_ids=None) -> np.ndarray:
+        """Predict a known fixed block, or its equal-weight adjusted block mean."""
+        return self._prediction_matrix(X_coded, block_ids) @ self.beta_
 
     def predict_interval(
         self,
         X_coded: np.ndarray,
         alpha: float = 0.05,
+        block_ids=None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Compute point prediction, lower PI bound, and upper PI bound (95% Satterthwaite PI)."""
-        X_mat = self._build_design_matrix(X_coded, block_ids=None)
-        p_base = X_mat.shape[1]
-        y_hat = X_mat @ self.beta_[:p_base]
+        """OLS intervals for independent observations in known fixed blocks.
 
-        sub_xtx_inv = self.xtx_inv_[:p_base, :p_base]
+        With no block_ids, return a confidence interval for the adjusted mean,
+        not a prediction interval for a future stochastic block.
+        """
+        if not 0 < alpha < 1:
+            raise ValueError('alpha must be between zero and one')
+        X_mat = self._prediction_matrix(X_coded, block_ids)
+        y_hat = X_mat @ self.beta_
         # Standard error of prediction: se = sqrt(MSE * (1 + x^T (X^T X)^-1 x))
-        leverage = np.sum((X_mat @ sub_xtx_inv) * X_mat, axis=1)
-        se_pred = np.sqrt(self.mse_resid_ * (1.0 + leverage))
+        leverage = np.sum((X_mat @ self.xtx_inv_) * X_mat, axis=1)
+        observation_noise = 0 if len(self.block_levels_) > 1 and block_ids is None else 1
+        se_pred = np.sqrt(self.mse_resid_ * (observation_noise + leverage))
 
         t_crit = stats.t.ppf(1.0 - alpha / 2.0, max(self.df_resid_, 1))
         pi_low = y_hat - t_crit * se_pred

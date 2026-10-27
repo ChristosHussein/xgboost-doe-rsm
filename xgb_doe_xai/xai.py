@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from scipy import stats
-import shap
+from math import factorial
 
 
 @dataclass(frozen=True)
@@ -37,8 +37,8 @@ class ShapAttributions:
 
 @dataclass(frozen=True)
 class AnovaShapComparisonResult:
-    spearman_rho: float
-    kendall_tau: float
+    spearman_rho: Optional[float]
+    kendall_tau: Optional[float]
     interaction_correlation: float
     rank_agreement: bool
     top_factor_anova: str
@@ -118,16 +118,49 @@ def compute_surrogate_shap_attributions(
         factor_names = ["x1", "x2", "x3", "x4"]
     k = len(factor_names)
 
-    # Use KernelExplainer for arbitrary predictive functions (RSM or GP)
-    predict_fn = surrogate_model.predict
-    explainer = shap.KernelExplainer(predict_fn, background_data)
-    shap_vals = explainer.shap_values(eval_data, nsamples=100)
-
-    # If surrogate returns 2D (N, 1), reshape
-    if isinstance(shap_vals, list):
-        shap_arr = np.array(shap_vals[0])
-    else:
-        shap_arr = np.array(shap_vals)
+    # Exact interventional coalition expectations over the declared empirical
+    # background. Four factors require only 16 coalitions per explained point.
+    background_data = np.asarray(background_data, dtype=float)
+    eval_data = np.asarray(eval_data, dtype=float)
+    if (background_data.ndim != 2 or eval_data.ndim != 2
+            or background_data.shape[1] != k or eval_data.shape[1] != k
+            or len(background_data) == 0 or len(eval_data) == 0
+            or not np.isfinite(background_data).all() or not np.isfinite(eval_data).all()):
+        raise ValueError('SHAP requires finite nonempty background/evaluation matrices')
+    values = np.empty((len(eval_data), 1 << k))
+    for row, point in enumerate(eval_data):
+        for mask in range(1 << k):
+            hybrid = background_data.copy()
+            present = [i for i in range(k) if mask & (1 << i)]
+            hybrid[:, present] = point[present]
+            prediction = np.asarray(surrogate_model.predict(hybrid)).reshape(-1)
+            if prediction.shape != (len(hybrid),) or not np.isfinite(prediction).all():
+                raise ValueError('Surrogate must return one finite response per row')
+            values[row, mask] = prediction.mean()
+    shap_arr = np.zeros((len(eval_data), k))
+    interactions = np.zeros((len(eval_data), k, k))
+    for i in range(k):
+        for mask in range(1 << k):
+            if mask & (1 << i):
+                continue
+            size = mask.bit_count()
+            weight = factorial(size) * factorial(k-size-1) / factorial(k)
+            shap_arr[:, i] += weight * (values[:, mask | (1 << i)] - values[:, mask])
+        for j in range(i + 1, k):
+            for mask in range(1 << k):
+                if mask & ((1 << i) | (1 << j)):
+                    continue
+                size = mask.bit_count()
+                weight = factorial(size) * factorial(k-size-2) / (2*factorial(k-1))
+                delta = (values[:, mask | (1 << i) | (1 << j)]
+                         - values[:, mask | (1 << i)]
+                         - values[:, mask | (1 << j)] + values[:, mask])
+                interactions[:, i, j] += weight * delta
+            interactions[:, j, i] = interactions[:, i, j]
+    # Diagonals retain each feature's main effect after removing pair effects.
+    for i in range(k):
+        interactions[:, i, i] = 0
+        interactions[:, i, i] = shap_arr[:, i] - interactions[:, i, :].sum(axis=1)
 
     # Mean absolute SHAP per factor
     mean_abs: Dict[str, float] = {}
@@ -136,17 +169,7 @@ def compute_surrogate_shap_attributions(
 
     ranking = sorted(factor_names, key=lambda f: mean_abs[f], reverse=True)
 
-    # Compute pairwise SHAP interaction approximations via covariance / second-order differences
-    # (or Exact TreeExplainer interaction values if surrogate is tree-based)
-    inter_mat = np.zeros((k, k), dtype=float)
-    for i in range(k):
-        for j in range(k):
-            if i != j:
-                # Interaction proxy: covariance of individual attributions across evaluation points
-                cov_ij = float(np.mean(np.abs(shap_arr[:, i] * shap_arr[:, j])))
-                inter_mat[i, j] = cov_ij
-            else:
-                inter_mat[i, i] = mean_abs[factor_names[i]]
+    inter_mat = np.mean(np.abs(interactions), axis=0)
 
     return ShapAttributions(
         factor_names=factor_names,
@@ -154,6 +177,7 @@ def compute_surrogate_shap_attributions(
         shap_ranking=ranking,
         interaction_matrix_shap=inter_mat,
         raw_shap_values=shap_arr,
+        raw_interaction_values=interactions,
     )
 
 
@@ -202,8 +226,8 @@ def compare_anova_vs_shap(
     discrepancy = {f: float(abs(a - s)) for f, a, s in zip(factors, anova_norm, shap_norm)}
 
     return AnovaShapComparisonResult(
-        spearman_rho=float(rho) if np.isfinite(rho) else 1.0,
-        kendall_tau=float(tau) if np.isfinite(tau) else 1.0,
+        spearman_rho=float(rho) if np.isfinite(rho) else None,
+        kendall_tau=float(tau) if np.isfinite(tau) else None,
         interaction_correlation=float(inter_corr),
         rank_agreement=rank_agree,
         top_factor_anova=top_f_anova,

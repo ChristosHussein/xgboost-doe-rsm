@@ -101,11 +101,10 @@ def test_strictly_isolated_partitions_and_cryptographic_hash():
         max_features=200,
     )
 
-    assert len(partitions.holdout_texts) == 40
+    assert partitions.holdout_count == 40
     assert len(partitions.holdout_sha256) == 64  # SHA-256 hex length
     assert len(partitions.blocks) == 3
-    assert partitions.holdout_features is not None
-    assert partitions.holdout_features.shape == (40, 200)
+    assert not hasattr(partitions, 'holdout_features')
 
     # Verify each block has train and val splits
     for b_tr_f, b_tr_l, b_val_f, b_val_l in partitions.block_features:
@@ -179,7 +178,7 @@ def test_polynomial_rsm_surrogate_and_anova_decomposition():
     assert "  Lack of Fit" in rsm.anova_.source
     assert "  Pure Error" in rsm.anova_.source
 
-    # Check Satterthwaite prediction interval coverage
+    # Bounds contain their fitted mean; independent coverage is tested separately.
     y_hat, pi_low, pi_high = rsm.predict_interval(X_coded[:5])
     assert np.all(pi_low <= y_hat)
     assert np.all(y_hat <= pi_high)
