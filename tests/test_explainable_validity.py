@@ -154,13 +154,21 @@ def test_independent_observation_coverage_for_known_fixed_blocks():
     assert .89 < np.mean((low <= truth) & (truth <= high)) < .995
 
 
-def test_sequential_runner_has_disjoint_confirmation_and_equal_logged_fit_budgets(tmp_path):
+def test_sequential_runner_has_disjoint_confirmation_and_equal_logged_fit_budgets(tmp_path, monkeypatch):
     from xgb_doe_xai.study import run_study, check_study
     from xgb_doe_xai import BenchmarkConfig
     from xgb_doe_xai.benchmarks import EvaluationResult
     from xgb_doe_xai.profiler import LatencyProfileResult
     cfg = BenchmarkConfig(n_nuisance_blocks=2, adaptive_cycles=1, infill_per_cycle=2,
-                          confirmation_points=3, search_replicates=1, mode='smoke')
+                          confirmation_points=3, search_replicates=1, mode='smoke',
+                          acquisition='expected_improvement')
+    import xgb_doe_xai.study as study
+    acquire = study.select_adaptive_infill_points
+    acquisition_calls = []
+    def record_acquisition(*args, **kwargs):
+        acquisition_calls.append(kwargs['best_observed'])
+        return acquire(*args, **kwargs)
+    monkeypatch.setattr(study, 'select_adaptive_infill_points', record_acquisition)
     seen = []
     def evaluator(point, block, seed, config):
         seen.append((point.point_id, block))
@@ -180,6 +188,9 @@ def test_sequential_runner_has_disjoint_confirmation_and_equal_logged_fit_budget
     check_study(output)
     import json
     rows = [json.loads(line) for line in (output/'evaluations.jsonl').read_text().splitlines()]
+    initial_means = study.group_search([r for r in rows if r['stage'] == 'initial'])
+    expected_best = min(r['loss']/cfg.hv_ref_loss + r['latency']/cfg.hv_ref_latency_us for r in initial_means)
+    assert acquisition_calls == pytest.approx([expected_best])
     search = {tuple(r['coded_params'].values()) for r in rows if r['stage'] != 'confirmation'}
     confirmation = {tuple(r['coded_params'].values()) for r in rows if r['stage'] == 'confirmation'}
     assert search.isdisjoint(confirmation)

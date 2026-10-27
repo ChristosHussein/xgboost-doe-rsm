@@ -110,6 +110,10 @@ class BenchmarkConfig:
             raise ValueError('Budgets must be positive')
         if self.adaptive_cycles < 1:
             raise ValueError('Sequential research requires at least one adaptive cycle')
+        if self.n_nuisance_blocks < 2 or self.center_replicates < 2:
+            raise ValueError('Blocked studies need at least two blocks and two center repeats')
+        if min(self.latency_threshold_us, self.hv_ref_loss, self.hv_ref_latency_us) <= 0:
+            raise ValueError('Latency limits and hypervolume reference coordinates must be positive')
         if self.acquisition not in ('uncertainty', 'discrepancy', 'hybrid', 'expected_improvement'):
             raise ValueError('Unknown acquisition criterion')
 

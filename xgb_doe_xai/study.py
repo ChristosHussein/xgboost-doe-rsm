@@ -217,7 +217,8 @@ def run_study(config, evaluator, output_dir, *, dataset_id, dataset_sha256,
                         random_seed=config.random_seed+replicate*100+cycle,
                         criterion=config.acquisition, surrogate_discrepancy_fn=discrepancy,
                         surrogate_mean_fn=mean,
-                        best_observed=min(r['val_loss']/config.hv_ref_loss+r['latency_us']/config.hv_ref_latency_us for r in search),
+                        best_observed=min(r['loss']/config.hv_ref_loss+r['latency']/config.hv_ref_latency_us
+                                          for r in group_search(search)),
                         cycle_id=cycle+1)
                     write_json(output/f'acquisition_{replicate}_{cycle+1}.json',
                                dict(criterion=config.acquisition, points=[asdict(p) for p in new],
