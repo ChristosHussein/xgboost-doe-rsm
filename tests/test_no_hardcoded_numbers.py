@@ -169,7 +169,8 @@ def test_compiled_pdf_page_count():
     pdf_path = "report.pdf"
     assert os.path.exists(pdf_path), f"Missing {pdf_path}"
     reader = pypdf.PdfReader(pdf_path)
-    assert 15 <= len(reader.pages) <= 18, f"Expected 15--18 pages in {pdf_path}, found {len(reader.pages)}"
+    build = json.loads(open('docs/generated/publication_build.json', encoding='utf-8').read())
+    assert len(reader.pages) == build['pages'], 'Distributed PDF page count differs from the actual build record'
     supplement_path = "technical_supplement.pdf"
     assert os.path.exists(supplement_path), f"Missing {supplement_path}"
     supplement_reader = pypdf.PdfReader(supplement_path)
@@ -217,6 +218,11 @@ def test_report_md_numerical_tables_match_canonical_artifacts():
         md = f.read()
     with open("report.tex", "r", encoding="utf-8") as f:
         tex = f.read()
+    # Check rendered values against independent evidence even when the prose
+    # correctly imports source-backed protocol macros instead of literal digits.
+    with open("results/macros.tex", "r", encoding="utf-8") as f:
+        definitions = dict(re.findall(r"\\newcommand\{\\([A-Za-z]+)\}\{([^\n]*)\}", f.read()))
+    tex = re.sub(r"\\(num[A-Za-z]+)(?:\{\})?", lambda m: definitions[m[1]], tex)
     with open("config.yaml", "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 

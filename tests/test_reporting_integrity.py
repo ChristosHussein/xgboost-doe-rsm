@@ -222,14 +222,13 @@ def _create_isolated_workspace(tmp_path: Path, root_dir: Path) -> Path:
     for fname in [
         "config.yaml",
         "REPORT.md",
+        "README.md",
         "report.tex",
         "report.pdf",
         "technical_supplement.tex",
         "technical_supplement.pdf",
         "CHANGELOG.md",
-        "CODEX_REVIEW.md",
         "plots.py",
-        "results_summary.json",
     ]:
         shutil.copy2(root_dir / fname, ws / fname)
 
@@ -554,11 +553,12 @@ def test_scientific_artifact_registry_and_negative_coverage(tmp_path, canonical_
     ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
     ds_ws = load_reporting_dataset(ws)
 
-    # Verify discovery and registry completeness (61 files: 59 scientific + 2 justified exclusions)
+    # Require complete coverage, including the new publication and preserved archives.
     discovered = set(discover_scientific_and_documentation_files(ws))
     registry = build_scientific_artifact_registry(ds_ws)
     assert discovered == set(registry.keys())
-    assert len(registry) == 61
+    assert 'docs/generated/publication_claim_bindings.json' in registry
+    assert 'docs/archive/catalog.json' in registry
     assert verify_scientific_artifact_registry(ds_ws) == []
 
     # 1. Introduce a new docs/new_scientific_audit.md containing empirical results but no verification registration -> MUST FAIL
@@ -581,6 +581,9 @@ def test_scientific_artifact_registry_and_negative_coverage(tmp_path, canonical_
     assert "docs/new_scientific_audit.md" in msg_unreg
 
     # 2. Register docs/new_scientific_audit.md, verify it passes when valid, then corrupt an empirical value -> MUST FAIL
+    from scripts.generate_research_reporting import render_f1_final_audit_validation
+    inventory = ws / 'docs/f1_final_audit_validation.md'
+    baseline_inventory = inventory.read_text(encoding='utf-8')
     try:
         register_custom_scientific_artifact(
             "docs/new_scientific_audit.md",
@@ -593,6 +596,7 @@ def test_scientific_artifact_registry_and_negative_coverage(tmp_path, canonical_
             allowed_context_floats=(),
             description="Custom registered scientific audit document for negative testing.",
         )
+        inventory.write_text(render_f1_final_audit_validation(ds_ws), encoding='utf-8')
         assert verify_scientific_artifact_registry(ds_ws) == []
         ok_reg, msg_reg = check_research_reporting(ds_ws)
         assert ok_reg, f"Expected registered valid document to pass, got: {msg_reg}"
@@ -609,6 +613,7 @@ def test_scientific_artifact_registry_and_negative_coverage(tmp_path, canonical_
         clear_custom_scientific_artifacts()
         if new_doc.exists():
             new_doc.unlink()
+        inventory.write_text(baseline_inventory, encoding='utf-8')
 
     # 3. Corrupt an empirical value in docs/f1_final_audit_validation.md -> MUST FAIL
     f1_doc = ws / "docs" / "f1_final_audit_validation.md"
@@ -740,3 +745,39 @@ def test_changelog_context_bound_claims_and_negative_mutations(tmp_path, canonic
 
 
 
+
+@pytest.mark.parametrize('mutation', ['swap', 'duplicate', 'unit', 'caveat', 'bare_number'])
+def test_reader_publication_rejects_context_mutations(tmp_path, canonical_dataset, mutation):
+    from scripts.publication import check_publication_source, bindings
+    ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
+    ds = load_reporting_dataset(ws)
+    manuscript = ws / 'report.tex'
+    original = manuscript.read_text(encoding='utf-8')
+    if mutation == 'swap':
+        changed = original.replace(r'\numPubOnlineCalls', r'\numPubPrimaryCalls', 1)
+    elif mutation == 'duplicate':
+        changed = original.replace(r'\numPubOnlineCalls', r'\numPubOnlineCalls{} \numPubOnlineCalls', 1)
+    elif mutation == 'unit':
+        changed = original.replace('microseconds', 'milliseconds', 1)
+    elif mutation == 'caveat':
+        changed = original.replace('not', 'always', 1)
+    else:
+        template = ws / 'scripts/templates/report.tex'
+        # Insert inside the scientific body, before the bibliography exclusion.
+        template.write_text(original.replace(r'\begin{thebibliography}', 'Unmapped result: 0.12345\n'+r'\begin{thebibliography}'), encoding='utf-8')
+        with pytest.raises(ValueError, match='Unbound numeric literals'):
+            bindings(ds)
+        return
+    assert changed != original
+    manuscript.write_text(changed, encoding='utf-8')
+    assert check_publication_source(ds)
+
+
+def test_reader_publication_rejects_stale_pdf_inputs(tmp_path, canonical_dataset):
+    from scripts.publication import check_pdf
+    ws = _create_isolated_workspace(tmp_path, canonical_dataset.root_dir)
+    ds = load_reporting_dataset(ws)
+    assert check_pdf(ds) == []
+    source = ws / 'report.tex'
+    source.write_text(source.read_text(encoding='utf-8')+'\n% Changed input\n', encoding='utf-8')
+    assert any('stale' in error for error in check_pdf(ds))

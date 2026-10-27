@@ -67,18 +67,18 @@ The seven candidate denominators reconstructed in `ds.curvature_sensitivity` (`s
 
 To prevent any future validation report or supplementary document from bypassing numerical verification, `scripts/generate_research_reporting.py` implements an automated **Scientific Artifact Registry and Discovery Gate** (`discover_scientific_and_documentation_files`, `build_scientific_artifact_registry`, and `verify_scientific_artifact_registry`):
 
-1. **Automatic File Discovery (`discover_scientific_and_documentation_files`)**: Scans the repository root, `docs/`, `figures/`, `tables/`, `results/macros.tex`, `results/revision_v2/scientific_audit_c1/`, and registered figure scripts for all tracked scientific reports, validation documents, supplementary numerical analyses, tables, macros, provenance manifests, figures, and figure scripts (`61` total artifacts discovered: `59` verified scientific artifacts + `2` justified exclusions).
+1. **Automatic File Discovery**: 76 scientific/documentation artifacts discovered, including 9 SHA-locked historical exclusions. Current publication claims use exact source/context bindings; archival records do not endorse current empirical claims.
 2. **Mandatory Registration & Fail-Closed Enforcement**: Every discovered file must be explicitly registered in `build_scientific_artifact_registry(ds)` with a declared verification mechanism. Any newly added or renamed scientific document lacking registration causes `verify_scientific_artifact_registry(ds)` and `check_research_reporting(ds)` to fail immediately.
 3. **Independent Verification by Mechanism**:
-   - `generated_full_document` (19 files): Deterministically generated from `ReportingDataset` (`CHANGELOG.md`, `docs/scientific_claims_audit.md`, `docs/f_scientific_review_validation.md`, `docs/proposed_followup_experiments.md`, `docs/f1_final_audit_validation.md`, `docs/generated/scientific_results_manifest.json`, `results/macros.tex`, and all 12 `tables/tab_*.tex` tables). Verified by exact content comparison against canonical reconstruction (plus row-and-context-bound claim validation for `CHANGELOG.md`).
+   - `generated_full_document` (28 files): verified by the declared registry mechanism.
    - `generated_sections_with_zero_outside_floats` (1 file): `REPORT.md`, verified by exact section-marker reconstruction plus zero floating-point tokens permitted outside auto-generated blocks.
-   - `latex_macro_bound_zero_hardcoded_floats` (2 files): `report.tex` and `technical_supplement.tex`, verified by macro definition coverage (`results/macros.tex`) and zero unpermitted hardcoded empirical floats in prose.
-   - `compiled_pdf_verified` (2 files): `report.pdf` and `technical_supplement.pdf`, verified for valid non-empty PDF structure.
-   - `cryptographic_sha256_provenance` (19 files): the provenance manifests, 4 `tables/anova_*.csv` exports, all 12 empirical/explanatory figures, and `scripts/generate_explanatory_figures.py`, verified by SHA-256 digests (`_file_matches_sha256`).
-   - `claim_registry_verified` (16 files): Milestone C.1, D, D.1, D.2, audit documents, the reader-focused coverage inventory, `plots.py`, and `results/revision_v2/scientific_audit_c1/budget_reconciliation.json`. Verified against both (a) non-empty `required_claims` dynamically constructed from `ReportingDataset` and (b) the canonical floating-point vocabulary (`_build_canonical_float_vocabulary(ds)`) so any corrupted empirical number fails closed.
-   - `justified_exclusion` (2 files): Non-canonical/external historical records that are explicitly excluded from current empirical claim endorsement and locked by SHA-256 digest:
-     - `CODEX_REVIEW.md`: External reviewer handoff prompt pinned to historical commit `caf3a5bf59f2eae2541d3478d5fc370f0b339717` (2026-10-08); preserved verbatim as review provenance.
-     - `results_summary.json`: Pre-`v1.0.0` initial-commit (`4528425`) prototype summary ($m=5$ confirmation trials, pre-refactoring coding) superseded by `results/phase1.json`, `results/lof.json`, `results/diagnostics.json`, `results/phase3.json`, `results/confirmation.json`, and `results/benchmark_summary.json`; retained solely because `docs/provenance/baseline_v1.0.0.json` and `scripts/capture_provenance.py` record its historical hash.
+   - `latex_macro_bound_zero_hardcoded_floats` (1 files): verified by the declared registry mechanism.
+   - `compiled_pdf_verified` (2 files): verified by the declared registry mechanism.
+   - `cryptographic_sha256_provenance` (20 files): verified by the declared registry mechanism.
+   - `claim_registry_verified` (15 files): verified by the declared registry mechanism.
+   - `justified_exclusion` (9 files): verified by the declared registry mechanism.
+     - `docs/archive/review_notes.md`: Historical reviewer handoff prompt pinned to historical commit `caf3a5bf59f2eae2541d3478d5fc370f0b339717` (2026-10-08); preserved verbatim as review provenance.
+     - `docs/archive/results_summary.json`: Pre-`v1.0.0` initial-commit (`4528425`) prototype summary ($m=5$ confirmation trials, pre-refactoring coding) superseded by `results/phase1.json`, `results/lof.json`, `results/diagnostics.json`, `results/phase3.json`, `results/confirmation.json`, and `results/benchmark_summary.json`; retained solely because `docs/provenance/baseline_v1.0.0.json` and `scripts/capture_provenance.py` record its historical hash.
 
 ---
 

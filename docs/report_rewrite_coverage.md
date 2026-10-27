@@ -111,6 +111,10 @@ and paired cluster bootstrap uncertainty for holdout hypervolume.
 ## Page-count record
 
 - Approved pre-rewrite main report: 27 pages.
-- Reader-focused main report: 17 pages, including the dedicated one-page table of contents.
+- Current reader-focused main report: 20 pages, including the dedicated one-page table of contents.
 - Technical supplement: 26 pages.
 
+
+## Explainable sequential extension
+
+The existing section order and all original empirical figures remain. New subsections explain the response-model attribution comparison, adaptive acquisition, protected evaluation, and matched-block experiment. These are implemented methods; real sentiment-study findings remain NOT RUN. Historical running-minimum curves are explicitly qualified because DOE observations mix validation blocks.

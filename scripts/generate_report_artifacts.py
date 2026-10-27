@@ -808,7 +808,8 @@ def render_macros(ds: Optional[ReportingDataset] = None) -> str:
     add_macro("numRevBootMeanPtsCTpe", f"{hpb['by_optimizer']['constrained_tpe']['seed_only_mean_points']:.2f}")
     add_macro("numRevBootMeanPtsSoTpe", f"{hpb['by_optimizer']['single_objective_tpe']['seed_only_mean_points']:.2f}")
 
-    return "% Auto-generated macros from genuine results\n" + "\n".join(macros) + "\n"
+    from scripts.publication import render_protocol_macros
+    return "% Auto-generated macros from genuine results\n" + "\n".join(macros) + "\n" + render_protocol_macros(ds)
 
 
 def render_tables(ds: Optional[ReportingDataset] = None) -> Dict[str, str]:

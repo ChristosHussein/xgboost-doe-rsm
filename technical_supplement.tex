@@ -40,7 +40,10 @@
 \noindent\textbf{Purpose of this supplement.} This document preserves the complete mathematical derivations, full statistical tables, diagnostic results, timing protocols, provenance explanations, and extended benchmark interpretation that support the shorter reader-focused main report. It reports the same frozen empirical evidence and should be read alongside \texttt{report.pdf}.
 
 \setcounter{tocdepth}{2}
+\begingroup
+\small
 \tableofcontents
+\endgroup
 \clearpage
 
 \begin{abstract}
@@ -256,7 +259,7 @@ The remaining $121 - 111 = 10$~df represent structural lack of fit ($\text{SS}_{
 \begin{table}[H]
 \centering
 \footnotesize
-\setlength{\tabcolsep}{3.2pt}
+\setlength{\tabcolsep}{3.1pt}
 \renewcommand{\arraystretch}{1.2}
 \input{tables/tab_lof.tex}
 \vspace{0.6em}
@@ -537,9 +540,31 @@ The empirical findings clarify the trade-offs between classical Design of Experi
     \item \textbf{Parametric Attribution and Variance Decomposition vs.\ Adaptive Coordinate Exploration:} Pre-planned blocked DOE provides orthogonal main-effect and interaction attribution, formal non-planarity testing ($F = \numFCurv$ against center pure error; $F = \numCurvFBlockPaired$ across the 5 seed blocks), multi-scale lack-of-fit diagnostics ($F = \numFLofYone$), and high selection stability across replicates (between-search $\text{SD} = \numRevDoeSoTestRMSESd$ for DOE-SO and $\numRevDoeMoTestRMSESd$ for DOE-MO). However, spending 140 runs to replicate 25 fixed coordinates across 5 blocks limits spatial coverage and allocates $\numDoeLowEtaCount/140$ runs ($\numDoeLowEtaPct$) to the severe underfitting boundary ($\eta = 0.01$). Conversely, adaptive TPE explores 140 distinct coordinates and concentrates trials near promising interior regions, achieving lower single-objective Test RMSE ($\numRevSoTpeTestRMSE$ vs.\ $\numRevDoeSoTestRMSE$) and higher single-split development candidate hypervolume ($\numRevHvMoTpeDevMean$ vs.\ $\numRevHvFullDoeDev$), at the expense of higher selection variance and no parametric decomposition.
     \item \textbf{Stochastic Seed Blocking:} Random complete block design isolated an estimated $\sigma_{\text{block}} \approx \numSigmaBlock$ RMSE in unexplained residual variance ($\text{ICC} = \numICCAnova$, or $\numICCAnovaPct$; REML $\text{ICC} = \numICCReml$). While primary factors account for $>90\%$ of total sum of squares across the wide hypercube, this seed-to-seed partition shift exceeds the differences separating competitive configurations near the optimum, demonstrating the importance of blocking when comparing configurations across data splits.
     \item \textbf{Structural Lack of Fit and Surrogate Optimism:} Second-order polynomials cannot globally match the asymmetric saturation of gradient boosting loss across an order-of-magnitude learning-rate range. This structural limitation produced significant lack of fit ($F = \numFLofYone, p = \numPLofYone$, $\sqrt{\text{MS}_{\text{LoF}}} = \numSqrtMSLofYone$) and surrogate optimism at intermediate depth~7 ($\text{bias} = \numConfSoBias$, $\numConfSoBiasSeMult\times \text{SE}(\hat{y})$). Because Satterthwaite prediction intervals pool structural lack of fit (10~df) and treatment $\times$ block interaction (96~df) into $\text{MS}_E$, they widen intervals under unexplained variance but do not protect against localized deterministic polynomial bias.
-    \item \textbf{Latency Protocol Sensitivity and Interface Overhead:} Single-sample inference latency follows super-linear growth across discrete depths ($R^2 = \numLatQuadRsq$), while standard \texttt{predict} incurs a consistent wrapper and \texttt{DMatrix} construction overhead of $\numRevInterfaceOverhead \pm \numRevInterfaceOverheadSd\,\mu\text{s}$ ($\numHistRunsOvMean \pm \numHistRunsOvSd\,\mu\text{s}$ in historical runs) over \texttt{inplace\_predict}. Furthermore, Constrained TPE's drop from $\numRevCtpeSearchFeas$ search feasibility (30 un-warmed calls) to $\numRevCtpeBenchFeas$ benchmark feasibility (1,000 warmed calls) demonstrates that online latency constraints require warmed multi-call verification and safety margins near operational thresholds.
+    \item \textbf{Latency Protocol Sensitivity and Interface Overhead:} Single-sample inference latency follows super-linear growth across discrete depths ($R^2 = \numLatQuadRsq$), while standard \texttt{predict} incurs a consistent wrapper and \texttt{DMatrix} construction overhead of $\numRevInterfaceOverhead \pm \numRevInterfaceOverheadSd\,\mu\text{s}$ ($\numHistRunsOvMean \pm \numHistRunsOvSd\,\mu\text{s}$ in historical runs) over \texttt{inplace\_predict}. Furthermore, Constrained TPE's drop from $\numRevCtpeSearchFeas$ search feasibility (\numPubOnlineCalls{} timed calls after \numPubOnlineWarmups{} warmup calls) to $\numRevCtpeBenchFeas$ benchmark feasibility (1,000 warmed calls) demonstrates that online latency constraints require warmed multi-call verification and safety margins near operational thresholds.
     \item \textbf{Scope and Dimensionality Scaling:} These conclusions apply to XGBoost with 100 boosting trees on the California Housing dataset across $k=4$ hyperparameters. Because full factorial and central composite designs scale as $2^k + 2k + n_c$ per block, pre-planned second-order designs become prohibitive in higher dimensions ($k > 8$) without fractional factorial screening (Resolution IV/V) or hybrid screening-plus-Bayesian refinement.
 \end{enumerate}
+
+\section{Explainable sequential extension: formal scope}
+The housing observations above remain a completed pre-planned experiment. The implemented extension studies hyperparameter explanations and adaptive selection on a separate binary sentiment task; no real sentiment-dataset findings are reported. Explanations concern surrogate predictions of classification loss and inference time, rather than word-level explanations of a sentiment decision.
+
+For a fitted response model $g$, an evaluation setting $\mathbf{x}$, and the recorded empirical background $\mathcal{B}$, the interventional coalition value is
+\[
+ v_{\mathbf{x}}(S)=\mathbb{E}_{\mathbf{z}\sim\mathcal{B}}
+ [g(\mathbf{x}_S,\mathbf{z}_{\overline S})].
+\]
+All coalitions are enumerated for the implemented factor space. Ordinary Shapley values allocate the response departure among factors. For distinct factors $i,j$, the pair interaction uses the weighted second difference
+\[
+\Phi_{ij}(\mathbf{x})=\sum_{S\subseteq K\setminus\{i,j\}}
+\frac{|S|!(k-|S|-2)!}{2(k-1)!}
+\left[v(S\cup\{i,j\})-v(S\cup\{i\})-v(S\cup\{j\})+v(S)\right].
+\]
+The diagonal is $\Phi_{ii}=\phi_i-\sum_{j\ne i}\Phi_{ij}$. Consequently each row sums to the ordinary attribution, and the complete matrix sums to the prediction departure. The product of ordinary attribution scores is not an interaction estimator. Mean absolute pair interactions, ANOVA partial sums of squares, and curvature profiles are compared descriptively; their different estimands and units preclude an assumed equivalence.
+
+Quadratic and Gaussian-process response models are fitted to development observations. Acquisition may use uncertainty, model disagreement, space coverage, or expected improvement of a declared loss--latency scalarization. The incumbent and predicted response both use block-averaged outcomes. This scalar acquisition is not expected hypervolume improvement. Each acquired setting is canonicalized to the integer-depth domain before scoring and measurement, then evaluated in every development block before refitting. Reserved confirmation configurations never enter these fits.
+
+The extension's OLS model uses fixed observed blocks. Its prediction interval for an independent response in a specified known block uses the full design row, including block indicators, with variance $\widehat{\sigma}^2[1+\mathbf{x}^{\mathsf T}(X^{\mathsf T}X)^{-1}\mathbf{x}]$. Its adjusted-mean confidence interval omits the independent-observation variance term. Neither is a Satterthwaite prediction interval for an unseen stochastic block. Gaussian-process intervals are separately model-based. Coverage, error and boundary bias require independent observations and are retained even when unfavorable. Shared cross-validation folds also limit independent-sample interpretations.
+
+Before final test access, classifier selections are frozen. Fold-specific preprocessing excludes validation documents; the final vocabulary uses all development texts only after selection. Official test partitions are retained when supplied. The complete acquisition, evaluation and confirmation record supports later reconstruction of classification scores, inference protocols and Pareto summaries. A synthetic execution exercise checks the workflow, not real-data generalization or relative scientific merit.
 
 \section{Code Availability}
 
