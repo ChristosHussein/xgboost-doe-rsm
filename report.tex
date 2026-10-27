@@ -127,7 +127,7 @@ The estimated block standard deviation was approximately \numSigmaBlock\ RMSE. B
 \subsection{What the \numPubDesignRuns{}-run design means}
 Each of \numPubBlocks{} blocks contained \numPubCorners{} factorial corners, \numPubAxial{} face-centered axial points, and \numPubCenters{} center runs, giving \numPubDesignRuns{} model fits in total. All runs were generated in advance and globally randomized. In the shuffled execution order, \numDoeAxialBeforeHundred\ of the \numPubAxialTotal{} axial runs happened before run \numPubScreeningRuns{}. Thus the historical campaign was not an adaptive sequence in which an initial analysis triggered an augmentation.
 
-The matched numerical budget needs qualification. DOE used \numPubCoordinates{} distinct coordinates across \numPubBlocks{} blocks plus extra center replication; TPE and Random Search used \numPubDesignRuns{} distinct configurations on a fixed development split. DOE spent evaluations on variance estimation and structured effect identification. Adaptive search spent them on denser coordinate exploration. In addition, \numDoeLowEtaCount\ of the DOE's \numPubDesignRuns{} runs (\numDoeLowEtaPct) lay at $\eta=\numPubEtaLow$, where \numPubTrees{} trees underfit: mean validation RMSE was \numDoeLowEtaMeanRMSE\ there versus \numDoeHighEtaMeanRMSE\ elsewhere.
+The matched numerical budget needs qualification. DOE used \numPubCoordinates{} distinct coordinates across \numPubBlocks{} blocks plus extra center replication; TPE and Random Search used \numPubOptimizerTrials{} configuration evaluations on a fixed development split. DOE spent evaluations on variance estimation and structured effect identification. Adaptive search spent them on denser coordinate exploration. In addition, \numDoeLowEtaCount\ of the DOE's \numPubDesignRuns{} runs (\numDoeLowEtaPct) lay at $\eta=\numPubEtaLow$, where \numPubTrees{} trees underfit: mean validation RMSE was \numDoeLowEtaMeanRMSE\ there versus \numDoeHighEtaMeanRMSE\ elsewhere.
 
 \subsection{What we measured}
 For each trial we recorded development validation RMSE and single-row CPU prediction latency. The initial measurements used warmup and \numPubPrimaryCalls{} timed calls per prediction interface. The repeated searches used a cheaper \numPubOnlineCalls{}-call online measurement after \numPubOnlineWarmups{} warmup calls. Final benchmark verification used \numPubPrimarySessions{} separately randomized sessions under the warmed \numPubPrimaryCalls{}-call protocol. Standard \texttt{predict} also includes data-wrapper overhead: the interface comparison measured \numRevInterfaceOverhead\,$\pm$\,\numRevInterfaceOverheadSd\,$\mu$s more than \texttt{inplace\_predict}. Search-time latency and benchmark verification latency are therefore distinct measurements and are never treated as interchangeable.
@@ -215,7 +215,7 @@ The intervals combined regression uncertainty with estimated block variance thro
 
 The depth-\numPubDepthMo{} compromise produced validation RMSE \numConfEmpValRMSE\,$\pm$\,\numConfEmpValRMSEStd, inside its \numPubCoveragePct\% interval $[\numConfPiLowValRMSE,\numConfPiHighValRMSE]$. The depth-\numPubDepthSo{} candidate produced \numConfSoEmpValRMSE\,$\pm$\,\numConfSoEmpValRMSEStd, above its upper interval bound by \numConfSoExceedance\ and showing optimism bias \numConfSoBias. Confirmation therefore supported the compromise pointwise while warning against global trust in the surface.
 
-For the repeated benchmark experiments, every selected configuration was fixed before final evaluation. Each selection was then retrained across \numPubEvalSeeds{} seeds from \numPubFirstEvalSeed{} through \numPubLastEvalSeed{} and assessed on the external holdout. Repeated DOE used \numPubSearchReplicates{} fresh search replicates, each containing five development blocks. Its single-objective rule selected the same predeclared grid point in every replicate, so between-search SD was \numRevDoeSoTestRMSESd; conditional retraining SD at that configuration was still \numRevDoeSoRetrainSd. These quantities describe different sources of variation and must not be conflated.
+For the repeated benchmark experiments, every selected configuration was fixed before final evaluation. Each selection was then retrained across \numPubEvalSeeds{} seeds from \numPubFirstEvalSeed{} through \numPubLastEvalSeed{} and assessed on the external holdout. Repeated DOE used \numPubSearchReplicates{} fresh search replicates, each containing \numPubRepeatedBlocks{} development blocks. Its single-objective rule selected the same predeclared grid point in every replicate, so between-search SD was \numRevDoeSoTestRMSESd; conditional retraining SD at that configuration was still \numRevDoeSoRetrainSd. These quantities describe different sources of variation and must not be conflated.
 
 \subsection{Confirmation for the sequential extension}
 The new protocol separates three questions. New configurations in the existing development blocks test whether the response models predict beyond their fitting points. Comparisons of the polynomial and Gaussian-process errors test whether extra flexibility improves approximation. Final test observations assess the selected classifier after its choice has been fixed.
@@ -226,7 +226,7 @@ Final test access is gated by frozen selections. The final vocabulary is then le
 
 \clearpage
 \section{Comparing DOE with alternative optimization methods}
-We compared four adaptive or stochastic alternatives:
+We compared the following adaptive or stochastic alternatives:
 \begin{itemize}
 \item \term{Random Search} samples configurations without learning from earlier results.
 \item \term{Single-Objective TPE} adapts its sampling to reduce validation RMSE.
@@ -234,7 +234,7 @@ We compared four adaptive or stochastic alternatives:
 \item \term{Constrained TPE} minimizes RMSE while treating \numPubLatencyLimit\,$\mu$s as a latency constraint.
 \end{itemize}
 
-Table~\ref{tab:methods} explains why equal counts of model fits do not make the information identical. The complete campaign used \numRevTotalFits\ model fits. Each search replicate used \numPubDesignRuns{} fits, but DOE replicated planned coordinates across splits while black-box methods explored distinct coordinates on one split. The technical supplement provides the detailed execution budget and timing ledger.
+Table~\ref{tab:methods} explains why equal counts of model fits do not make the information identical. The complete campaign used \numRevTotalFits\ model fits. Each search replicate used \numPubSearchFits{} fits, but DOE replicated planned coordinates across splits while black-box methods allocated trials to coordinate exploration on a fixed split. The technical supplement provides the detailed execution budget and timing ledger.
 \begin{table}[H]
 \centering
 \small
@@ -242,14 +242,14 @@ Table~\ref{tab:methods} explains why equal counts of model fits do not make the 
 \renewcommand{\arraystretch}{1.3}
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}p{0.20\textwidth}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\textbf{Method} & \textbf{Use of the \numPubDesignRuns{}-fit budget} & \textbf{Noise handling during search} & \textbf{Primary information gained} \\
+\textbf{Method} & \textbf{Use of the \numPubSearchFits{}-fit budget} & \textbf{Noise handling during search} & \textbf{Primary information gained} \\
 \midrule
-Blocked DOE & \numPubCoordinates{} planned coordinates & Five data-split blocks & Effects, interactions, curvature, and split-to-split variation \\
-Random Search & \numPubDesignRuns{} sampled coordinates & One development split & Broad non-adaptive exploration \\
-TPE variants & \numPubDesignRuns{} adaptive coordinates & One development split & Concentrated optimization in promising regions \\
+Blocked DOE & \numPubCoordinates{} planned coordinates & \numPubRepeatedBlocks{} data-split blocks & Effects, interactions, curvature, and split-to-split variation \\
+Random Search & \numPubOptimizerTrials{} sampled trials & Fixed development split & Broad non-adaptive exploration \\
+TPE variants & \numPubOptimizerTrials{} adaptive trials & Fixed development split & Concentrated optimization in promising regions \\
 \bottomrule
 \end{tabularx}
-\caption{What the compared methods did with the same \numPubDesignRuns{}-fit search budget. DOE emphasized estimable effects and split-to-split variation; Random Search emphasized broad coverage; TPE emphasized adaptive concentration. These are different experimental estimands even when fit counts match. Each search was repeated \numPubSearchReplicates{} times, and fixed selections were retrained across \numPubEvalSeeds{} evaluation seeds.}
+\caption{What the compared methods did with the same \numPubSearchFits{}-fit search budget. DOE emphasized estimable effects and split-to-split variation; Random Search emphasized broad coverage; TPE emphasized adaptive concentration. These are different experimental estimands even when fit counts match. Each search was repeated \numPubSearchReplicates{} times, and fixed selections were retrained across \numPubEvalSeeds{} evaluation seeds.}
 \label{tab:methods}
 \end{table}
 
@@ -257,7 +257,7 @@ Figure~\ref{fig:efficiency} retains the archived trajectories to show what was r
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/explainer_efficiency_comparison.pdf}
-\caption{Archived running minima under the historical \numPubDesignRuns{}-fit budget. DOE mixes validation blocks and does not represent a common-estimand incumbent curve. Left: medians and interquartile bands from \numPubSearchReplicates{} repeated searches per method. Right: the initial single planned experiment compared with archived random-search and TPE trajectories. Lower curves are better; the insets magnify later differences.}
+\caption{Archived running minima under the historical \numPubSearchFits{}-fit budget. DOE mixes validation blocks and does not represent a common-estimand incumbent curve. Left: medians and interquartile bands from \numPubSearchReplicates{} repeated searches per method. Right: the initial single planned experiment compared with archived random-search and TPE trajectories. Lower curves are better; the insets magnify later differences.}
 \label{fig:efficiency}
 \end{figure}
 

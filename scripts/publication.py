@@ -64,6 +64,15 @@ def protocol_observations(ds):
         ('FirstEvalSeed', ds.final_evaluations_df.evaluation_seed.min(), 'min'),
         ('LastEvalSeed', ds.final_evaluations_df.evaluation_seed.max(), 'max')]:
         add(name, int(value), 'results/revision_v2/full_run_001/final_evaluations.csv', f'{selector}(evaluation_seed)')
+    budget_source = 'results/revision_v2/full_run_001/computational_budget.json'
+    for name, field in [('OptimizerTrials','trials_per_optimizer'),
+                        ('RepeatedBlocks','repeated_doe_seeds_per_replicate')]:
+        add(name, ds.computational_budget[field], budget_source, field, 'SOURCE-TRACED')
+    repeated = ds.computational_budget['repeated_doe_design_model_fits'] / ds.computational_budget['repeated_doe_selection_replicates']
+    if repeated != ds.computational_budget['trials_per_optimizer']:
+        raise ValueError('Shared search-fit budget claim is unsupported')
+    add('SearchFits', int(repeated), budget_source,
+        'repeated_doe_design_model_fits / repeated_doe_selection_replicates == trials_per_optimizer', 'SOURCE-TRACED')
     for name, field in [('OnlineCalls','online_latency_timed_calls_per_measurement'),
                          ('PrimaryCalls','primary_latency_calls_per_frozen_configuration_per_interface')]:
         add(name, ds.computational_budget[field], 'results/revision_v2/full_run_001/computational_budget.json', field,

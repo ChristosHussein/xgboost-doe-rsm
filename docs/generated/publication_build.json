@@ -9,12 +9,12 @@
     "figures/response_surface_latency_2d_3d.png": "221e3f6cda01b3ee98c1fc76e55cd7c6e7fcc4a4a46acab86b064a2da472162f",
     "figures/response_surface_rmse_2d_3d.png": "fc961f7e09239e89fa1b311bec3276204ad384ba30b18b01dc10d3ef4bbfc109",
     "figures/revision_v2_pareto_front.png": "761844a94ab6373fe17dea5a2b095b92a85849cbb5e475f73e966548e9596742",
-    "report.tex": "bb6d244d44f74d8884d51953f7397a2840fffa66b8aa16757d5ea26214ab71ee",
-    "results/macros.tex": "0bc86c41c2dab12620adbfd4fe96a3fa22095c856bff39f3255b8f38369e5876",
+    "report.tex": "78f47e9547508eb066ed0b16a86373039dd280187ba6b920311baeda964f32d4",
+    "results/macros.tex": "15b64b513c3732b2003025d4a257561f09905052510589f5d39917ee9fc1a8f0",
     "tables/tab_benchmarks.tex": "70f0bc420ff539c486d25925cf09b7ef0d38450517b716b77b6c5bb3b110e6f8",
     "tables/tab_confirmation.tex": "5235b09dec662d5bbd2e43b5b2756764c8a01159a119fa564ec39e211ec5212c"
   },
-  "pdf_sha256": "60a72afed715e27dff90116cdc71c54f1eeda43324dd9ea9d27c0c600b11d700",
+  "pdf_sha256": "0e5059c9dc2b52d5ef40e40ea110f1eed96831cd6c88fb2ae7121fd407b752bd",
   "pages": 20,
   "supplement": {
     "inputs": {
@@ -24,7 +24,7 @@
       "figures/response_surface_latency_2d_3d.png": "221e3f6cda01b3ee98c1fc76e55cd7c6e7fcc4a4a46acab86b064a2da472162f",
       "figures/response_surface_rmse_2d_3d.png": "fc961f7e09239e89fa1b311bec3276204ad384ba30b18b01dc10d3ef4bbfc109",
       "figures/revision_v2_pareto_front.png": "761844a94ab6373fe17dea5a2b095b92a85849cbb5e475f73e966548e9596742",
-      "results/macros.tex": "0bc86c41c2dab12620adbfd4fe96a3fa22095c856bff39f3255b8f38369e5876",
+      "results/macros.tex": "15b64b513c3732b2003025d4a257561f09905052510589f5d39917ee9fc1a8f0",
       "tables/tab_anova_ccd_latency.tex": "d5c57f7f65d083c6b06c00e11ebe963cf55affd3c69ad87f5c2760adf03c8520",
       "tables/tab_anova_ccd_rmse.tex": "166c4d8ab646d162ee4b12af58c7ff4682836af77de4f7cc468dfb27093ff3c2",
       "tables/tab_anova_phase1.tex": "4c8e2c1fea4411d38a622799bbc7d97ddef997f4571027f20f7966f5b757d278",
@@ -39,7 +39,7 @@
       "tables/tab_lof.tex": "19d3ea0de75f984a6db73d0dc6b3c8e03deff7ca1c3b28f12fad757d66350b6d",
       "technical_supplement.tex": "7f524c5b8b2db585487ad6ffbd04b2a7eb9d9364b4a1e1144cf8c08e3cfb364a"
     },
-    "pdf_sha256": "c614bd734b2713d032b7f438313b8a9750dc535a99cb10c1b4c75aba13ed643f",
+    "pdf_sha256": "4427ba15453904f7a0897fedc22b3e47728203b5beb64a3fa14cbc508dfad6e5",
     "pages": 26
   }
 }

@@ -8,13 +8,13 @@ The housing evidence map is RETROSPECTIVE. The sequential text extension is an i
 
 ## Evidence and occurrence coverage
 
-The main manuscript contains 171 explicitly bound numerical macro occurrences. Each occurrence has its document section, exact narrative context, metric identity, formatted value, source selector and reconstruction expression in `docs/generated/publication_claim_bindings.json`.
+The main manuscript contains 173 explicitly bound numerical macro occurrences. Each occurrence has its document section, exact narrative context, metric identity, formatted value, source selector and reconstruction expression in `docs/generated/publication_claim_bindings.json`.
 
 | Occurrence category | Count |
 | --- | ---: |
-| RECONSTRUCTED | 129 |
+| RECONSTRUCTED | 122 |
 | REGISTERED PROTOCOL | 29 |
-| SOURCE-TRACED | 13 |
+| SOURCE-TRACED | 22 |
 
 Registered protocol values describe design choices, not observations. SOURCE-TRACED includes saved dataset dimensions, split proportions and timing ledgers; it does not claim a new independent reload of the original dataset. Housing results are reconstructed through `ReportingDataset` and the existing row-level verification suite. Bibliographic years, mathematical notation and layout dimensions are separately typed nonempirical constants. No numerical-vocabulary allowlist validates the reader manuscript.
 
