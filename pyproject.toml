@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xgb-doe-xai"
+version = "0.1.0"
+description = "Explainable sequential design of experiments for XGBoost"
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+[project.scripts]
+xgb-doe-study = "run_explainable_doe_demo:main"
+
+[tool.setuptools]
+packages = ["xgb_doe_xai"]
+py-modules = ["latency", "run_explainable_doe_demo"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}

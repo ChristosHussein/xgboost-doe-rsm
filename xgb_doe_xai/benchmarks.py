@@ -7,7 +7,7 @@ between Sequential DoE and Multi-Objective TPE.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import time
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
@@ -33,6 +33,9 @@ class EvaluationResult:
     seed: int = 42
     training_seconds: float = 0.
     profiling_seconds: float = 0.
+    validation_labels: list = field(default_factory=list)
+    validation_probabilities: list = field(default_factory=list)
+    validation_probability_dtype: str = 'float64'
 
 
 def train_and_evaluate_config(
@@ -91,6 +94,9 @@ def train_and_evaluate_config(
         n_trees=n_trees, seed=random_seed,
         training_seconds=training_seconds,
         profiling_seconds=time.perf_counter()-started,
+        validation_labels=np.asarray(y_val, dtype=int).tolist(),
+        validation_probabilities=y_val_probs.tolist(),
+        validation_probability_dtype=str(y_val_probs.dtype),
     )
 
 

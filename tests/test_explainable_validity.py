@@ -93,3 +93,122 @@ def test_final_evaluator_requires_freeze_and_rejects_modified_contract(tmp_path)
     assert called == [True] and output.exists()
     with pytest.raises(ValueError, match='once'):
         gate.evaluate(contract, output, callback)
+
+
+def test_integer_acquisition_and_training_budget_match(monkeypatch):
+    from xgb_doe_xai.config import canonical_configuration
+    from xgb_doe_xai.design import select_adaptive_infill_points
+    from xgb_doe_xai import generate_fccd_points
+    import xgb_doe_xai.benchmarks as benchmark
+    from types import SimpleNamespace
+    points = select_adaptive_infill_points(
+        generate_fccd_points(), lambda x: np.ones(len(x)), n_infill=3)
+    for point in points:
+        assert point.coded == canonical_configuration(point.coded)
+    with pytest.raises(ValueError, match='criterion'):
+        select_adaptive_infill_points(points, lambda x: np.ones(len(x)), criterion='typo')
+    seen = []
+    def evaluate(**kwargs):
+        seen.append(kwargs)
+        return SimpleNamespace(val_loss=.1, latency=SimpleNamespace(predict_median_us=100))
+    monkeypatch.setattr(benchmark, 'train_and_evaluate_config', evaluate)
+    benchmark.run_matched_motpe_benchmark(2, None, None, None, None, None, n_trees=23)
+    assert [x['n_trees'] for x in seen] == [23, 23]
+    assert all(x['coded_params'] == canonical_configuration(x['coded_params']) for x in seen)
+
+
+def test_profiler_rejects_missing_affinity_and_records_uncached_observations(monkeypatch):
+    import xgb_doe_xai.profiler as profiler
+    monkeypatch.setattr(profiler, 'pin_cpu_affinity', lambda _: False)
+    with pytest.raises(RuntimeError, match='affinity'):
+        profiler.WarmedLatencyProfiler(1, 2).profile_booster(None, np.ones((1, 4)))
+    monkeypatch.setattr(profiler, 'pin_cpu_affinity', lambda _: True)
+    matrices = []
+    monkeypatch.setattr(profiler.xgb, 'DMatrix', lambda *args, **kwargs: object())
+    class Booster:
+        def set_param(self, params):
+            assert params['nthread'] == 1
+        def predict(self, matrix):
+            matrices.append(matrix)
+            return np.array([.5])
+        def inplace_predict(self, sample):
+            return np.array([.5])
+    result = profiler.WarmedLatencyProfiler(3, 5).profile_booster(Booster(), np.ones((1, 4)))
+    assert len({id(m) for m in matrices}) == 8
+    assert len(result.predict_raw_us) == len(result.inplace_raw_us) == 5
+    assert result.affinity_applied
+
+
+def test_independent_observation_coverage_for_known_fixed_blocks():
+    rng = np.random.default_rng(301)
+    points = generate_multiblock_fccd(n_blocks=3)
+    x = np.array([p.vector for p in points])
+    blocks = np.array([p.block_id for p in points])
+    def response(x, b):
+        return .4 + .03*x[:, 0] + .02*x[:, 1]**2 + .01*x[:, 0]*x[:, 2] + .1*b
+    model = PolynomialRSMSurrogate().fit(x, response(x, blocks)+rng.normal(0, .01, len(x)), blocks)
+    independent = rng.uniform(-1, 1, (1000, 4))
+    new_blocks = rng.integers(0, 3, 1000)
+    truth = response(independent, new_blocks)+rng.normal(0, .01, 1000)
+    _, low, high = model.predict_interval(independent, block_ids=new_blocks)
+    assert .89 < np.mean((low <= truth) & (truth <= high)) < .995
+
+
+def test_sequential_runner_has_disjoint_confirmation_and_equal_logged_fit_budgets(tmp_path):
+    from xgb_doe_xai.study import run_study, check_study
+    from xgb_doe_xai import BenchmarkConfig
+    from xgb_doe_xai.benchmarks import EvaluationResult
+    from xgb_doe_xai.profiler import LatencyProfileResult
+    cfg = BenchmarkConfig(n_nuisance_blocks=2, adaptive_cycles=1, infill_per_cycle=2,
+                          confirmation_points=3, search_replicates=1, mode='smoke')
+    seen = []
+    def evaluator(point, block, seed, config):
+        seen.append((point.point_id, block))
+        x = point.vector
+        latency = LatencyProfileResult(100+10*x[1], 100., 100., 1., 102., 80., 80., 80.,
+                                       100, 500, 1)
+        return EvaluationResult(point.point_id, point.coded, {},
+                                .8, .2+.02*x[0]+.01*x[0]*x[1]+.005*block,
+                                .3, latency, block_id=block, n_trees=config.n_trees, seed=seed)
+    output = tmp_path/'study'
+    summary = run_study(cfg, evaluator, output, dataset_id='synthetic',
+                        dataset_sha256='fixture-digest', evidence_kind='synthetic_fixture')
+    assert summary['search_fits']['doe'] == summary['search_fits']['tpe'] == 60
+    assert summary['confirmation_fits'] == 12
+    assert summary['total_fits'] == len(seen) == 132
+    assert summary['final_evaluation_status'] == 'NOT RUN'
+    check_study(output)
+    import json
+    rows = [json.loads(line) for line in (output/'evaluations.jsonl').read_text().splitlines()]
+    search = {tuple(r['coded_params'].values()) for r in rows if r['stage'] != 'confirmation'}
+    confirmation = {tuple(r['coded_params'].values()) for r in rows if r['stage'] == 'confirmation'}
+    assert search.isdisjoint(confirmation)
+    original_summary = (output/'summary.json').read_text()
+    (output/'summary.json').write_text('{}')
+    with pytest.raises(ValueError, match='integrity'):
+        check_study(output)
+    (output/'summary.json').write_text(original_summary)
+    # Updating a checksum cannot bless a report contradicting its bound evidence.
+    import hashlib
+    report = output/'report.md'
+    report.write_text(report.read_text(encoding='utf-8')+'\nUntraced result: 0.999\n', encoding='utf-8')
+    registry_path = output/'artifact_registry.json'
+    registry = json.loads(registry_path.read_text())
+    registry['files']['report.md'] = hashlib.sha256(report.read_bytes()).hexdigest()
+    registry_path.write_text(json.dumps(registry))
+    with pytest.raises(ValueError, match='Report differs'):
+        check_study(output)
+
+
+def test_official_test_split_and_modified_holdout_are_enforced(tmp_path):
+    labels = np.arange(100) % 2
+    parts = create_strictly_isolated_partitions(
+        [f'common token{i}' for i in range(100)], labels,
+        official_holdout_mask=np.arange(100) >= 80)
+    assert parts.holdout_count == 20
+    assert all('token99' not in ' '.join(b[0]+b[2]) for b in parts.blocks)
+    gate = parts.final_evaluator
+    gate.freeze(tmp_path/'freeze.json', [{'max_depth': 6}], 'fixture', {})
+    gate._labels = tuple(1-np.array(gate._labels))
+    with pytest.raises(ValueError, match='integrity'):
+        gate.evaluate(tmp_path/'freeze.json', tmp_path/'final.json', lambda *args: None)

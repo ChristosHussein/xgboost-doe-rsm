@@ -6,6 +6,10 @@ __pycache__/
 # Pytest / Testing
 .pytest_cache/
 
+# Python package build intermediates
+build/
+*.egg-info/
+
 # Tectonic / TeX build intermediates
 report.aux
 report.log

@@ -11,7 +11,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, allow_nan=False,
-                                    separators=(',', ':')).encode()).hexdigest()
+                                    separators=(',', ':'),
+                                    default=lambda item: item.tolist()).encode()).hexdigest()
 
 
 class FinalEvaluator:

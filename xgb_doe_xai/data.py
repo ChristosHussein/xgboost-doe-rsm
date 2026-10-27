@@ -81,18 +81,27 @@ def create_strictly_isolated_partitions(
     random_seed: int = 42,
     max_features: int = 5000,
     ngram_range: Tuple[int, int] = (1, 2),
+    official_holdout_mask: Optional[np.ndarray] = None,
 ) -> DatasetPartitions:
     """Partition dataset into an immutable holdout set and n_blocks nuisance blocks.
 
     The holdout partition is hashed immediately to verify it remains unmodified.
     """
-    dev_texts, holdout_texts, dev_labels, holdout_labels = train_test_split(
-        texts,
-        labels,
-        test_size=holdout_ratio,
-        stratify=labels,
-        random_state=random_seed,
-    )
+    if len(texts) != len(labels) or set(np.unique(labels)) != {0, 1}:
+        raise ValueError('Expected equally sized texts and binary labels')
+    if len(set(texts)) != len(texts):
+        raise ValueError('Duplicate documents must be resolved before splitting')
+    labels = np.asarray(labels)
+    if official_holdout_mask is None:
+        dev_texts, holdout_texts, dev_labels, holdout_labels = train_test_split(
+            texts, labels, test_size=holdout_ratio, stratify=labels, random_state=random_seed)
+    else:
+        mask = np.asarray(official_holdout_mask)
+        if mask.dtype != bool or mask.shape != labels.shape or mask.all() or not mask.any():
+            raise ValueError('Invalid official holdout mask')
+        arr = np.asarray(texts, dtype=object)
+        dev_texts, holdout_texts = arr[~mask].tolist(), arr[mask].tolist()
+        dev_labels, holdout_labels = labels[~mask], labels[mask]
 
     vectorizer_kwargs = dict(max_features=max_features, ngram_range=ngram_range, sublinear_tf=True)
     final_evaluator = FinalEvaluator(dev_texts, dev_labels, holdout_texts, holdout_labels,

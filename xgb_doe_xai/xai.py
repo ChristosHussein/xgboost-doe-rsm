@@ -2,7 +2,7 @@
 
 Addresses Idea 1:
 Connects ANOVA (main effects, interaction terms, curvature) with SHAP
-(TreeExplainer / KernelExplainer attributions and interaction values)
+(exact interventional coalition attributions and pair interaction values)
 at the surrogate model level.
 """
 
@@ -40,9 +40,9 @@ class AnovaShapComparisonResult:
     spearman_rho: Optional[float]
     kendall_tau: Optional[float]
     interaction_correlation: Optional[float]
-    rank_agreement: bool
-    top_factor_anova: str
-    top_factor_shap: str
+    rank_agreement: Optional[bool]
+    top_factor_anova: Optional[str]
+    top_factor_shap: Optional[str]
     top_interaction_anova: Optional[Tuple[str, str]]
     top_interaction_shap: Optional[Tuple[str, str]]
     discrepancy_scores: Dict[str, float]
@@ -184,7 +184,7 @@ def compare_anova_vs_shap(
     anova: AnovaAttributions,
     shap_attr: ShapAttributions,
 ) -> AnovaShapComparisonResult:
-    """Rigorous statistical comparison between ANOVA and SHAP representations."""
+    """Descriptive agreement of different ANOVA and Shapley estimands."""
     factors = anova.factor_names
     k = len(factors)
 
@@ -201,6 +201,12 @@ def compare_anova_vs_shap(
     top_f_anova = anova.main_effect_ranking[0]
     top_f_shap = shap_attr.shap_ranking[0]
     rank_agree = (anova.main_effect_ranking == shap_attr.shap_ranking)
+    if not np.isfinite(rho):
+        rank_agree = None
+    if np.sum(np.isclose(anova_scores, np.max(anova_scores))) != 1:
+        top_f_anova = None
+    if np.sum(np.isclose(shap_scores, np.max(shap_scores))) != 1:
+        top_f_shap = None
 
     # 3. Off-diagonal interaction correlation
     triu_idx = np.triu_indices(k, k=1)
