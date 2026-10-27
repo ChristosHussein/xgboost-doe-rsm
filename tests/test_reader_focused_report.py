@@ -77,8 +77,9 @@ def test_reader_figures_and_complete_coverage_inventory_are_present():
     coverage = (ROOT / "docs" / "report_rewrite_coverage.md").read_text(encoding="utf-8")
     for claim_no in range(1, 23):
         assert f"C-{claim_no:02d}" in coverage
-    assert "17 pages" in coverage
-    assert "26 pages" in coverage
+    from pypdf import PdfReader
+    assert f"{len(PdfReader(ROOT/'report.pdf').pages)} pages" in coverage
+    assert f"{len(PdfReader(ROOT/'technical_supplement.pdf').pages)} pages" in coverage
     assert (ROOT / "technical_supplement.tex").is_file()
     assert (ROOT / "technical_supplement.pdf").is_file()
 

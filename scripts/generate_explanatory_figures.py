@@ -168,61 +168,6 @@ def blocking_example(runs: pd.DataFrame) -> None:
     _save(fig, "explainer_blocking.pdf")
 
 
-def response_surface_fit(runs: pd.DataFrame) -> None:
-    formula = (
-        "val_rmse ~ C(block) + x1 + x2 + x3 + x4 + "
-        "I(x1 ** 2) + I(x2 ** 2) + I(x3 ** 2) + I(x4 ** 2) + "
-        "x1:x2 + x1:x3 + x1:x4 + x2:x3 + x2:x4 + x3:x4"
-    )
-    fit = smf.ols(formula, data=runs).fit()
-    observed = runs["val_rmse"].to_numpy()
-    predicted = fit.fittedvalues.to_numpy()
-    residual = observed - predicted
-    fig, axes = plt.subplots(1, 2, figsize=(9.4, 4.0))
-    lo = min(observed.min(), predicted.min())
-    hi = max(observed.max(), predicted.max())
-    axes[0].scatter(predicted, observed, s=25, alpha=0.65, color=COLORS["blue"])
-    axes[0].plot([lo, hi], [lo, hi], "--", color=COLORS["gray"], lw=1.2)
-    axes[0].set(xlabel="surface prediction", ylabel="observed validation RMSE", title="Observed measurements versus fitted surface")
-    axes[1].scatter(runs["eta"], residual, s=25, alpha=0.65, color=COLORS["purple"])
-    axes[1].axhline(0, color=COLORS["gray"], lw=1)
-    axes[1].set_xscale("log")
-    axes[1].set(xlabel="learning rate (log scale)", ylabel="observed minus fitted RMSE", title="Systematic residuals reveal lack of fit")
-    fig.tight_layout()
-    _save(fig, "explainer_response_surface.pdf")
-
-
-def _json_mean(value: str) -> float:
-    return float(json.loads(value)["mean"])
-
-
-def tradeoff(final_summary: pd.DataFrame) -> None:
-    data = final_summary.copy()
-    data["test_mean"] = data["test_rmse"].map(_json_mean)
-    labels = {
-        "repeated_preplanned_doe_multi_objective": "Repeated DOE (multi-objective)",
-        "repeated_preplanned_doe_single_objective": "Repeated DOE (accuracy only)",
-        "multi_objective_tpe": "TPE (multi-objective)",
-        "single_objective_tpe": "TPE (accuracy only)",
-        "constrained_tpe": "TPE (latency constrained)",
-        "random_search": "Random search",
-    }
-    palette = [COLORS["green"], COLORS["blue"], COLORS["orange"], COLORS["red"], COLORS["purple"], COLORS["gray"]]
-    fig, ax = plt.subplots(figsize=(8.2, 4.8))
-    for color, (method, label) in zip(palette, labels.items()):
-        grp = data[data["optimizer"].eq(method)]
-        if grp.empty:
-            continue
-        ax.scatter(grp["predict_latency_us"], grp["test_mean"], s=38, alpha=0.55, color=color, label=label)
-        ax.scatter(grp["predict_latency_us"].mean(), grp["test_mean"].mean(), s=150, marker="*", color=color, edgecolor="black", linewidth=0.5)
-    ax.axvline(145, color=COLORS["red"], linestyle="--", lw=1.1, label="latency constraint")
-    ax.set(xlabel="verified single-sample latency (microseconds; lower is better)", ylabel="holdout test RMSE (lower is better)")
-    ax.set_title("Accuracy and speed form a trade-off, not one universal winner")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.18), ncol=2, frameon=False)
-    ax.text(0.02, 0.03, "Small points are frozen selections; stars are method means.", transform=ax.transAxes, fontsize=8, color=COLORS["gray"])
-    _save(fig, "explainer_accuracy_latency.pdf")
-
-
 def efficiency_comparison(runs: pd.DataFrame) -> None:
     """Render a reader-facing version of the canonical efficiency evidence."""
     trials = pd.read_csv(OPTIMIZER_TRIALS)
@@ -303,10 +248,8 @@ def main() -> None:
     research_pipeline()
     design_exploration()
     blocking_example(runs)
-    response_surface_fit(runs)
-    tradeoff(final_summary)
     efficiency_comparison(runs)
-    print("Generated six reader-focused PDF figures from canonical evidence and protocol metadata.")
+    print("Generated four reader-focused PDF figures from canonical evidence and protocol metadata.")
 
 
 if __name__ == "__main__":

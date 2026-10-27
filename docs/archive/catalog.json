@@ -1,0 +1,58 @@
+{
+  "files": [
+    {
+      "original_path": "CODEX_REVIEW.md",
+      "archive_path": "docs/archive/review_notes.md",
+      "sha256": "a76bc0fdaf733f6eca343b929df1a80d1b252d7de865d40a679f6fc30cc2805c",
+      "role": "superseded historical record; not current empirical evidence"
+    },
+    {
+      "original_path": "results_summary.json",
+      "archive_path": "docs/archive/results_summary.json",
+      "sha256": "58a93ccb29bd68f7e674707f59b23f7ec248243d91e0439f1b8540c1b6fef963",
+      "role": "superseded historical record; not current empirical evidence"
+    },
+    {
+      "original_path": "data/benchmark_optuna.csv",
+      "archive_path": "docs/archive/legacy_data/benchmark_optuna.csv",
+      "sha256": "fa6b473538777f023292afc5805a8238954a62f6c8f830ca58705cfa849e0ff8",
+      "role": "superseded historical record; not current empirical evidence"
+    },
+    {
+      "original_path": "data/benchmark_random.csv",
+      "archive_path": "docs/archive/legacy_data/benchmark_random.csv",
+      "sha256": "afac002aa648d566d2760e2b326a23e4ed8dc839565b9ec057e21fc7655adc5f",
+      "role": "superseded historical record; not current empirical evidence"
+    },
+    {
+      "original_path": "data/ccd_runs.csv",
+      "archive_path": "docs/archive/legacy_data/ccd_runs.csv",
+      "sha256": "99bacc90f62ec18a38f615af9a2b22ab1052c07f2c65d21142268615c7175da0",
+      "role": "superseded historical record; not current empirical evidence"
+    },
+    {
+      "original_path": "data/confirmation_runs.csv",
+      "archive_path": "docs/archive/legacy_data/confirmation_runs.csv",
+      "sha256": "377bcbe35da6694b392740a732c34cb9381ad86d2d110f5b17f692c104a5ad71",
+      "role": "superseded historical record; not current empirical evidence"
+    },
+    {
+      "original_path": "data/phase1_runs.csv",
+      "archive_path": "docs/archive/legacy_data/phase1_runs.csv",
+      "sha256": "155ff02c2f9e01933f0c4fd764b05caa80eefd41cdb93129cf05332957048e20",
+      "role": "superseded historical record; not current empirical evidence"
+    },
+    {
+      "original_path": "figures/explainer_accuracy_latency.pdf",
+      "archive_path": "docs/archive/figures/explainer_accuracy_latency.pdf",
+      "sha256": "7549da81b7f07bae7d870b2b462b6e30cc1c7ec768cd33e092340fc95b073903",
+      "role": "superseded historical record; not current empirical evidence"
+    },
+    {
+      "original_path": "figures/explainer_response_surface.pdf",
+      "archive_path": "docs/archive/figures/explainer_response_surface.pdf",
+      "sha256": "d3dfa66701e39dcd6b4eb8dd556315c902648432e6b4179d812aa0f0b2ee7a1f",
+      "role": "superseded historical record; not current empirical evidence"
+    }
+  ]
+}

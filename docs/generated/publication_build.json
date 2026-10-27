@@ -1,0 +1,45 @@
+{
+  "inputs": {
+    "figures/desirability_pareto_front.png": "33014abb8721672d4013fbc9fa2f0eedb68f51687b7d1863ff206024d842a952",
+    "figures/explainer_blocking.pdf": "6b578abae32d5bee940dd08853ff0dc002d9fb0577ac59cce2ffec48ff1d4fd0",
+    "figures/explainer_design_projection.pdf": "7ffee6253ef190d76b20b1d0ced3fedbc986571737177120aad2aa6c089b76bc",
+    "figures/explainer_efficiency_comparison.pdf": "462ded98e280e34903354905406a7bab1e31256adbb394ea8c75e91323d79c22",
+    "figures/explainer_research_pipeline.pdf": "402bf27dd9699582a04520284d7b81be3ce9667ed6d70d7174c2fa9b33fdb11e",
+    "figures/explainer_sequential_extension.pdf": "4e00a3e14bf01cd660d8e3d1c787d46ee14f2d228990175ee8b7dc7032bcfaa1",
+    "figures/response_surface_latency_2d_3d.png": "221e3f6cda01b3ee98c1fc76e55cd7c6e7fcc4a4a46acab86b064a2da472162f",
+    "figures/response_surface_rmse_2d_3d.png": "fc961f7e09239e89fa1b311bec3276204ad384ba30b18b01dc10d3ef4bbfc109",
+    "figures/revision_v2_pareto_front.png": "761844a94ab6373fe17dea5a2b095b92a85849cbb5e475f73e966548e9596742",
+    "report.tex": "78f47e9547508eb066ed0b16a86373039dd280187ba6b920311baeda964f32d4",
+    "results/macros.tex": "15b64b513c3732b2003025d4a257561f09905052510589f5d39917ee9fc1a8f0",
+    "tables/tab_benchmarks.tex": "70f0bc420ff539c486d25925cf09b7ef0d38450517b716b77b6c5bb3b110e6f8",
+    "tables/tab_confirmation.tex": "5235b09dec662d5bbd2e43b5b2756764c8a01159a119fa564ec39e211ec5212c"
+  },
+  "pdf_sha256": "0e5059c9dc2b52d5ef40e40ea110f1eed96831cd6c88fb2ae7121fd407b752bd",
+  "pages": 20,
+  "supplement": {
+    "inputs": {
+      "figures/desirability_pareto_front.png": "33014abb8721672d4013fbc9fa2f0eedb68f51687b7d1863ff206024d842a952",
+      "figures/diagnostics_panel_4in1.png": "154fc6d35370a14f0e9b3c724fd41f41dbdc393c33684765ea6b24249cc99993",
+      "figures/efficiency_comparison_curve.png": "2eaf74850742093d488d2e81bb8fffedd8113fd9946280062bef21184ae9bf5e",
+      "figures/response_surface_latency_2d_3d.png": "221e3f6cda01b3ee98c1fc76e55cd7c6e7fcc4a4a46acab86b064a2da472162f",
+      "figures/response_surface_rmse_2d_3d.png": "fc961f7e09239e89fa1b311bec3276204ad384ba30b18b01dc10d3ef4bbfc109",
+      "figures/revision_v2_pareto_front.png": "761844a94ab6373fe17dea5a2b095b92a85849cbb5e475f73e966548e9596742",
+      "results/macros.tex": "15b64b513c3732b2003025d4a257561f09905052510589f5d39917ee9fc1a8f0",
+      "tables/tab_anova_ccd_latency.tex": "d5c57f7f65d083c6b06c00e11ebe963cf55affd3c69ad87f5c2760adf03c8520",
+      "tables/tab_anova_ccd_rmse.tex": "166c4d8ab646d162ee4b12af58c7ff4682836af77de4f7cc468dfb27093ff3c2",
+      "tables/tab_anova_phase1.tex": "4c8e2c1fea4411d38a622799bbc7d97ddef997f4571027f20f7966f5b757d278",
+      "tables/tab_benchmarks.tex": "70f0bc420ff539c486d25925cf09b7ef0d38450517b716b77b6c5bb3b110e6f8",
+      "tables/tab_computational_budget.tex": "136237d107b9b79f18786b61d77aca5952548638c9dccb37af16b47d05d98d3b",
+      "tables/tab_confirmation.tex": "5235b09dec662d5bbd2e43b5b2756764c8a01159a119fa564ec39e211ec5212c",
+      "tables/tab_depth_opt.tex": "f90897392d420247230ffa96dbf7e9be103982161f7c4020d25678ac37e752dc",
+      "tables/tab_design_block_seeds.tex": "af282dfbb657f3b265999ff8746230b87f963141237c76b86566362b2a302526",
+      "tables/tab_desirability_sensitivity.tex": "a5b712f85e468d2c52069756ef7337342cf96c7630d62d10dece0a0217cfd2d4",
+      "tables/tab_hypervolume_comparison.tex": "00082131928cab82ec4a9fcf5c7bddf9dfc2c3b3a55457726481a706c0c3324a",
+      "tables/tab_latency_models.tex": "feb41ff7950c1f255721e4b6aa69e2fd2640e36eeaab6521fd22ba15541b1c27",
+      "tables/tab_lof.tex": "19d3ea0de75f984a6db73d0dc6b3c8e03deff7ca1c3b28f12fad757d66350b6d",
+      "technical_supplement.tex": "7f524c5b8b2db585487ad6ffbd04b2a7eb9d9364b4a1e1144cf8c08e3cfb364a"
+    },
+    "pdf_sha256": "4427ba15453904f7a0897fedc22b3e47728203b5beb64a3fa14cbc508dfad6e5",
+    "pages": 26
+  }
+}

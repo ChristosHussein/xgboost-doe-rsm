@@ -23,18 +23,18 @@
 \raggedbottom
 \setlength{\emergencystretch}{2em}
 
-\title{\textbf{Learning and Optimizing XGBoost with Planned Experiments}\\[0.35em]\large Accuracy, Prediction Speed, and Comparison with Adaptive Search}
+\title{\textbf{Learning and Optimizing XGBoost with Planned Experiments}\\[0.35em]\large Accuracy, Prediction Speed, and Explainable Sequential Search}
 \author{\textbf{Christos Chousein Sounios}}
 \date{\today}
 
 \begin{document}
 \maketitle
 \begin{abstract}
-Can a structured, pre-planned experiment both explain and optimize an XGBoost model, and how does that approach compare with adaptive search? We studied four hyperparameters on the California Housing regression task while measuring two outcomes: prediction error, expressed as root mean squared error (RMSE), and single-sample prediction latency. Lower values are preferred for both, so improving accuracy can conflict with improving speed.
+Can planned experiments explain which XGBoost settings matter, identify useful models, and guide the next experiment? The empirical part of this investigation studies prediction error and single-sample latency on California Housing. A blocked, pre-planned design revealed strong curvature and interactions, but also significant lack of fit: the accuracy-focused boundary candidate was more optimistic in the fitted surface than in confirmation. The balanced candidate confirmed within its interval.
 
-The study used a 140-run face-centered central composite design planned in advance and repeated across five data-split blocks. This structure separated large hyperparameter effects from smaller changes caused by random train/validation partitions. It detected strong curvature, identified interactions, and produced quadratic response surfaces for candidate selection. Those surfaces were informative but imperfect: validation-RMSE lack of fit was significant, and the most accuracy-focused boundary candidate was more optimistic in the model than in independent confirmation. A balanced depth-4 candidate confirmed within its prediction interval, while a depth-7 accuracy candidate missed its interval by \numConfSoExceedance\ RMSE.
+In the repeated benchmark, single-objective TPE achieved the lowest observed mean holdout RMSE (\numRevSoTpeTestRMSE) at higher latency (\numRevSoTpePredictLat\,$\mu$s). Repeated DOE and multi-objective TPE had no statistically significant detected RMSE difference (Welch $p=\numRevWelchPDoeMoMoTpe$); this does not establish equivalence. Equal fit counts also concealed different split structures, coordinate replication, and timing protocols.
 
-In a later 20-replicate comparison, single-objective TPE achieved the lowest observed mean holdout RMSE (\numRevSoTpeTestRMSE) but with higher latency (\numRevSoTpePredictLat\,$\mu$s). Repeated DOE and multi-objective TPE had no statistically significant difference in holdout RMSE (Welch $p=\numRevWelchPDoeMoMoTpe$) at similar latency; this non-significant result does not establish equivalence. The evidence supports a complementary interpretation: planned experiments are valuable for explanation, variance control, and stable structured selection, while adaptive search is effective at concentrating evaluations in promising regions. Results are limited to one dataset, four tuned factors, 100-tree XGBoost models, and a historically exposed holdout dataset.
+These limitations motivate an implemented extension that compares ANOVA effects with Shapley explanations of response models, acquires new configurations adaptively, and reserves separate observations for confirmation. A sentiment-classification workflow gives both DOE and TPE the same development blocks, model-fit budget, and warmed timing operation. Synthetic execution checks establish that this workflow runs; they do not establish sentiment-dataset accuracy, optimizer superiority, explanation stability, or generalization. The measured conclusions remain those of the housing experiment, with its historical holdout exposure and restricted model and hardware scope.
 \end{abstract}
 \noindent\textbf{Keywords:} XGBoost, hyperparameter optimization, design of experiments, response surface methodology, prediction latency, multi-objective optimization.
 \clearpage
@@ -58,18 +58,18 @@ We measured two practical objectives. \term{Root mean squared error (RMSE)} summ
 
 Finding one strong configuration was only part of the question. We also wanted to know which settings mattered, whether settings interacted, how results changed across random data partitions, whether a simple mathematical approximation was adequate, and how the accuracy--speed trade-off changed the preferred model. A planned \term{design of experiments (DOE)} provides that explanatory structure \cite{montgomery2017design}. Adaptive methods such as the \term{Tree-structured Parzen Estimator (TPE)} instead use earlier trials to decide where to search next \cite{bergstra2011algorithms,akiba2019optuna}. Neither strategy is assumed to be universally superior; they spend information differently.
 
-Figure~\ref{fig:pipeline} shows the investigation from question to final comparison. The complete formulas, ANOVA tables, diagnostics, timing details, and provenance checks are retained in the companion technical supplement.
+Figure~\ref{fig:pipeline} shows the investigation from question to final comparison. The complete formulas, ANOVA tables, diagnostics, and timing details are retained in the companion technical supplement. We then extend the same scientific question: can explanations of the measured response help us choose genuinely new experiments, and do those explanations remain credible when checked on configurations that did not fit the response model?
 \begin{figure}[tbp]
 \centering
 \includegraphics[width=\textwidth]{figures/explainer_research_pipeline.pdf}
-\caption{The research pipeline. All 140 historical FCCD runs were planned before execution and globally randomized. The labels ``Phase 1'' and ``Phase 2'' describe hierarchical analyses of that completed design; Phase 1 results did not decide whether later runs would be executed.}
+\caption{The research pipeline. All \numPubDesignRuns{} historical FCCD runs were planned before execution and globally randomized. The labels ``Phase 1'' and ``Phase 2'' describe hierarchical analyses of that completed design; Phase 1 results did not decide whether later runs would be executed.}
 \label{fig:pipeline}
 \end{figure}
 
 \section{Our core idea: learning from experiments}
 An optimizer asks, ``Where should I try next to find a good model?'' A designed experiment also asks, ``What can this collection of trials teach us about the system?'' DOE chooses combinations so that changes in the response can be attributed to individual factors, interactions between factors, and curvature. \term{Response surface methodology (RSM)} then fits a low-order mathematical surface through those planned measurements \cite{box1951experimental,myers2016response}. The surface is a local guide: it can summarize broad tendencies and suggest candidates, but it must be checked against observations before being trusted.
 
-We varied four XGBoost hyperparameters while holding the ensemble size at 100 trees:
+We varied \numPubFactors{} XGBoost hyperparameters while holding the ensemble size at \numPubTrees{} trees:
 \begin{table}[tbp]
 \centering
 \small
@@ -78,13 +78,13 @@ We varied four XGBoost hyperparameters while holding the ensemble size at 100 tr
 \toprule
 \textbf{Hyperparameter} & \textbf{Practical meaning} & \textbf{Studied range} & \textbf{Expected trade-off} \\
 \midrule
-Learning rate $\eta$ & Size of each boosting update & $0.01$--$0.30$ (log scale) & Small values learn slowly; large values can converge faster but overshoot. \\
-Maximum depth & Maximum tree complexity & 3--9 & Deeper trees can model complex patterns but cost more to train and predict. \\
-Subsample & Fraction of training rows used per tree & $0.50$--$1.00$ & Sampling can regularize the model but adds stochastic variation. \\
-$L_2$ regularization $\lambda$ & Penalty on leaf weights & $0.10$--$10.00$ (log scale) & Stronger shrinkage can reduce overfitting but may suppress useful structure. \\
+Learning rate $\eta$ & Size of each boosting update & $\numPubEtaLow$--$\numPubEtaHigh$ (log scale) & Small values learn slowly; large values can converge faster but overshoot. \\
+Maximum depth & Maximum tree complexity & \numPubDepthLow{}--\numPubDepthHigh{} & Deeper trees can model complex patterns but cost more to train and predict. \\
+Subsample & Fraction of training rows used per tree & $\numPubSubLow$--$\numPubSubHigh$ & Sampling can regularize the model but adds stochastic variation. \\
+$L_2$ regularization $\lambda$ & Penalty on leaf weights & $\numPubLambdaLow$--$\numPubLambdaHigh$ (log scale) & Stronger shrinkage can reduce overfitting but may suppress useful structure. \\
 \bottomrule
 \end{tabular}
-\caption{The four studied factors. Log scaling gives multiplicative changes in learning rate and regularization comparable spacing in the experimental design.}
+\caption{The \numPubFactors{} studied factors. Log scaling gives multiplicative changes in learning rate and regularization comparable spacing in the experimental design.}
 \label{tab:factors}
 \end{table}
 
@@ -92,18 +92,29 @@ The face-centered central composite design (FCCD) combines factorial corners, ax
 \begin{figure}[tbp]
 \centering
 \includegraphics[width=0.69\textwidth]{figures/explainer_design_projection.pdf}
-\caption{How the FCCD explores factor space. This simplified projection shows learning rate and depth only; the actual experiment used four dimensions. The same planned coordinate types were repeated across data-split blocks.}
+\caption{How the FCCD explores factor space. This simplified projection shows learning rate and depth only; the actual experiment used \numPubFactors{} dimensions. The same planned coordinate types were repeated across data-split blocks.}
 \label{fig:design}
+\end{figure}
+
+\subsection{From a fixed design to an explanatory feedback loop}
+The historical experiment was planned as a whole. The extension adds a genuinely sequential alternative: start with an informative design, fit models of the measured responses, use their uncertainty or disagreement to choose new configurations, and update the models after observing those configurations. This matters because an explanation is more useful when it helps us decide what to measure next, rather than merely describing an already completed search.
+
+Figure~\ref{fig:extension} shows the implemented loop. Both the quadratic surface and the flexible model take hyperparameters as inputs and predict a measured outcome. ANOVA describes the fitted statistical effects; Shapley explanations describe contributions to a model's predictions. They examine the same response problem from different viewpoints, so agreement is an empirical question, not an assumption.
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\textwidth]{figures/explainer_sequential_extension.pdf}
+\caption{The explainable sequential extension. Measured responses support statistical and flexible response models; their explanations and uncertainty guide additional experiments. Reserved confirmation observations check predictions without being used to fit these models. This diagram describes the implemented method, not a measured improvement over the housing results.}
+\label{fig:extension}
 \end{figure}
 
 \section{How we designed the experiment}
 \subsection{Data partitions and holdout history}
-The California Housing dataset contains 20,640 observations. A fixed 20\% external holdout contained 4,128 observations. The remaining 16,512 observations formed the development pool. Within each seed block, that pool was divided into 12,384 training and 4,128 validation observations. Search decisions used validation RMSE, while final generalization checks used the holdout test set.
+The California Housing dataset contains \numPubRows{} observations. A fixed \numPubHoldoutPct\% external holdout contained \numPubTestRows{} observations. The remaining \numPubDevRows{} observations formed the development pool. Within each seed block, that pool was divided into \numPubTrainRows{} training and \numPubValRows{} validation observations. Search decisions used validation RMSE, while final generalization checks used the holdout test set.
 
 During the repeated benchmark experiments, the selection procedure programmatically prevented access to holdout outcomes until the models were fixed for final evaluation. Earlier experiments had already reported results from the same holdout dataset, however. The holdout therefore cannot be described as untouched across the project's full history.
 
 \subsection{Why blocking was necessary}
-Changing a hyperparameter is not the only reason RMSE changes. A different random split can make a training problem slightly easier or harder. We therefore repeated planned configurations across five split seeds, called \term{blocks}. This allowed the statistical model to separate systematic hyperparameter effects from partition-related nuisance variation. Figure~\ref{fig:blocking} shows center-point observations: the configuration is nominally the same, yet the block means move.
+Changing a hyperparameter is not the only reason RMSE changes. A different random split can make a training problem slightly easier or harder. We therefore repeated planned configurations across \numPubBlocks{} split seeds, called \term{blocks}. This allowed the statistical model to separate systematic hyperparameter effects from partition-related nuisance variation. Figure~\ref{fig:blocking} shows center-point observations: the configuration is nominally the same, yet the block means move.
 
 The estimated block standard deviation was approximately \numSigmaBlock\ RMSE. Blocks accounted for an intraclass correlation of \numICCAnova\ (\numICCAnovaPct\ of unexplained residual variance), matching the REML estimate \numICCReml. This is not \numICCAnovaPct\ of total response variation; the main factor effects dominate the wide design region. It is nevertheless large enough to matter when competitive configurations differ by only a few thousandths of RMSE.
 \begin{figure}[tbp]
@@ -113,22 +124,29 @@ The estimated block standard deviation was approximately \numSigmaBlock\ RMSE. B
 \label{fig:blocking}
 \end{figure}
 
-\subsection{What the 140-run design means}
-Each of five blocks contained 16 factorial corners, eight face-centered axial points, and four center runs, giving 140 model fits in total. All runs were generated in advance and globally randomized. In the shuffled execution order, \numDoeAxialBeforeHundred\ of the 40 axial runs happened before run 100. Thus the historical campaign was not an adaptive sequence in which an initial analysis triggered an augmentation.
+\subsection{What the \numPubDesignRuns{}-run design means}
+Each of \numPubBlocks{} blocks contained \numPubCorners{} factorial corners, \numPubAxial{} face-centered axial points, and \numPubCenters{} center runs, giving \numPubDesignRuns{} model fits in total. All runs were generated in advance and globally randomized. In the shuffled execution order, \numDoeAxialBeforeHundred\ of the \numPubAxialTotal{} axial runs happened before run \numPubScreeningRuns{}. Thus the historical campaign was not an adaptive sequence in which an initial analysis triggered an augmentation.
 
-The matched numerical budget needs qualification. DOE used 25 distinct coordinates across five blocks plus extra center replication; TPE and Random Search used 140 distinct configurations on one development split. DOE spent evaluations on variance estimation and structured effect identification. Adaptive search spent them on denser coordinate exploration. In addition, \numDoeLowEtaCount\ of the DOE's 140 runs (\numDoeLowEtaPct) lay at $\eta=0.01$, where 100 trees underfit: mean validation RMSE was \numDoeLowEtaMeanRMSE\ there versus \numDoeHighEtaMeanRMSE\ elsewhere.
+The matched numerical budget needs qualification. DOE used \numPubCoordinates{} distinct coordinates across \numPubBlocks{} blocks plus extra center replication; TPE and Random Search used \numPubOptimizerTrials{} configuration evaluations on a fixed development split. DOE spent evaluations on variance estimation and structured effect identification. Adaptive search spent them on denser coordinate exploration. In addition, \numDoeLowEtaCount\ of the DOE's \numPubDesignRuns{} runs (\numDoeLowEtaPct) lay at $\eta=\numPubEtaLow$, where \numPubTrees{} trees underfit: mean validation RMSE was \numDoeLowEtaMeanRMSE\ there versus \numDoeHighEtaMeanRMSE\ elsewhere.
 
 \subsection{What we measured}
-For each trial we recorded development validation RMSE and single-row CPU prediction latency. The initial measurements used warmup and 1,000 timed calls per prediction interface. The repeated searches used a cheaper 30-call online measurement, while final verification used two warmed 500-call sessions. Standard \texttt{predict} also includes data-wrapper overhead: the interface comparison measured \numRevInterfaceOverhead\,$\pm$\,\numRevInterfaceOverheadSd\,$\mu$s more than \texttt{inplace\_predict}. Search-time latency and benchmark verification latency are therefore distinct measurements and are never treated as interchangeable.
+For each trial we recorded development validation RMSE and single-row CPU prediction latency. The initial measurements used warmup and \numPubPrimaryCalls{} timed calls per prediction interface. The repeated searches used a cheaper \numPubOnlineCalls{}-call online measurement after \numPubOnlineWarmups{} warmup calls. Final benchmark verification used \numPubPrimarySessions{} separately randomized sessions under the warmed \numPubPrimaryCalls{}-call protocol. Standard \texttt{predict} also includes data-wrapper overhead: the interface comparison measured \numRevInterfaceOverhead\,$\pm$\,\numRevInterfaceOverheadSd\,$\mu$s more than \texttt{inplace\_predict}. Search-time latency and benchmark verification latency are therefore distinct measurements and are never treated as interchangeable.
+
+\subsection{A separate sentiment-classification protocol}
+The extension supports a researcher-supplied binary text-sentiment dataset, with an official test partition retained when available. It is a new application, rather than a reinterpretation of the housing measurements. Text is converted into sparse word and phrase features using TF--IDF, which gives more weight to informative expressions. Each development fold learns its vocabulary and feature weights from its training documents only; its validation documents do not influence preprocessing.
+
+Accuracy is measured with macro-averaged F-score, which gives the sentiment classes equal weight, and log loss, which also assesses predicted probabilities. The optimization loss is the complement of macro F-score, so smaller remains better. Prediction time is measured for an individual document. The factors retain learning rate, depth, and row subsampling; feature subsampling replaces the housing study's leaf-weight regularization factor. This change is appropriate to a sparse text representation but prevents treating the experiments as direct replications.
+
+The learning-rate domain excludes the housing study's severe underfitting setting. This is a design precaution, not evidence that underfitting disappears on text. Model capacity, factor ranges, and the operational latency limit still need development-only calibration for the chosen dataset. The new timing operation uses a fresh prediction input wrapper for each classic-API call, alongside a separately recorded in-place operation, with the same warmed protocol throughout the new study. Their different input-conversion costs are explicitly retained.
 
 \section{How we learned from the experimental results}
 \subsection{Screening and curvature}
 The first analysis asked which effects were large enough to deserve attention. Learning rate dominated the first-order factorial model ($F=\numAnovaPOneFxone$), followed by depth ($F=\numAnovaPOneFxtwo$) and their interaction ($F=\numAnovaPOneFxoneXtwo$). An interaction means the effect of one setting depends on another: increasing depth does not have one constant consequence at every learning rate.
 
-Center runs then tested whether a flat plane was adequate. The factorial mean exceeded the center mean by \numDiffCurv\ RMSE (\numCurvPctIncrease). Curvature was strong under every reported error denominator: $F=\numFCurv$ against center pure error, $F=\numCurvFBlockAdjPooled$ against pooled block-adjusted error, and $F=\numCurvFBlockPaired$ in the paired five-block analysis. The conclusion is non-planarity, not proof that a quadratic surface is globally correct. That distinction motivated the second-order fit and its adequacy tests.
+Center runs then tested whether a flat plane was adequate. The factorial mean exceeded the center mean by \numDiffCurv\ RMSE (\numCurvPctIncrease). Curvature was strong under every reported error denominator: $F=\numFCurv$ against center pure error, $F=\numCurvFBlockAdjPooled$ against pooled block-adjusted error, and $F=\numCurvFBlockPaired$ in the paired \numPubBlocks{}-block analysis. The conclusion is non-planarity, not proof that a quadratic surface is globally correct. That distinction motivated the second-order fit and its adequacy tests.
 
 \subsection{How settings shaped accuracy}
-We wanted a mathematical picture of how learning rate and tree depth changed accuracy, rather than only a ranked list of configurations. Figure~\ref{fig:surface-rmse} shows a two-factor slice of the fitted quadratic surface. The horizontal axis is coded log learning rate, the vertical axis is coded maximum depth, and the contours and height show predicted validation RMSE; darker, lower regions are better. The surface falls sharply as learning rate moves away from the underfitting boundary, then forms a broad ridge. The cyan depth-7 candidate sits near the best in-domain region, while the stationary point indicated by the arrow lies outside the experimental domain. This geometry is why we optimized within the tested bounds and required confirmation.
+We wanted a mathematical picture of how learning rate and tree depth changed accuracy, rather than only a ranked list of configurations. Figure~\ref{fig:surface-rmse} shows a two-factor slice of the fitted quadratic surface. The horizontal axis is coded log learning rate, the vertical axis is coded maximum depth, and the contours and height show predicted validation RMSE; darker, lower regions are better. The surface falls sharply as learning rate moves away from the underfitting boundary, then forms a broad ridge. The cyan depth-\numPubDepthSo{} candidate sits near the best in-domain region, while the stationary point indicated by the arrow lies outside the experimental domain. This geometry is why we optimized within the tested bounds and required confirmation.
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/response_surface_rmse_2d_3d.png}
@@ -136,12 +154,12 @@ We wanted a mathematical picture of how learning rate and tree depth changed acc
 \label{fig:surface-rmse}
 \end{figure}
 
-The quadratic validation-RMSE model had $R^2=\numRsqRMSE$ and adjusted $R^2=\numAdjRsqRMSE$. These high values mainly reflect large changes across the full learning-rate range. Formal lack-of-fit remained significant: $F=\numFLofYone$ with $p=\numPLofYone$, and the lack-of-fit RMS scale was \numSqrtMSLofYone. When the severe $\eta=0.01$ boundary was removed, lack-of-fit sum of squares fell by \numLofRestrictedReductionPct, although the restricted model still did not justify treating the surface as exact.
+The quadratic validation-RMSE model had $R^2=\numRsqRMSE$ and adjusted $R^2=\numAdjRsqRMSE$. These high values mainly reflect large changes across the full learning-rate range. Formal lack-of-fit remained significant: $F=\numFLofYone$ with $p=\numPLofYone$, and the lack-of-fit RMS scale was \numSqrtMSLofYone. When the severe $\eta=\numPubEtaLow$ boundary was removed, lack-of-fit sum of squares fell by \numLofRestrictedReductionPct, although the restricted model still did not justify treating the surface as exact.
 
 The residual diagnostics, reproduced in the technical supplement, showed approximately normal residuals but also heteroscedasticity and localized influence. HC3 heteroscedasticity-consistent standard errors were used separately for coefficient inference; they do not remove model misspecification. Breusch--Pagan provided evidence of heteroscedasticity, while the serial diagnostics did not detect significant dependence in the tested residual order. Those diagnostics do not prove the absence of every temporal pattern or independently establish the absence of thermal drift.
 
 \subsection{How model complexity affected speed}
-The next question was whether deeper trees imposed a predictable latency cost. In Figure~\ref{fig:latency-depth}, the horizontal axis is maximum tree depth and the vertical axis is measured single-sample prediction time. The left panel compares empirical means and 95\% intervals with linear and quadratic fits; the right panel shows the full distribution at each tested depth. Latency rises modestly from depth 3 to 6 and much more sharply by depth 9, so a straight line understates the acceleration.
+The next question was whether deeper trees imposed a predictable latency cost. In Figure~\ref{fig:latency-depth}, the horizontal axis is maximum tree depth and the vertical axis is measured single-sample prediction time. The left panel compares empirical means and \numPubCoveragePct\% intervals with linear and quadratic fits; the right panel shows the full distribution at each tested depth. Latency rises modestly from depth \numPubDepthLow{} to \numPubDepthMiddle{} and much more sharply by depth \numPubDepthHigh{}, so a straight line understates the acceleration.
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/response_surface_latency_2d_3d.png}
@@ -151,25 +169,39 @@ The next question was whether deeper trees imposed a predictable latency cost. I
 
 A quadratic depth profile achieved $R^2=\numLatQuadRsq$ compared with $R^2=\numLatLinRsq$ for a linear profile. Latency lack of fit was not significant ($F=\numFLofYtwo$, $p=\numPLofYtwo$). This result applies to the tested hardware and single-sample protocol, not to batch throughput or all deployment systems. The observed acceleration made depth central to the later accuracy--speed compromise.
 
+\subsection{Comparing statistical effects with model explanations}
+The extension asks whether the settings highlighted by ANOVA also matter to a flexible predictor of the measured response. A Gaussian process provides an alternative to the quadratic surface: it can represent smooth nonlinear patterns and supplies model-based prediction uncertainty. It must earn our trust through new observations, just as the polynomial must.
+
+Shapley explanations distribute a prediction's departure from a background prediction among its input settings \cite{lundberg2017unified}. Pairwise interaction values ask how the contribution of settings considered together differs from their separate contributions. The implementation evaluates the complete coalition calculation over the recorded experimental background; multiplying ordinary attribution scores is not used as an interaction measure.
+
+Here, the explained inputs are hyperparameters, not words in a review. Explaining which words caused a sentiment decision would be a separate analysis of the classifier itself. Keeping these levels distinct lets us ask the intended question: which settings control accuracy and speed, and when does the fitted response model regard their effects as interdependent?
+
+We compare factor rankings, pairwise interaction patterns, and main-effect dependence profiles. Curved dependence suggests that a setting's effect changes across its range. ANOVA sums of squares and Shapley contributions have different meanings and units, however; correlation is descriptive agreement, not mathematical equivalence. Undefined correlations stay undefined. Comparisons across development blocks and before and after augmentation can reveal which explanations are stable and where more evidence is needed. No real sentiment-data result for these comparisons is claimed here.
+
 \section{How we selected candidate models}
 The fitted surface had a nearly flat direction: its smallest canonical eigenvalue was \numEigOne, with bootstrap interval $[\numBootLowEigOne,\numBootHighEigOne]$, and \numFracMinEigLeZero\ of bootstrap replicates placed it at or below zero. The unconstrained stationary point lay far outside the studied region. We therefore interpret the geometry as a stationary or rising ridge rather than a well-defined bowl with one stable interior minimum.
 
-We used two selection goals. The \term{single-objective} candidate minimized predicted validation RMSE and moved toward a depth-7 boundary solution. The \term{multi-objective} candidate combined RMSE and latency through a Derringer--Suich desirability score \cite{derringer1980simultaneous}: each outcome was converted to a preference between zero and one, then combined. This selected an interior depth-4 compromise with learning rate \numOptEta, subsample \numOptSubsample, regularization \numOptLambda, and composite desirability \numOptD.
+We used two selection goals. The \term{single-objective} candidate minimized predicted validation RMSE and moved toward a depth-\numPubDepthSo{} boundary solution. The \term{multi-objective} candidate combined RMSE and latency through a Derringer--Suich desirability score \cite{derringer1980simultaneous}: each outcome was converted to a preference between zero and one, then combined. This selected an interior depth-\numPubDepthMo{} compromise with learning rate \numOptEta, subsample \numOptSubsample, regularization \numOptLambda, and composite desirability \numOptD.
 
-Figure~\ref{fig:desirability-pareto} shows how that decision emerged from the planned experiment. The horizontal axis is five-block mean validation RMSE and the vertical axis is five-block mean latency; moving left or down is better. Pale points are individual block observations, colored circles are configuration means, and the dashed staircase is the observed Pareto front. A point is \term{Pareto efficient} when no observed alternative is better on both outcomes. The depth-7 diamond pursues accuracy, whereas the depth-4 star gives up a small amount of predicted accuracy for much lower latency. That trade-off motivated carrying both candidates into confirmation.
+Figure~\ref{fig:desirability-pareto} shows how that decision emerged from the planned experiment. The horizontal axis is \numPubBlocks{}-block mean validation RMSE and the vertical axis is \numPubBlocks{}-block mean latency; moving left or down is better. Pale points are individual block observations, colored circles are configuration means, and the dashed staircase is the observed Pareto front. A point is \term{Pareto efficient} when no observed alternative is better on both outcomes. The depth-\numPubDepthSo{} diamond pursues accuracy, whereas the depth-\numPubDepthMo{} star gives up a small amount of predicted accuracy for much lower latency. That trade-off motivated carrying both candidates into confirmation.
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.82\textwidth]{figures/desirability_pareto_front.png}
-\caption{Accuracy--speed evidence from the initial blocked experiment. Configuration means and their between-block uncertainty reveal the Pareto trade-off used to select the depth-4 compromise and depth-7 accuracy candidate.}
+\caption{Accuracy--speed evidence from the initial blocked experiment. Configuration means and their between-block uncertainty reveal the Pareto trade-off used to select the depth-\numPubDepthMo{} compromise and depth-\numPubDepthSo{} accuracy candidate.}
 \label{fig:desirability-pareto}
 \end{figure}
 
 Sensitivity analysis changed desirability bounds and weights. The compromise moved as intended rather than producing one invariant optimum, which is why the desirability choice is treated as a declared decision rule rather than a discovered physical constant. Full sensitivity results remain in the technical supplement.
 
+\subsection{Choosing genuinely new evaluations}
+In the extension, new configurations can target uncertain predictions, disagreement between the quadratic and flexible models, or a mixture of uncertainty and space coverage. A further option favors expected improvement in a declared normalized accuracy--latency score. This is scalarized improvement, not expected improvement of Pareto hypervolume. The score and its incumbent use the same block-averaged response, avoiding comparison with an unusually favorable individual split.
+
+Tree depth is treated as an integer before a point is scored, checked for duplication, trained, or logged. Otherwise, the response model could learn from a fractional setting that was never executed. Each adaptive batch is measured across the development blocks before refitting. Reserved confirmation configurations are excluded from the fitting and acquisition evidence.
+
 \section{How we checked whether the findings held up}
 First, we evaluated the historical candidates across ten confirmation seeds:
 \[
-\mathcal{S}_{\text{conf}}=\{505, 606, 707, 808, 909, 1010, 1111, 1212, 1313, 1414\}.
+\mathcal{S}_{\text{conf}}=\{\numPubConfirmationSeeds\}.
 \]
 The intervals combined regression uncertainty with estimated block variance through a Satterthwaite approximation. This reflects uncertainty from a new partition, but it cannot guarantee protection against localized polynomial bias.
 \begin{table}[tbp]
@@ -181,21 +213,28 @@ The intervals combined regression uncertainty with estimated block variance thro
 \label{tab:confirmation}
 \end{table}
 
-The depth-4 compromise produced validation RMSE \numConfEmpValRMSE\,$\pm$\,\numConfEmpValRMSEStd, inside its 95\% interval $[\numConfPiLowValRMSE,\numConfPiHighValRMSE]$. The depth-7 candidate produced \numConfSoEmpValRMSE\,$\pm$\,\numConfSoEmpValRMSEStd, above its upper interval bound by \numConfSoExceedance\ and showing optimism bias \numConfSoBias. Confirmation therefore supported the compromise pointwise while warning against global trust in the surface.
+The depth-\numPubDepthMo{} compromise produced validation RMSE \numConfEmpValRMSE\,$\pm$\,\numConfEmpValRMSEStd, inside its \numPubCoveragePct\% interval $[\numConfPiLowValRMSE,\numConfPiHighValRMSE]$. The depth-\numPubDepthSo{} candidate produced \numConfSoEmpValRMSE\,$\pm$\,\numConfSoEmpValRMSEStd, above its upper interval bound by \numConfSoExceedance\ and showing optimism bias \numConfSoBias. Confirmation therefore supported the compromise pointwise while warning against global trust in the surface.
 
-For the repeated benchmark experiments, every selected configuration was fixed before final evaluation. Each selection was then retrained across 20 seeds from 2001 through 2020 and assessed on the external holdout. Repeated DOE used 20 fresh search replicates, each containing five development blocks. Its single-objective rule selected the same predeclared grid point in every replicate, so between-search SD was \numRevDoeSoTestRMSESd; conditional retraining SD at that configuration was still \numRevDoeSoRetrainSd. These quantities describe different sources of variation and must not be conflated.
+For the repeated benchmark experiments, every selected configuration was fixed before final evaluation. Each selection was then retrained across \numPubEvalSeeds{} seeds from \numPubFirstEvalSeed{} through \numPubLastEvalSeed{} and assessed on the external holdout. Repeated DOE used \numPubSearchReplicates{} fresh search replicates, each containing \numPubRepeatedBlocks{} development blocks. Its single-objective rule selected the same predeclared grid point in every replicate, so between-search SD was \numRevDoeSoTestRMSESd; conditional retraining SD at that configuration was still \numRevDoeSoRetrainSd. These quantities describe different sources of variation and must not be conflated.
+
+\subsection{Confirmation for the sequential extension}
+The new protocol separates three questions. New configurations in the existing development blocks test whether the response models predict beyond their fitting points. Comparisons of the polynomial and Gaussian-process errors test whether extra flexibility improves approximation. Final test observations assess the selected classifier after its choice has been fixed.
+
+For the quadratic extension model, intervals use ordinary fixed-block regression. They predict observations in known blocks; without a specified block, the interval describes the adjusted mean across observed blocks. They are not the historical Satterthwaite intervals and do not promise prediction for an unseen stochastic block. Gaussian-process intervals are model-based and are checked separately. Coverage, prediction error, and boundary bias therefore remain measured diagnostics, not guarantees supplied by the model name.
+
+Final test access is gated by frozen selections. The final vocabulary is then learned from the development pool, and the reserved test data are evaluated under that fixed choice. This procedure protects selection within the new experiment; it cannot demonstrate that a supplied dataset was never examined previously. Dataset identity and prior exposure must still be assessed scientifically.
 
 \clearpage
 \section{Comparing DOE with alternative optimization methods}
-We compared four adaptive or stochastic alternatives:
+We compared the following adaptive or stochastic alternatives:
 \begin{itemize}
 \item \term{Random Search} samples configurations without learning from earlier results.
 \item \term{Single-Objective TPE} adapts its sampling to reduce validation RMSE.
 \item \term{Multi-Objective TPE} searches for configurations spanning the RMSE--latency trade-off.
-\item \term{Constrained TPE} minimizes RMSE while treating 145\,$\mu$s as a latency constraint.
+\item \term{Constrained TPE} minimizes RMSE while treating \numPubLatencyLimit\,$\mu$s as a latency constraint.
 \end{itemize}
 
-Table~\ref{tab:methods} explains why equal counts of model fits do not make the information identical. The complete campaign used \numRevTotalFits\ model fits. Each search replicate used 140 fits, but DOE replicated planned coordinates across splits while black-box methods explored distinct coordinates on one split. The technical supplement provides the detailed execution budget and timing ledger.
+Table~\ref{tab:methods} explains why equal counts of model fits do not make the information identical. The complete campaign used \numRevTotalFits\ model fits. Each search replicate used \numPubSearchFits{} fits, but DOE replicated planned coordinates across splits while black-box methods allocated trials to coordinate exploration on a fixed split. The technical supplement provides the detailed execution budget and timing ledger.
 \begin{table}[H]
 \centering
 \small
@@ -203,22 +242,22 @@ Table~\ref{tab:methods} explains why equal counts of model fits do not make the 
 \renewcommand{\arraystretch}{1.3}
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.15\textwidth}>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}p{0.20\textwidth}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\textbf{Method} & \textbf{Use of the 140-fit budget} & \textbf{Noise handling during search} & \textbf{Primary information gained} \\
+\textbf{Method} & \textbf{Use of the \numPubSearchFits{}-fit budget} & \textbf{Noise handling during search} & \textbf{Primary information gained} \\
 \midrule
-Blocked DOE & 25 planned coordinates & Five data-split blocks & Effects, interactions, curvature, and split-to-split variation \\
-Random Search & 140 sampled coordinates & One development split & Broad non-adaptive exploration \\
-TPE variants & 140 adaptive coordinates & One development split & Concentrated optimization in promising regions \\
+Blocked DOE & \numPubCoordinates{} planned coordinates & \numPubRepeatedBlocks{} data-split blocks & Effects, interactions, curvature, and split-to-split variation \\
+Random Search & \numPubOptimizerTrials{} sampled trials & Fixed development split & Broad non-adaptive exploration \\
+TPE variants & \numPubOptimizerTrials{} adaptive trials & Fixed development split & Concentrated optimization in promising regions \\
 \bottomrule
 \end{tabularx}
-\caption{What the compared methods did with the same 140-fit search budget. DOE emphasized estimable effects and split-to-split variation; Random Search emphasized broad coverage; TPE emphasized adaptive concentration. These are different experimental estimands even when fit counts match. Each search was repeated 20 times, and fixed selections were retrained across 20 evaluation seeds.}
+\caption{What the compared methods did with the same \numPubSearchFits{}-fit search budget. DOE emphasized estimable effects and split-to-split variation; Random Search emphasized broad coverage; TPE emphasized adaptive concentration. These are different experimental estimands even when fit counts match. Each search was repeated \numPubSearchReplicates{} times, and fixed selections were retrained across \numPubEvalSeeds{} evaluation seeds.}
 \label{tab:methods}
 \end{table}
 
-Before comparing final models, we asked how quickly each search found lower validation error. Figure~\ref{fig:efficiency} plots cumulative model fits on the horizontal axis and the best validation RMSE found so far on the vertical axis. Falling curves indicate improvement; shaded bands show the middle half of repeated runs. TPE improves rapidly because it adapts toward promising regions. The planned DOE trace improves in scheduled jumps because its run order was randomized for unbiased analysis rather than arranged for early optimization. By the end of the budget, several curves are close, but they reached that region in different ways and produced different kinds of information.
+Figure~\ref{fig:efficiency} retains the archived trajectories to show what was recorded during the historical searches. Its horizontal axis counts model fits and its vertical axis shows the lowest logged validation RMSE so far. For TPE on a fixed split, a falling curve describes improvement in that split's objective. The DOE trace instead combines observations from different validation blocks: its running minimum favors whichever block happens to be easier and is not the block-adjusted candidate-selection rule. The curves therefore cannot establish a controlled ranking of search efficiency. This limitation motivates the shared-block comparison in the sequential extension.
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/explainer_efficiency_comparison.pdf}
-\caption{How optimization progressed over the common 140-fit budget. Left: medians and interquartile bands from 20 repeated searches per method. Right: the initial single planned experiment compared with archived random-search and TPE trajectories. Lower curves are better; the insets magnify later differences.}
+\caption{Archived running minima under the historical \numPubSearchFits{}-fit budget. DOE mixes validation blocks and does not represent a common-estimand incumbent curve. Left: medians and interquartile bands from \numPubSearchReplicates{} repeated searches per method. Right: the initial single planned experiment compared with archived random-search and TPE trajectories. Lower curves are better; the insets magnify later differences.}
 \label{fig:efficiency}
 \end{figure}
 
@@ -227,7 +266,7 @@ Before comparing final models, we asked how quickly each search found lower vali
 \scriptsize
 \setlength{\tabcolsep}{2.5pt}
 \resizebox{\textwidth}{!}{\input{tables/tab_benchmarks.tex}}
-\caption{Final benchmark results across 20 repeated searches and 20 holdout retraining seeds. Initial single-campaign rows are retained for context and are not interchangeable with the repeated benchmark experiments.}
+\caption{Final benchmark results across \numPubSearchReplicates{} repeated searches and \numPubEvalSeeds{} holdout retraining seeds. Initial single-campaign rows are retained for context and are not interchangeable with the repeated benchmark experiments.}
 \label{tab:benchmarks}
 \end{table}
 
@@ -236,18 +275,25 @@ Single-objective TPE achieved the lowest observed mean holdout RMSE, \numRevSoTp
 
 For multi-objective selection, Repeated DOE achieved \numRevDoeMoTestRMSE\,$\pm$\,\numRevDoeMoTestRMSESd\ RMSE at \numRevDoeMoPredictLat\,$\mu$s; multi-objective TPE achieved \numRevMoTpeTestRMSE\,$\pm$\,\numRevMoTpeTestRMSESd\ at \numRevMoTpePredictLat\,$\mu$s. The primary unpaired Welch comparison gave $\Delta=\numRevDiffDoeMoMoTpe$, $t=\numRevWelchTDoeMoMoTpe$, and $p=\numRevWelchPDoeMoMoTpe$. Replicate indices did not share a random block, so an index-paired result is only a secondary sensitivity check. No equivalence margin was pre-registered: failure to detect a difference is not evidence of equivalence.
 
-Constrained TPE appeared feasible in \numRevCtpeSearchFeas\ online searches but only \numRevCtpeBenchFeas\ (\numRevCtpeBenchFeasPct) remained feasible under warmed 1,000-call verification. Depth-6 selections were feasible at \numRevCtpeDepthSixLat\,$\mu$s; depth-7 selections were not, averaging \numRevCtpeDepthSevenLat\,$\mu$s. Short noisy timing, protocol differences, and selection near the threshold are plausible explanations.
+Constrained TPE appeared feasible in \numRevCtpeSearchFeas\ online searches but only \numRevCtpeBenchFeas\ (\numRevCtpeBenchFeasPct) remained feasible under warmed \numPubPrimaryCalls{}-call verification. Depth-\numPubCtpeShallow{} selections were feasible at \numRevCtpeDepthSixLat\,$\mu$s; depth-\numPubCtpeDeep{} selections were not, averaging \numRevCtpeDepthSevenLat\,$\mu$s. Short noisy timing, protocol differences, and selection near the threshold are plausible explanations.
 \end{sloppypar}
 
 The final question was what the competing selected models achieved after retraining. In Figure~\ref{fig:pareto}, the left panel plots search-time validation RMSE against online latency for development candidates; the right plots holdout RMSE against verified latency for the fixed selections. Horizontal and vertical uncertainty bars on the right show retraining and timing variation. The red dashed frontier identifies choices for which no tested alternative was both more accurate and faster.
 
-On development split 42, multi-objective TPE candidate fronts had mean hypervolume \numRevHvMoTpeDevMean\,$\pm$\,\numRevHvMoTpeDevSd\ at reference $[0.60, 250]$, compared with \numRevHvDoeDevMean\,$\pm$\,\numRevHvDoeDevSd\ for five-block repeated DOE means and \numRevHvFullDoeDev\ for the fixed 27-point DOE front. These rows use different candidate pools and timing protocols. On the holdout, \numRevHoldoutNonDominatedConfigs\ distinct configurations formed the non-dominated set with frozen hypervolume \numRevHvHoldoutFrozen; seed-bootstrap mean was \numRevHvHoldoutBootSeedMean\ with 95\% interval $[\numRevHvHoldoutBootSeedCiLow,\numRevHvHoldoutBootSeedCiHigh]$. The secondary reference point was $[0.65, 275]$.
+On development split \numPubDevelopmentSeed{}, multi-objective TPE candidate fronts had mean hypervolume \numRevHvMoTpeDevMean\,$\pm$\,\numRevHvMoTpeDevSd\ at reference $[\numPubHvPrimaryLoss, \numPubHvPrimaryTime]$, compared with \numRevHvDoeDevMean\,$\pm$\,\numRevHvDoeDevSd\ for \numPubBlocks{}-block repeated DOE means and \numRevHvFullDoeDev\ for the fixed \numPubFullFrontCount{}-point DOE front. These rows use different candidate pools and timing protocols. On the holdout, \numRevHoldoutNonDominatedConfigs\ distinct configurations formed the non-dominated set with frozen hypervolume \numRevHvHoldoutFrozen; seed-bootstrap mean was \numRevHvHoldoutBootSeedMean\ with \numPubCoveragePct\% interval $[\numRevHvHoldoutBootSeedCiLow,\numRevHvHoldoutBootSeedCiHigh]$. The secondary reference point was $[\numPubHvSecondaryLoss, \numPubHvSecondaryTime]$.
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.92\textwidth]{figures/revision_v2_pareto_front.png}
 \caption{Canonical Pareto evidence. Left: development candidate fronts under their stated search protocols. Right: frozen selections after independent holdout evaluation, including uncertainty. The figure separates development search measurements from final benchmark measurements.}
 \label{fig:pareto}
 \end{figure}
+
+\subsection{A comparison with shared information}
+The sequential extension gives DOE and multi-objective TPE the same development partitions, tree count, candidate-response aggregation, and inference operation. Every proposed configuration is evaluated across all development blocks, and the budget counts real classifier fits, including initial and adaptive design evaluations. Reserved confirmation and final evaluation are accounted for separately, so neither method receives hidden search evaluations.
+
+The comparison records validation Pareto quality, the observed feasible fraction, optimizer overhead, and variability across repeated searches. Its regret summary refers to the best configuration observed by the compared methods, not the unknown global optimum. Final test observations remain separate from validation fronts. These distinctions let us interpret whether any advantage comes from search, explanation, replication, or the measurement protocol.
+
+The available text workflow evidence is synthetic and demonstrates execution and separation of stages only. It cannot answer which method is better on a real sentiment dataset, whether interaction rankings generalize, or whether the new intervals have adequate real-data coverage. Those results require the separately specified sentiment study. The housing tables and graphs above remain the empirical findings of this report.
 
 \section{What we learned}
 \begin{enumerate}[leftmargin=1.6em,itemsep=0.45em]
@@ -256,13 +302,17 @@ On development split 42, multi-objective TPE candidate fronts had mean hypervolu
 \item \textbf{Adaptive search used the budget effectively for point optimization.} Single-objective TPE found the lowest observed RMSE, and multi-objective TPE produced strong development fronts by concentrating trials in promising regions.
 \item \textbf{The deployment choice depends on the accuracy--speed objective.} The fastest acceptable and most accurate configurations were different; the holdout frontier contained selections from DOE and several TPE variants.
 \item \textbf{Latency constraints require careful verification.} Constrained TPE's feasibility dropped from search to warmed benchmarking, showing that a noisy online timing estimate is insufficient near a hard threshold.
-\item \textbf{The comparison remains limited.} DOE and TPE used equal fit counts but different coordinate replication, split structures, and timing protocols. The fixed holdout does not estimate dataset-sampling uncertainty, and prior historical exposure prevents describing it as untouched. Results come from one dataset, one hardware environment, four factors, and 100 trees. Stronger claims require fresh outer test splits or additional datasets, matched timing protocols, more model families, and designs that include the number of trees.
+\item \textbf{The comparison remains limited.} DOE and TPE used equal fit counts but different coordinate replication, split structures, and timing protocols. The fixed holdout does not estimate dataset-sampling uncertainty, and prior historical exposure prevents describing it as untouched. Results come from one dataset, one hardware environment, \numPubFactors{} factors, and \numPubTrees{} trees. Stronger claims require fresh outer test splits or additional datasets, matched timing protocols, more model families, and designs that include the number of trees.
 \end{enumerate}
+
+The extension turns these lessons into a testable scientific method: compare explanations of the same measured response, direct additional experiments toward uncertainty or disagreement, and check predictions on reserved configurations. Its value is the explicit connection between explanation, experimental choice, and confirmation. Whether it improves accuracy--speed trade-offs or explanation stability on text remains an open empirical question.
 
 \section{Conclusion}
 A pre-planned blocked experiment can do more than produce a candidate configuration: it can show which hyperparameters matter, expose interactions and curvature, quantify random split effects, and reveal when its own approximation is inadequate. In this study, that explanatory value coexisted with clear limitations. The quadratic surface was not globally faithful, the accuracy-focused DOE candidate was optimistic in confirmation, and adaptive TPE found the lowest observed single-objective RMSE.
 
 The multi-objective evidence does not identify one universal winner. Repeated DOE and multi-objective TPE produced similar observed holdout performance at comparable latency, with no statistically significant detected difference and no basis for an equivalence claim. The practical lesson is to combine the strengths of both approaches: use structured experiments when explanation, variance decomposition, and stable comparison matter; use adaptive search when dense exploitation of promising regions is the main goal; and independently confirm every selected model under the deployment measurement protocol.
+
+The implemented sequential extension provides the next test of that complementary approach. It joins statistical effect analysis, flexible response modeling, Shapley interaction explanations, adaptive acquisition, and protected final evaluation. It does not convert the completed housing experiment into a sequential one or establish new sentiment-performance results. The next scientific decision is to select and calibrate a fresh text study, then judge the method from its independent observations rather than from its implementation alone.
 
 \section{Code availability}
 The code and research materials are publicly available at: \url{https://github.com/ChristosHussein/xgboost-doe-rsm}
@@ -271,7 +321,7 @@ The code and research materials are publicly available at: \url{https://github.c
 The complete derivations, generated ANOVA and adequacy tables, residual diagnostics, timing forensics, hypervolume details, computational budget, and claim-level provenance are provided in \texttt{technical\_supplement.pdf}. The comprehensive numerical record remains in \texttt{REPORT.md}.
 
 \clearpage
-\begin{thebibliography}{8}
+\begin{thebibliography}{9}
 \small
 \setlength{\itemsep}{0pt}
 \bibitem{montgomery2017design} D.~C. Montgomery, \emph{Design and Analysis of Experiments}, 9th ed., Wiley, 2017.
@@ -282,5 +332,6 @@ The complete derivations, generated ANOVA and adequacy tables, residual diagnost
 \bibitem{derringer1980simultaneous} G.~Derringer and R.~Suich, ``Simultaneous optimization of several response variables,'' \emph{Journal of Quality Technology}, 1980.
 \bibitem{box1951experimental} G.~E.~P. Box and K.~B. Wilson, ``On the experimental attainment of optimum conditions,'' \emph{JRSS B}, 1951.
 \bibitem{myers2016response} R.~H. Myers, D.~C. Montgomery, and C.~M. Anderson-Cook, \emph{Response Surface Methodology}, 4th ed., Wiley, 2016.
+\bibitem{lundberg2017unified} S.~M. Lundberg and S.-I. Lee, ``A unified approach to interpreting model predictions,'' \emph{NeurIPS}, 2017.
 \end{thebibliography}
 \end{document}

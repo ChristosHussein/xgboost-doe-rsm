@@ -1470,7 +1470,7 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "",
         "### 1.2 Principled Two-Part Fix in `scripts/reporting_data.py`",
         "",
-        f"1. **Exact Orthogonal Algebraic Decomposition**: Because every Phase 1 design coordinate is replicated across the exact same 5 balanced seed blocks, the indicator column space of `C(point_id)` is orthogonal to the centered block contrast space of `C(block)`. Computing `ss_block_adj_pooled = float(ss_pe_coord_unadj - ss_block_p1)` (`{cs['ss_block_adj_pooled']:.16f}`, $\\text{{df}} = {int(cs['df_block_adj_pooled'])}$, $\\text{{MS}} = {cs['ms_block_adj_pooled']:.16e}$) and dividing $\\text{{SS}}_{{\\text{{Curv}}}} = {p1['ss_curvature']:.17f}$ by $\\text{{MS}}_{{\\text{{PE,coord-block}}}}$ yields $F(1, 79) = {cs['f_block_adj_pooled']:,.2f}$ (`{cs['f_block_adj_pooled']:.8f}`) while asserting `_assert_close(ss_block_adj_pooled, float(fit_p1_cell.ssr), atol=1e-12)`.",
+        f"1. **Exact Orthogonal Algebraic Decomposition**: Because every Phase 1 design coordinate is replicated across the exact same 5 balanced seed blocks, the indicator column space of `C(point_id)` is orthogonal to the centered block contrast space of `C(block)`. Computing `ss_block_adj_pooled = float(ss_pe_coord_unadj - ss_block_p1)` (`{cs['ss_block_adj_pooled']:.14f}`, $\\text{{df}} = {int(cs['df_block_adj_pooled'])}$, $\\text{{MS}} = {cs['ms_block_adj_pooled']:.10e}$) and dividing $\\text{{SS}}_{{\\text{{Curv}}}} = {p1['ss_curvature']:.17f}$ by $\\text{{MS}}_{{\\text{{PE,coord-block}}}}$ yields $F(1, 79) = {cs['f_block_adj_pooled']:,.2f}$ (`{cs['f_block_adj_pooled']:.8f}`) while asserting `_assert_close(ss_block_adj_pooled, float(fit_p1_cell.ssr), atol=1e-12)`.",
         "2. **Deterministic Floating-Point Serialization Policy**: In `build_scientific_results_manifest(ds)` (`scripts/reporting_data.py`), floating-point `\"value\"` entries are normalized via `round(float(value), 8)` ($10^{-8}$ decimal precision, 4 to 6 orders of magnitude tighter than any manuscript display format while invariant to last-bit BLAS/LAPACK SIMD ordering across Linux and Windows). Exact checks are preserved without relaxation for all metric identifiers, source filenames, SHA-256 hashes, integer counts, seed lists, protocol strings, and formatted reporting values. Both `--check` modes (`scripts/generate_report_artifacts.py --check` and `scripts/generate_research_reporting.py --check`) remain strictly non-mutating.",
         "",
         "---",
@@ -1483,8 +1483,8 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "| :--- | :--- | :--- | :--- | :--- |",
         f"| **Phase 1 curvature sum of squares ($\\text{{SS}}_{{\\text{{Curv}}}}$)** | `results/phase1.json`, `results/runs.csv` | `[HISTORICAL/OBSOLETE: 2.6602 / 0.2887857845]` | **`{p1['ss_curvature']:.6f}`** (`{p1['ss_curvature']:.17f}`) | Prior Work Package F manual summary cited Phase 1 Factor A ($\\ln \\eta$) SS (`2.660246`) and prior F.1 draft truncated intermediate means; exact canonical value is $n_{{\\text{{eff}}}}(\\bar{{y}}_F - \\bar{{y}}_C)^2 = 16 \\times ({p1['diff_F_minus_C']:+.6f})^2 = {p1['ss_curvature']:.17f}$. |",
         f"| **Within-block center pure-error MS ($\\text{{MS}}_{{\\text{{PE, center}}}}$, $\\text{{df}}={int(cs['df_pe_center'])}$)** | `results/phase1.json`, `results/lof.json` | `[HISTORICAL/OBSOLETE: 2.523e-05]` | **`{_fmt_sci_md(cs['ms_pe_center'])}`** (`{cs['ms_pe_center']:.9e}`, $\\text{{SS}} = {ld['ss_pure_center_y1']:.6f}$) | Prior manual draft misquoted a non-canonical variance figure; exact within-block center subsampling MS is `{cs['ms_pe_center']:.9e}`, yielding $F(1,15) = {p1['f_curvature']:,.2f}$. |",
-        f"| **Block-adjusted pooled curvature denominator ($\\text{{df}}={int(cs['df_block_adj_pooled'])}$)** | `results/runs.csv` (`ds.curvature_sensitivity`) | `[HISTORICAL/OBSOLETE: MS = 2.633e-04 / 1.4254e-05, SS = 0.00112604]` | **`MS = {_fmt_sci_md(cs['ms_block_adj_pooled'])}`** (`{cs['ms_block_adj_pooled']:.10e}`, $\\text{{SS}} = {cs['ss_block_adj_pooled']:.6f}, \\text{{df}} = {int(cs['df_block_adj_pooled'])}$) $\\implies$ **`F = {cs['f_block_adj_pooled']:,.2f}`** | Prior manual table mis-transcribed $\\text{{SS}}_{{\\text{{PE,coord-block}}}}$; exact canonical value is $\\text{{SS}} = {cs['ss_block_adj_pooled']:.16f}$ ($\\text{{MS}} = {cs['ms_block_adj_pooled']:.16e}$), which divides $\\text{{SS}}_{{\\text{{Curv}}}} = {p1['ss_curvature']:.17f}$ to give $F(1,79) = {cs['f_block_adj_pooled']:,.2f}$ (`{cs['f_block_adj_pooled']:.8f}`). |",
-        f"| **Unadjusted pooled coordinate pure-error MS ($\\text{{df}}={int(cs['df_pe_coord_unadj'])}$)** | `results/runs.csv` (`ds.curvature_sensitivity`) | `[HISTORICAL/OBSOLETE: MS = 4.195e-04 / 6.9760e-05, SS = 0.00579009]` | **`MS = {_fmt_sci_md(cs['ms_pe_coord_unadj'])}`** (`{cs['ms_pe_coord_unadj']:.10e}`, $\\text{{SS}} = {cs['ss_pe_coord_unadj']:.6f}, \\text{{df}} = {int(cs['df_pe_coord_unadj'])}$) $\\implies$ **`F = {cs['f_pe_coord_unadj']:,.2f}`** | Reconstructed directly from 17 Phase 1 coordinates across 5 blocks ($100 - 17 = 83\\text{{ df}}$): $\\text{{SS}} = {cs['ss_pe_coord_unadj']:.16f}$, $\\text{{MS}} = {cs['ms_pe_coord_unadj']:.16e}$, $F(1,83) = {cs['f_pe_coord_unadj']:,.2f}$. |",
+        f"| **Block-adjusted pooled curvature denominator ($\\text{{df}}={int(cs['df_block_adj_pooled'])}$)** | `results/runs.csv` (`ds.curvature_sensitivity`) | `[HISTORICAL/OBSOLETE: MS = 2.633e-04 / 1.4254e-05, SS = 0.00112604]` | **`MS = {_fmt_sci_md(cs['ms_block_adj_pooled'])}`** (`{cs['ms_block_adj_pooled']:.10e}`, $\\text{{SS}} = {cs['ss_block_adj_pooled']:.6f}, \\text{{df}} = {int(cs['df_block_adj_pooled'])}$) $\\implies$ **`F = {cs['f_block_adj_pooled']:,.2f}`** | Prior manual table mis-transcribed $\\text{{SS}}_{{\\text{{PE,coord-block}}}}$; exact canonical value is $\\text{{SS}} = {cs['ss_block_adj_pooled']:.14f}$ ($\\text{{MS}} = {cs['ms_block_adj_pooled']:.10e}$), which divides $\\text{{SS}}_{{\\text{{Curv}}}} = {p1['ss_curvature']:.17f}$ to give $F(1,79) = {cs['f_block_adj_pooled']:,.2f}$ (`{cs['f_block_adj_pooled']:.8f}`). |",
+        f"| **Unadjusted pooled coordinate pure-error MS ($\\text{{df}}={int(cs['df_pe_coord_unadj'])}$)** | `results/runs.csv` (`ds.curvature_sensitivity`) | `[HISTORICAL/OBSOLETE: MS = 4.195e-04 / 6.9760e-05, SS = 0.00579009]` | **`MS = {_fmt_sci_md(cs['ms_pe_coord_unadj'])}`** (`{cs['ms_pe_coord_unadj']:.10e}`, $\\text{{SS}} = {cs['ss_pe_coord_unadj']:.6f}, \\text{{df}} = {int(cs['df_pe_coord_unadj'])}$) $\\implies$ **`F = {cs['f_pe_coord_unadj']:,.2f}`** | Reconstructed directly from 17 Phase 1 coordinates across 5 blocks ($100 - 17 = 83\\text{{ df}}$): $\\text{{SS}} = {cs['ss_pe_coord_unadj']:.14f}$, $\\text{{MS}} = {cs['ms_pe_coord_unadj']:.10e}$, $F(1,83) = {cs['f_pe_coord_unadj']:,.2f}$. |",
         f"| **Repeated DOE MO holdout test RMSE mean & SD ($n={doe_mo.n_replicates}$)** | `results/revision_v2/full_run_001/final_summary.csv`, `doe_selection_summary.json` | `[HISTORICAL/OBSOLETE: 0.48373 ± 0.00511 / 0.48997 ± 0.01325]` | **`{doe_mo.test_rmse_mean:.5f} ± {doe_mo.test_rmse_sd:.5f}`** (`{doe_mo.test_rmse_mean:.10f} ± {doe_mo.test_rmse_sd:.10f}`, 95% CI `[{doe_mo.test_rmse_ci_low:.5f}, {doe_mo.test_rmse_ci_high:.5f}]`) | Prior drafts substituted single-split validation or Random Search's SD (`0.01325`); canonical 20-replicate $\\times$ 20-seed holdout mean is `{doe_mo.test_rmse_mean:.5f}` with between-search SD `{doe_mo.test_rmse_sd:.5f}` (`{doe_mo.test_rmse_sd:.10f}`) and retraining SD `{doe_mo.retrain_sd:.5f}`. |",
         f"| **MO-TPE holdout test RMSE mean & SD ($n={mo_tpe.n_replicates}$)** | `results/revision_v2/full_run_001/final_summary.csv`, `optimizer_summary.json` | `[HISTORICAL/OBSOLETE: 0.48632 ± 0.00548 / 0.49255 ± 0.00284]` | **`{mo_tpe.test_rmse_mean:.5f} ± {mo_tpe.test_rmse_sd:.5f}`** (`{mo_tpe.test_rmse_mean:.10f} ± {mo_tpe.test_rmse_sd:.10f}`, 95% CI `[{mo_tpe.test_rmse_ci_low:.5f}, {mo_tpe.test_rmse_ci_high:.5f}]`) | Prior drafts substituted development validation or SO-TPE's SD (`0.00284`); canonical holdout mean is `{mo_tpe.test_rmse_mean:.5f}` with between-search SD `{mo_tpe.test_rmse_sd:.5f}` (`{mo_tpe.test_rmse_sd:.10f}`) and retraining SD `{mo_tpe.retrain_sd:.5f}` (Welch $\\Delta = {ds.doe_mo_vs_motpe_diff:+.5f}, t = {ds.doe_mo_vs_motpe_welch_t:.4f}, p = {ds.doe_mo_vs_motpe_welch_p:.4f}$; index-paired $t = {ds.doe_mo_vs_motpe_paired_t:.3f}, p = {ds.doe_mo_vs_motpe_paired_p:.4f}$). |",
         f"| **MO-TPE development hypervolume SD at $[{r1_rmse:.2f}, {r1_lat:.1f}]$** | `results/revision_v2/full_run_001/hypervolume.json` | `[HISTORICAL/OBSOLETE: 0.2584]` | **`{hvs['motpe_dev_060_sd']:.4f}`** (mean `{hvs['motpe_dev_060_mean']:.4f} ± {hvs['motpe_dev_060_sd']:.4f}`, 95% CI `[{motpe_hv_060['confidence_interval_95'][0]:.4f}, {motpe_hv_060['confidence_interval_95'][1]:.4f}]`) | Prior manual draft understated replicate dispersion across the 20 MO-TPE development fronts; Repeated DOE 5-block mean development HV is `{hvs['rdoe_dev_060_mean']:.4f} ± {hvs['rdoe_dev_060_sd']:.4f}`. |",
@@ -1499,10 +1499,10 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "",
         "The seven candidate denominators reconstructed in `ds.curvature_sensitivity` (`scripts/reporting_data.py`) are:",
         f"1. **Within-block center pure error ($\\text{{df}} = {int(cs['df_pe_center'])}$)**: $\\text{{SS}} = {ld['ss_pure_center_y1']:.6f}$, $\\text{{MS}} = {_fmt_sci_md(cs['ms_pe_center'])}$ (`{cs['ms_pe_center']:.9e}`), $F(1, 15) = {cs['f_pe_center']:,.2f}$ ($p < 10^{{-15}}$).",
-        f"2. **Block-adjusted pooled coordinate error ($\\text{{df}} = {int(cs['df_block_adj_pooled'])}$ = 15-df center PE + 64-df Phase 1 Treatment $\\times$ Block interaction)**: $\\text{{SS}} = {cs['ss_block_adj_pooled']:.6f}$ (`{cs['ss_block_adj_pooled']:.16f}`), $\\text{{MS}} = {_fmt_sci_md(cs['ms_block_adj_pooled'])}$ (`{cs['ms_block_adj_pooled']:.16e}`), yielding $F(1, 79) = {p1['ss_curvature']:.17f} / {cs['ms_block_adj_pooled']:.16e} = {cs['f_block_adj_pooled']:,.2f}$ ($p < 10^{{-15}}$).",
+        f"2. **Block-adjusted pooled coordinate error ($\\text{{df}} = {int(cs['df_block_adj_pooled'])}$ = 15-df center PE + 64-df Phase 1 Treatment $\\times$ Block interaction)**: $\\text{{SS}} = {cs['ss_block_adj_pooled']:.6f}$ (`{cs['ss_block_adj_pooled']:.14f}`), $\\text{{MS}} = {_fmt_sci_md(cs['ms_block_adj_pooled'])}$ (`{cs['ms_block_adj_pooled']:.10e}`), yielding $F(1, 79) = {p1['ss_curvature']:.17f} / {cs['ms_block_adj_pooled']:.10e} = {cs['f_block_adj_pooled']:,.2f}$ ($p < 10^{{-15}}$).",
         f"3. **Phase 1 Treatment $\\times$ Block interaction ($\\text{{df}} = {int(cs['df_txb_p1'])}$)**: $\\text{{SS}} = {cs['ss_txb_p1']:.6f}$, $\\text{{MS}} = {_fmt_sci_md(cs['ms_txb_p1'])}$, $F(1, 64) = {cs['f_txb_p1']:,.2f}$ ($p < 10^{{-15}}$).",
         f"4. **5-Block paired contrast ($\\text{{df}} = {int(cs['df_block_paired'])}$, block as independent experimental unit)**: $\\text{{SE}}(\\bar{{d}}) = {cs['se_block_paired']:.4f}$, 95% CI $[{cs['ci95_block_paired'][0]:+.4f}, {cs['ci95_block_paired'][1]:+.4f}]$, $t = {cs['t_block_paired']:.2f}$, $F(1, 4) = t^2 = {cs['f_block_paired']:,.2f}$ ($p = {_fmt_sci_md(cs['p_block_paired'])}$).",
-        f"5. **Unadjusted coordinate pure error across all 17 Phase 1 coordinates ($\\text{{df}} = {int(cs['df_pe_coord_unadj'])}$)**: $\\text{{SS}} = {cs['ss_pe_coord_unadj']:.6f}$, $\\text{{MS}} = {_fmt_sci_md(cs['ms_pe_coord_unadj'])}$ (`{cs['ms_pe_coord_unadj']:.16e}`), yielding $F(1, 83) = {cs['f_pe_coord_unadj']:,.2f}$ ($p < 10^{{-15}}$).",
+        f"5. **Unadjusted coordinate pure error across all 17 Phase 1 coordinates ($\\text{{df}} = {int(cs['df_pe_coord_unadj'])}$)**: $\\text{{SS}} = {cs['ss_pe_coord_unadj']:.6f}$, $\\text{{MS}} = {_fmt_sci_md(cs['ms_pe_coord_unadj'])}$ (`{cs['ms_pe_coord_unadj']:.10e}`), yielding $F(1, 83) = {cs['f_pe_coord_unadj']:,.2f}$ ($p < 10^{{-15}}$).",
         f"6. **First-order + 2FI + curvature residual ($\\text{{df}} = {int(cs['df_2fi_curv_resid'])}$)**: $\\text{{SS}} = {cs['ss_2fi_curv_resid']:.6f}$, $\\text{{MS}} = {_fmt_sci_md(cs['ms_2fi_curv_resid'])}$, $F(1, 84) = {cs['f_2fi_curv_resid']:,.2f}$ ($p < 10^{{-15}}$).",
         f"7. **Unadjusted first-order + 2FI residual ($\\text{{df}} = {int(cs['df_2fi_resid'])}$, pooling curvature into error)**: $\\text{{SS}} = {ss_res_p1:.6f}$, $\\text{{MS}} = {cs['ms_2fi_resid']:.6f}$, $F(1, 85) = {cs['f_2fi_resid']:.2f}$ ($p = {_fmt_sci_md(cs['p_2fi_resid'])}$).",
         "",
@@ -1528,8 +1528,8 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "   - `cryptographic_sha256_provenance` (19 files): the provenance manifests, 4 `tables/anova_*.csv` exports, all 12 empirical/explanatory figures, and `scripts/generate_explanatory_figures.py`, verified by SHA-256 digests (`_file_matches_sha256`).",
         "   - `claim_registry_verified` (16 files): Milestone C.1, D, D.1, D.2, audit documents, the reader-focused coverage inventory, `plots.py`, and `results/revision_v2/scientific_audit_c1/budget_reconciliation.json`. Verified against both (a) non-empty `required_claims` dynamically constructed from `ReportingDataset` and (b) the canonical floating-point vocabulary (`_build_canonical_float_vocabulary(ds)`) so any corrupted empirical number fails closed.",
         "   - `justified_exclusion` (2 files): Non-canonical/external historical records that are explicitly excluded from current empirical claim endorsement and locked by SHA-256 digest:",
-        "     - `CODEX_REVIEW.md`: External reviewer handoff prompt pinned to historical commit `caf3a5bf59f2eae2541d3478d5fc370f0b339717` (2026-10-08); preserved verbatim as review provenance.",
-        "     - `results_summary.json`: Pre-`v1.0.0` initial-commit (`4528425`) prototype summary ($m=5$ confirmation trials, pre-refactoring coding) superseded by `results/phase1.json`, `results/lof.json`, `results/diagnostics.json`, `results/phase3.json`, `results/confirmation.json`, and `results/benchmark_summary.json`; retained solely because `docs/provenance/baseline_v1.0.0.json` and `scripts/capture_provenance.py` record its historical hash.",
+        "     - `docs/archive/review_notes.md`: Historical reviewer handoff prompt pinned to historical commit `caf3a5bf59f2eae2541d3478d5fc370f0b339717` (2026-10-08); preserved verbatim as review provenance.",
+        "     - `docs/archive/results_summary.json`: Pre-`v1.0.0` initial-commit (`4528425`) prototype summary ($m=5$ confirmation trials, pre-refactoring coding) superseded by `results/phase1.json`, `results/lof.json`, `results/diagnostics.json`, `results/phase3.json`, `results/confirmation.json`, and `results/benchmark_summary.json`; retained solely because `docs/provenance/baseline_v1.0.0.json` and `scripts/capture_provenance.py` record its historical hash.",
         "",
         "---",
         "",
@@ -1564,7 +1564,22 @@ def render_f1_final_audit_validation(ds: Optional[ReportingDataset] = None) -> s
         "READY FOR FINAL MERGE REVIEW",
         "",
     ]
-    return "\n".join(lines)
+    from collections import Counter
+    discovered = discover_scientific_and_documentation_files(ds.root_dir)
+    registry = build_scientific_artifact_registry(ds)
+    counts = Counter(registry[p]["mechanism"] for p in discovered if p in registry)
+    revised=[]
+    for line in lines:
+        if line.startswith("1. **Automatic File Discovery"):
+            line = (f"1. **Automatic File Discovery**: {len(discovered)} scientific/documentation artifacts discovered, "
+                    f"including {counts['justified_exclusion']} SHA-locked historical exclusions. "
+                    "Current publication claims use exact source/context bindings; archival records do not endorse current empirical claims.")
+        elif line.startswith("   - `") and "files):" in line:
+            mechanism=line.split('`')[1]
+            if mechanism in counts:
+                line = f"   - `{mechanism}` ({counts[mechanism]} files): verified by the declared registry mechanism."
+        revised.append(line)
+    return "\n".join(revised)
 
 
 def build_changelog_claim_specifications(ds: Optional[ReportingDataset] = None) -> List[Dict[str, Any]]:
@@ -2274,12 +2289,18 @@ def discover_scientific_and_documentation_files(root_dir: Optional[Path | str] =
     explainer_script = base / "scripts" / "generate_explanatory_figures.py"
     if explainer_script.is_file():
         discovered.add("scripts/generate_explanatory_figures.py")
+    extra_script=base/'scripts/generate_extension_diagram.py'
+    if extra_script.is_file():
+        discovered.add('scripts/generate_extension_diagram.py')
+    for template in (base/'scripts/templates').glob('*'):
+        if template.is_file() and template.suffix in ('.md','.tex'):
+            discovered.add(template.relative_to(base).as_posix())
 
     # 3. All files under docs/
     docs_dir = base / "docs"
     if docs_dir.is_dir():
         for p in docs_dir.rglob("*"):
-            if p.is_file() and p.suffix.lower() in {".md", ".json", ".tex", ".csv", ".yaml", ".yml"}:
+            if p.is_file() and p.suffix.lower() in {".md", ".json", ".tex", ".csv", ".yaml", ".yml", ".pdf"}:
                 discovered.add(p.relative_to(base).as_posix())
 
     # 4. All files under tables/
@@ -2455,7 +2476,7 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
             "Frozen Type III ANOVA export for Phase 1 factorial validation RMSE.",
         ),
         "scripts/generate_explanatory_figures.py": (
-            "6c31c574c741feaabc4fdb5f0758e557504808df07aff894f3f9a93da27de151",
+            "344517877126a947a3030513527a75dab6d4f5385b59ea0e11d7e82a04d6e26f",
             "Deterministic generator for reader-focused conceptual and empirical vector figures.",
         ),
         "figures/desirability_pareto_front.png": (
@@ -2482,7 +2503,7 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
             "761844a94ab6373fe17dea5a2b095b92a85849cbb5e475f73e966548e9596742",
             "Canonical Revision-v2 development and holdout Pareto evidence figure.",
         ),
-        "figures/explainer_accuracy_latency.pdf": (
+        "docs/archive/figures/explainer_accuracy_latency.pdf": (
             "7549da81b7f07bae7d870b2b462b6e30cc1c7ec768cd33e092340fc95b073903",
             "Reader-focused accuracy and latency trade-off figure generated from frozen selections.",
         ),
@@ -2502,7 +2523,7 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
             "402bf27dd9699582a04520284d7b81be3ce9667ed6d70d7174c2fa9b33fdb11e",
             "Reader-focused conceptual research pipeline.",
         ),
-        "figures/explainer_response_surface.pdf": (
+        "docs/archive/figures/explainer_response_surface.pdf": (
             "d3dfa66701e39dcd6b4eb8dd556315c902648432e6b4179d812aa0f0b2ee7a1f",
             "Reader-focused observed-versus-fitted response-surface figure generated from canonical DOE runs.",
         ),
@@ -2695,7 +2716,7 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
         }
 
     # 6. Justified exclusions (2 files) locked by SHA-256 so they cannot be silently repurposed
-    registry["CODEX_REVIEW.md"] = {
+    registry["docs/archive/review_notes.md"] = {
         "mechanism": "justified_exclusion",
         "expected_sha256": "fd9bc91d8a0b7e4df555f419cb247499dc97f9638b222e940cde6d3f7e4c366e",
         "exclusion_justification": (
@@ -2703,16 +2724,51 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
             "(2026-10-08); preserved verbatim as immutable review provenance rather than an active scientific report."
         ),
     }
-    registry["results_summary.json"] = {
+    registry["docs/archive/results_summary.json"] = {
         "mechanism": "justified_exclusion",
         "expected_sha256": "66af38ee51bfea1aba73cd6ef00de7bbd1e062bd9e9f68ca8c9c2c4c62394fe2",
         "exclusion_justification": (
             "Pre-v1.0.0 initial-commit (4528425) prototype summary (m=5 confirmation trials, pre-refactoring coding) "
             "superseded by results/phase1.json, results/lof.json, results/diagnostics.json, results/phase3.json, "
-            "results/confirmation.json, and results/benchmark_summary.json; retained undefeated in repo root solely "
+            "results/confirmation.json, and results/benchmark_summary.json; preserved byte-identically in the archive solely "
             "because docs/provenance/baseline_v1.0.0.json and scripts/capture_provenance.py record its historical SHA-256."
         ),
     }
+
+    from scripts.publication import (render_manuscript, bindings, render_readme,
+                                     render_integrity_audit, render_coverage, build_record)
+    for rel, renderer, sources in [
+        ('report.tex', render_manuscript, ['scripts/templates/report.tex', 'results/macros.tex']),
+        ('README.md', render_readme, ['scripts/templates/README.md']),
+        ('docs/generated/publication_claim_bindings.json', lambda d: json.dumps(bindings(d),indent=2)+'\n',
+         ['scripts/templates/report.tex','scripts/reporting_data.py','results/runs.csv']),
+        ('docs/generated/publication_build.json', lambda d: json.dumps(build_record(d.root_dir),indent=2)+'\n',
+         ['report.tex','report.pdf','results/macros.tex']),
+        ('docs/report_integrity_audit.md', render_integrity_audit,
+         ['docs/generated/publication_claim_bindings.json','docs/generated/publication_build.json']),
+        ('docs/report_rewrite_coverage.md', render_coverage, ['report.pdf','technical_supplement.pdf'])]:
+        registry[rel] = dict(mechanism='generated_full_document', expected_renderer=renderer,
+                             source_artifacts=sources, required=True)
+    registry['scripts/templates/report.tex'] = dict(mechanism='generated_full_document',
+        expected_renderer=render_manuscript, source_artifacts=['results/macros.tex'], required=True)
+    registry['scripts/templates/README.md'] = dict(mechanism='generated_full_document',
+        expected_renderer=render_readme, source_artifacts=[], required=True)
+    registry['scripts/templates/report_coverage.md'] = dict(mechanism='generated_full_document',
+        expected_renderer=lambda d: (d.root_dir/'scripts/templates/report_coverage.md').read_text(encoding='utf-8'),
+        source_artifacts=[], required=True)
+    catalog_path=ds.root_dir/'docs/archive/catalog.json'
+    registry['docs/archive/catalog.json'] = dict(mechanism='cryptographic_sha256_provenance', required=True,
+        expected_sha256='18ea3a898ddf0420cd351041f9ec4b74e8a934995d5e6483da74ee169118c247',
+        source_artifacts=['docs/provenance/baseline_v1.0.0.json'])
+    if catalog_path.is_file():
+        for item in json.loads(catalog_path.read_text())['files']:
+            registry[item['archive_path']] = dict(mechanism='justified_exclusion', required=True,
+                expected_sha256=item['sha256'], exclusion_justification=item['role'])
+    for rel, checksum in [
+        ('scripts/generate_extension_diagram.py','205f519c0d410adc4d59e0f418c2e80ca97f187ff47cbcbface564f23b876c07'),
+        ('figures/explainer_sequential_extension.pdf','4e00a3e14bf01cd660d8e3d1c787d46ee14f2d228990175ee8b7dc7032bcfaa1')]:
+        registry[rel] = dict(mechanism='cryptographic_sha256_provenance', expected_sha256=checksum,
+                             source_artifacts=['xgb_doe_xai/study.py'], required=True)
 
     # Merge any dynamically registered custom test artifacts
     for rel_p, custom_spec in _CUSTOM_REGISTERED_ARTIFACTS.items():
@@ -2759,7 +2815,7 @@ def verify_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) -
                 "docs/proposed_followup_experiments.md",
                 "docs/f1_final_audit_validation.md",
                 "docs/report_rewrite_coverage.md",
-            } or rel_p in _CUSTOM_REGISTERED_ARTIFACTS:
+            } or rel_p in _CUSTOM_REGISTERED_ARTIFACTS or spec.get('required'):
                 errors.append(f"Registered scientific artifact is missing on disk: '{rel_p}'")
             continue
 
@@ -2892,6 +2948,10 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
 
     md_text = report_md_path.read_text(encoding="utf-8")
     tex_text = report_tex_path.read_text(encoding="utf-8")
+    # Protocol values remain source-backed macros in authored text. Expand only
+    # for existing semantic protocol checks, never to admit a numeric vocabulary.
+    rendered_macros = dict(re.findall(r"\\newcommand\{\\([A-Za-z]+)\}\{([^\n]*)\}", render_macros(ds)))
+    expanded_tex = re.sub(r"\\(num[A-Za-z]+)(?:\{\})?", lambda m: rendered_macros.get(m[1], m[0]), tex_text)
     supplement_text = supplement_tex_path.read_text(encoding="utf-8")
     coverage_text = coverage_path.read_text(encoding="utf-8")
     changelog_text = changelog_path.read_text(encoding="utf-8")
@@ -2967,7 +3027,7 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
         errors.append(
             f"Confirmation seeds '{expected_conf_str}' not found in REPORT.md"
         )
-    if expected_conf_str not in tex_text:
+    if expected_conf_str not in expanded_tex:
         errors.append(
             f"Confirmation seeds '{expected_conf_str}' not found in report.tex"
         )
@@ -2975,7 +3035,7 @@ def audit_manuscript_integrity(ds: Optional[ReportingDataset] = None) -> List[st
     # 5. Verify hypervolume reference points in REPORT.md and report.tex
     r1_rmse, r1_lat = ds.hv_ref_primary
     r2_rmse, r2_lat = ds.hv_ref_secondary
-    for doc_name, doc_content in [("REPORT.md", md_text), ("report.tex", tex_text)]:
+    for doc_name, doc_content in [("REPORT.md", md_text), ("report.tex", expanded_tex)]:
         if f"[{r1_rmse:.2f}, {r1_lat:.0f}]" not in doc_content and f"[{r1_rmse:.2f}, {r1_lat:.1f}]" not in doc_content:
             errors.append(f"Primary hypervolume reference point [{r1_rmse:.2f}, {r1_lat:.1f}] missing from {doc_name}")
         if f"[{r2_rmse:.2f}, {r2_lat:.0f}]" not in doc_content and f"[{r2_rmse:.2f}, {r2_lat:.1f}]" not in doc_content:
@@ -3052,6 +3112,8 @@ def write_research_reporting(ds: Optional[ReportingDataset] = None) -> None:
     # Sync LaTeX macros and tables
     generate_macros(ds)
     generate_tables(ds)
+    from scripts.publication import write_publication
+    write_publication(ds)
 
     # Write REPORT.md
     md_content = render_report_markdown(ds)
@@ -3142,6 +3204,9 @@ def check_research_reporting(ds: Optional[ReportingDataset] = None) -> Tuple[boo
             )
 
     # 4. Run manuscript-level numerical, audit-document, and repository-wide registry checks
+    from scripts.publication import check_publication_source, check_pdf
+    diagnostics.extend(check_publication_source(ds))
+    diagnostics.extend(check_pdf(ds))
     audit_errors = audit_manuscript_integrity(ds)
     diagnostics.extend(audit_errors)
 
