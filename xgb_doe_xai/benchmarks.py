@@ -8,13 +8,14 @@ between Sequential DoE and Multi-Objective TPE.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import optuna
 import xgboost as xgb
 from sklearn.metrics import f1_score, log_loss
 
-from xgb_doe_xai.config import DEFAULT_FACTORS, uncode_configuration
+from xgb_doe_xai.config import DEFAULT_FACTORS, uncode_configuration, canonical_configuration
 from xgb_doe_xai.profiler import LatencyProfileResult, WarmedLatencyProfiler
 
 
@@ -28,6 +29,10 @@ class EvaluationResult:
     val_logloss: float
     latency: LatencyProfileResult
     block_id: int = 0
+    n_trees: int = 100
+    seed: int = 42
+    training_seconds: float = 0.
+    profiling_seconds: float = 0.
 
 
 def train_and_evaluate_config(
@@ -43,7 +48,9 @@ def train_and_evaluate_config(
     random_seed: int = 42,
 ) -> EvaluationResult:
     """Train XGBoost binary classifier and profile warmed inference latency."""
+    coded_params = canonical_configuration(coded_params)
     nat = uncode_configuration(coded_params)
+    started = time.perf_counter()
 
     params: Dict[str, Any] = {
         "objective": "binary:logistic",
@@ -65,9 +72,11 @@ def train_and_evaluate_config(
 
     f1 = float(f1_score(y_val, y_val_preds, average="macro"))
     ll = float(log_loss(y_val, y_val_probs))
+    training_seconds = time.perf_counter() - started
 
     # Single-sample warmed latency profiling on a representative slice
     sample_slice = X_val[:1]
+    started = time.perf_counter()
     latency_res = profiler.profile_booster(clf.get_booster(), sample_slice)
 
     return EvaluationResult(
@@ -79,6 +88,9 @@ def train_and_evaluate_config(
         val_logloss=ll,
         latency=latency_res,
         block_id=block_id,
+        n_trees=n_trees, seed=random_seed,
+        training_seconds=training_seconds,
+        profiling_seconds=time.perf_counter()-started,
     )
 
 
@@ -168,6 +180,7 @@ def run_matched_motpe_benchmark(
     y_val: np.ndarray,
     profiler: WarmedLatencyProfiler,
     random_seed: int = 42,
+    n_trees: int = 100,
 ) -> List[EvaluationResult]:
     """Run Optuna Multi-Objective TPE under identical evaluation budget and warmed latency profiler."""
     sampler = optuna.samplers.TPESampler(seed=random_seed)
@@ -178,10 +191,11 @@ def run_matched_motpe_benchmark(
     def objective(trial: optuna.Trial) -> Tuple[float, float]:
         coded = {
             "x1": trial.suggest_float("x1", -1.0, 1.0),
-            "x2": trial.suggest_float("x2", -1.0, 1.0),
+            "x2": (trial.suggest_int("max_depth", 3, 9) - 6) / 3,
             "x3": trial.suggest_float("x3", -1.0, 1.0),
             "x4": trial.suggest_float("x4", -1.0, 1.0),
         }
+        coded = canonical_configuration(coded)
         res = train_and_evaluate_config(
             coded_params=coded,
             X_train=X_train,
@@ -191,6 +205,7 @@ def run_matched_motpe_benchmark(
             profiler=profiler,
             config_id=f"TPE_{trial.number:03d}",
             random_seed=random_seed + trial.number,
+            n_trees=n_trees,
         )
         tpe_results.append(res)
         return res.val_loss, res.latency.predict_median_us

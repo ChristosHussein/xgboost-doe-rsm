@@ -23,8 +23,8 @@ class AnovaTableResult:
     mean_sq: List[float]
     f_stat: List[Optional[float]]
     p_value: List[Optional[float]]
-    r2: float
-    adj_r2: float
+    r2: Optional[float]
+    adj_r2: Optional[float]
     ss_lof: Optional[float] = None
     ss_pe: Optional[float] = None
     f_lof: Optional[float] = None
@@ -176,8 +176,9 @@ class PolynomialRSMSurrogate:
                 raise ValueError('Lack-of-fit has no estimable degrees of freedom')
             ms_lof = ss_lof / df_lof
             ms_pe = ss_pe / df_pe
-            f_lof = ms_lof / max(ms_pe, 1e-12)
-            p_lof = 1.0 - stats.f.cdf(f_lof, df_lof, df_pe)
+            if ms_pe > 1e-20:
+                f_lof = ms_lof / ms_pe
+                p_lof = stats.f.sf(f_lof, df_lof, df_pe)
 
         # Assemble ANOVA sources
         sources = ["Model", "  Main Effects", "  2-Factor Interactions", "  Curvature (Quadratic)"]
@@ -208,8 +209,8 @@ class PolynomialRSMSurrogate:
 
         for s_name, ms, d in zip(sources, mss, dfs):
             if s_name in ["Model", "  Main Effects", "  2-Factor Interactions", "  Curvature (Quadratic)", "  Blocks"]:
-                f_val = ms / max(self.mse_resid_, 1e-12)
-                p_val = 1.0 - stats.f.cdf(f_val, d, df_resid)
+                f_val = ms / self.mse_resid_ if self.mse_resid_ > 1e-20 else None
+                p_val = stats.f.sf(f_val, d, df_resid) if f_val is not None else None
                 f_stats.append(f_val)
                 p_vals.append(p_val)
             elif s_name == "  Lack of Fit":
@@ -219,8 +220,8 @@ class PolynomialRSMSurrogate:
                 f_stats.append(None)
                 p_vals.append(None)
 
-        r2 = max(0.0, 1.0 - (ss_resid / max(ss_total, 1e-12)))
-        adj_r2 = max(0.0, 1.0 - (ss_resid / max(df_resid, 1)) / (ss_total / max(df_total, 1)))
+        r2 = 1.0 - ss_resid / ss_total if ss_total > 1e-20 else None
+        adj_r2 = 1.0 - (ss_resid / df_resid) / (ss_total / df_total) if ss_total > 1e-20 else None
 
         self.anova_ = AnovaTableResult(
             source=sources,
@@ -242,6 +243,12 @@ class PolynomialRSMSurrogate:
     def _prediction_matrix(self, X_coded, block_ids=None):
         if not getattr(self, '_fitted', False):
             raise ValueError('Surface is not fitted')
+        X_coded = np.asarray(X_coded, dtype=float)
+        if X_coded.ndim != 2 or X_coded.shape[1] != 4 or not np.isfinite(X_coded).all():
+            raise ValueError('Prediction requires finite n-by-4 coordinates')
+        if block_ids is not None and len(self.block_levels_):
+            if np.asarray(block_ids).shape != (len(X_coded),) or not np.isin(block_ids, self.block_levels_).all():
+                raise ValueError('Cannot predict an unseen block with a fixed-block OLS model')
         X_mat = self._build_design_matrix(X_coded, block_ids=None)
         if len(self.block_levels_) > 1:
             if block_ids is None:

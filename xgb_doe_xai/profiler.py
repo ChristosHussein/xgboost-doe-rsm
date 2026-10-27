@@ -9,11 +9,14 @@ across all search, surrogate, and benchmark stages.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field, asdict
+import os
+import platform
 from typing import Any, Dict, Optional, Tuple, Union
 import numpy as np
 import xgboost as xgb
 from scipy import sparse
+from latency import pin_cpu_affinity
 
 
 @dataclass(frozen=True)
@@ -29,21 +32,15 @@ class LatencyProfileResult:
     n_warmup: int
     n_timed: int
     batch_size: int
+    predict_raw_us: list = field(default_factory=list)
+    inplace_raw_us: list = field(default_factory=list)
+    affinity_applied: bool = False
+    cpu_core: Optional[int] = None
+    environment: dict = field(default_factory=dict)
+    predict_operation: str = 'fresh DMatrix construction plus Booster.predict; uncached'
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "predict_median_us": self.predict_median_us,
-            "predict_mean_us": self.predict_mean_us,
-            "predict_iqm_us": self.predict_iqm_us,
-            "predict_sd_us": self.predict_sd_us,
-            "predict_p95_us": self.predict_p95_us,
-            "inplace_median_us": self.inplace_median_us,
-            "inplace_mean_us": self.inplace_mean_us,
-            "inplace_iqm_us": self.inplace_iqm_us,
-            "n_warmup": self.n_warmup,
-            "n_timed": self.n_timed,
-            "batch_size": self.batch_size,
-        }
+        return asdict(self)
 
 
 def _compute_iqm(values: np.ndarray) -> float:
@@ -64,7 +61,13 @@ class WarmedLatencyProfiler:
         n_warmup: int = 100,
         n_timed: int = 500,
         measure_inplace: bool = True,
+        cpu_core: Optional[int] = None,
+        require_affinity: bool = True,
     ) -> None:
+        if n_warmup < 1 or n_timed < 2:
+            raise ValueError('Profiling requires positive warmup and at least two timed calls')
+        self.cpu_core = cpu_core
+        self.require_affinity = require_affinity
         self.n_warmup = n_warmup
         self.n_timed = n_timed
         self.measure_inplace = measure_inplace
@@ -76,17 +79,30 @@ class WarmedLatencyProfiler:
     ) -> LatencyProfileResult:
         """Profile inference latency of a trained XGBoost booster on sample input."""
         batch_size = sample_input.shape[0] if hasattr(sample_input, "shape") else 1
-        dmat = xgb.DMatrix(sample_input)
+        if batch_size != 1:
+            raise ValueError('Single-document latency requires exactly one row')
+        core = self.cpu_core
+        if core is None:
+            core = min(os.sched_getaffinity(0)) if hasattr(os, 'sched_getaffinity') else 0
+        affinity_applied = pin_cpu_affinity(core)
+        if self.require_affinity and not affinity_applied:
+            raise RuntimeError('Required single-core affinity could not be applied')
+        booster.set_param({'nthread': 1})
+        # A new DMatrix for every call prevents warmed prediction-cache hits.
+        # Construction is intentionally included: this is the uncached classic
+        # API operation, distinct from inplace_predict on an existing CSR row.
+        def predict():
+            return booster.predict(xgb.DMatrix(sample_input, nthread=1))
 
         # 1. Warm-up phase (discards JIT, memory allocation, cache misses)
         for _ in range(self.n_warmup):
-            _ = booster.predict(dmat)
+            _ = predict()
 
         # 2. Timed phase: standard predict(DMatrix)
         durations_predict_ns = np.empty(self.n_timed, dtype=np.int64)
         for i in range(self.n_timed):
             t0 = time.perf_counter_ns()
-            _ = booster.predict(dmat)
+            _ = predict()
             t1 = time.perf_counter_ns()
             durations_predict_ns[i] = t1 - t0
 
@@ -107,8 +123,8 @@ class WarmedLatencyProfiler:
                     t1 = time.perf_counter_ns()
                     durations_inplace_ns[i] = t1 - t0
                 durations_inplace_us = durations_inplace_ns / 1000.0
-            except Exception:
-                durations_inplace_us = None
+            except Exception as exc:
+                raise RuntimeError('Required inplace prediction measurement failed') from exc
 
         res = LatencyProfileResult(
             predict_median_us=float(np.median(durations_predict_us)),
@@ -122,5 +138,10 @@ class WarmedLatencyProfiler:
             n_warmup=self.n_warmup,
             n_timed=self.n_timed,
             batch_size=batch_size,
+            predict_raw_us=durations_predict_us.tolist(),
+            inplace_raw_us=durations_inplace_us.tolist() if durations_inplace_us is not None else [],
+            affinity_applied=affinity_applied, cpu_core=core,
+            environment={'platform': platform.platform(), 'processor': platform.processor(),
+                         'xgboost': xgb.__version__, 'clock': 'perf_counter_ns'},
         )
         return res

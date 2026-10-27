@@ -39,12 +39,12 @@ class ShapAttributions:
 class AnovaShapComparisonResult:
     spearman_rho: Optional[float]
     kendall_tau: Optional[float]
-    interaction_correlation: float
+    interaction_correlation: Optional[float]
     rank_agreement: bool
     top_factor_anova: str
     top_factor_shap: str
-    top_interaction_anova: Tuple[str, str]
-    top_interaction_shap: Tuple[str, str]
+    top_interaction_anova: Optional[Tuple[str, str]]
+    top_interaction_shap: Optional[Tuple[str, str]]
     discrepancy_scores: Dict[str, float]
 
 
@@ -128,15 +128,14 @@ def compute_surrogate_shap_attributions(
             or not np.isfinite(background_data).all() or not np.isfinite(eval_data).all()):
         raise ValueError('SHAP requires finite nonempty background/evaluation matrices')
     values = np.empty((len(eval_data), 1 << k))
-    for row, point in enumerate(eval_data):
-        for mask in range(1 << k):
-            hybrid = background_data.copy()
-            present = [i for i in range(k) if mask & (1 << i)]
-            hybrid[:, present] = point[present]
-            prediction = np.asarray(surrogate_model.predict(hybrid)).reshape(-1)
-            if prediction.shape != (len(hybrid),) or not np.isfinite(prediction).all():
-                raise ValueError('Surrogate must return one finite response per row')
-            values[row, mask] = prediction.mean()
+    for mask in range(1 << k):
+        hybrid = np.tile(background_data, (len(eval_data), 1))
+        present = [i for i in range(k) if mask & (1 << i)]
+        hybrid[:, present] = np.repeat(eval_data[:, present], len(background_data), axis=0)
+        prediction = np.asarray(surrogate_model.predict(hybrid)).reshape(-1)
+        if prediction.shape != (len(hybrid),) or not np.isfinite(prediction).all():
+            raise ValueError('Surrogate must return one finite response per row')
+        values[:, mask] = prediction.reshape(len(eval_data), len(background_data)).mean(axis=1)
     shap_arr = np.zeros((len(eval_data), k))
     interactions = np.zeros((len(eval_data), k, k))
     for i in range(k):
@@ -193,8 +192,10 @@ def compare_anova_vs_shap(
     anova_scores = np.array([anova.main_effect_ss[f] for f in factors])
     shap_scores = np.array([shap_attr.mean_abs_shap[f] for f in factors])
 
-    rho, _ = stats.spearmanr(anova_scores, shap_scores)
-    tau, _ = stats.kendalltau(anova_scores, shap_scores)
+    rho = tau = np.nan
+    if np.ptp(anova_scores) > 1e-12 and np.ptp(shap_scores) > 1e-12:
+        rho, _ = stats.spearmanr(anova_scores, shap_scores)
+        tau, _ = stats.kendalltau(anova_scores, shap_scores)
 
     # 2. Top factors
     top_f_anova = anova.main_effect_ranking[0]
@@ -209,7 +210,7 @@ def compare_anova_vs_shap(
     if np.std(anova_inter_vec) > 1e-12 and np.std(shap_inter_vec) > 1e-12:
         inter_corr, _ = stats.pearsonr(anova_inter_vec, shap_inter_vec)
     else:
-        inter_corr = 1.0 if np.allclose(anova_inter_vec, shap_inter_vec) else 0.0
+        inter_corr = None
 
     # Top interaction pair
     max_anova_idx = int(np.argmax(anova_inter_vec))
@@ -219,6 +220,10 @@ def compare_anova_vs_shap(
     max_shap_idx = int(np.argmax(shap_inter_vec))
     i_s, j_s = triu_idx[0][max_shap_idx], triu_idx[1][max_shap_idx]
     top_pair_shap = (factors[i_s], factors[j_s])
+    if np.max(anova_inter_vec) < 1e-12:
+        top_pair_anova = None
+    if np.max(shap_inter_vec) < 1e-12:
+        top_pair_shap = None
 
     # 4. Discrepancy score per factor: absolute difference between normalized ranks
     anova_norm = anova_scores / max(np.sum(anova_scores), 1e-12)
@@ -228,7 +233,7 @@ def compare_anova_vs_shap(
     return AnovaShapComparisonResult(
         spearman_rho=float(rho) if np.isfinite(rho) else None,
         kendall_tau=float(tau) if np.isfinite(tau) else None,
-        interaction_correlation=float(inter_corr),
+        interaction_correlation=float(inter_corr) if inter_corr is not None else None,
         rank_agreement=rank_agree,
         top_factor_anova=top_f_anova,
         top_factor_shap=top_f_shap,

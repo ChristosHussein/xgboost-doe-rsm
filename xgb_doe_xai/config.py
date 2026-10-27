@@ -1,8 +1,8 @@
 """xgb_doe_xai.config - Hyperparameter domain, coding transformations, and benchmark constraints.
 
 Addresses Remark 1:
-Learning rate range is calibrated to [0.05, 0.30] (avoiding the 32% underfitting
-at eta=0.01 observed in previous iterations).
+Learning rate excludes the historical eta=0.01 setting. Convergence on a new
+dataset must still be calibrated using development observations.
 """
 
 from __future__ import annotations
@@ -92,6 +92,26 @@ class BenchmarkConfig:
     hv_ref_loss: float = 0.50
     hv_ref_latency_us: float = 250.0
     random_seed: int = 42
+    center_replicates: int = 4
+    adaptive_cycles: int = 2
+    infill_per_cycle: int = 10
+    confirmation_points: int = 12
+    search_replicates: int = 3
+    acquisition: str = 'hybrid'
+    mode: str = 'research'
+
+    def __post_init__(self):
+        if self.mode not in ('research', 'smoke'):
+            raise ValueError('mode must be research or smoke')
+        if self.mode == 'research' and (self.warmup_inferences, self.timed_inferences) != (100, 500):
+            raise ValueError('Research latency protocol requires 100 warmup and 500 timed calls')
+        if min(self.n_trees, self.n_nuisance_blocks, self.search_replicates,
+               self.center_replicates, self.confirmation_points, self.infill_per_cycle) < 1:
+            raise ValueError('Budgets must be positive')
+        if self.adaptive_cycles < 1:
+            raise ValueError('Sequential research requires at least one adaptive cycle')
+        if self.acquisition not in ('uncertainty', 'discrepancy', 'hybrid', 'expected_improvement'):
+            raise ValueError('Unknown acquisition criterion')
 
 
 def code_configuration(natural_params: Dict[str, float]) -> Dict[str, float]:
@@ -113,3 +133,12 @@ def uncode_configuration(coded_params: Dict[str, float]) -> Dict[str, float | in
             raise KeyError(f"Missing coded factor '{code_k}'")
         natural[factor.name] = factor.to_natural(coded_params[code_k])
     return natural
+
+
+def canonical_configuration(coded_params):
+    """Coordinates of the configuration actually trained, including integer depth."""
+    values = np.array([coded_params[name] for name in FACTOR_NAMES], dtype=float)
+    if not np.isfinite(values).all() or np.any(np.abs(values) > 1 + 1e-12):
+        raise ValueError('Coded coordinates must lie in [-1, 1]')
+    return {name: round(value, 12) for name, value in
+            code_configuration(uncode_configuration(coded_params)).items()}
