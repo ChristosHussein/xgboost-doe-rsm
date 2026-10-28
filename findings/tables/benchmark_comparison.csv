@@ -1,4 +1,0 @@
-Method,Search Fits,Mean Hypervolume,Best Validation Loss,Feasibility (%)
-STATIC_DOE,60,48.9933 +/- 0.0000,0.0631,36.0%
-DOE,60,41.8539 +/- 0.0000,0.0631,0.0%
-TPE,60,49.3628 +/- 0.0000,0.0418,13.3%

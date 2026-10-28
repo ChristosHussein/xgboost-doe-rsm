@@ -32,8 +32,8 @@ output/
 /archive/
 
 # Ephemeral experiment runs and raw data
-results/revision_v2/smoke*/
-results/smoke_verification/
-results/calibration/
-results/experiment_run/
+/results/
+**/smoke_*/
+**/smoke_verification/
+**/smoke_test/
 data/

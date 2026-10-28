@@ -1,108 +1,99 @@
-# Explainable Sequential Response Surface Methodology for XGBoost
+# Multi-Objective Hyperparameter Optimization for Gradient Boosted Trees under Stochastic Nuisance Blocking via Response Surface Methodology and Explainable AI
 
-A comprehensive, mathematically rigorous research repository combining **Sequential Design of Experiments (Face-Centered Central Composite Design & RSM)** with **Explainable AI (ANOVA & SHAP)** for multi-objective hyperparameter optimization in **XGBoost** under stochastic nuisance blocking.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://www.python.org/)
+[![Reproducibility: Fully Automated](https://img.shields.io/badge/Reproducibility-Fully%20Automated-success.svg)](run_experiment.py)
 
-The project encompasses two coordinated studies:
-1. **Study 1 (California Housing Tabular Benchmark)**: Empirical study and peer-reviewed research manuscript on tabular regression under nuisance blocking, Pareto hypervolume optimization, and second-order latency modeling.
-2. **Study 2 (IMDb Sentiment Analysis NLP Study)**: Expanding the methodology into high-dimensional sparse text classification, addressing tree capacity calibration, unified warmed single-core latency protocols, holdout test isolation gates, and ANOVA-SHAP interaction synergy.
+A unified research repository investigating the intersection of **Design of Experiments (DOE)**, **Response Surface Methodology (RSM)**, and **Orthogonal Nuisance Blocking** with modern **Explainable Artificial Intelligence (XAI)** to optimize and explain hyperparameters in tree-based gradient boosted models (**XGBoost**) across competing objectives (predictive accuracy vs inference latency).
 
 ---
 
-## Deliverables & Repository Structure
+## 1. One Unified Project Across Two Procedural Phases
+
+This project is organized into two sequential procedural phases:
+
+- **Phase A — Continuous Tabular Response Surface Optimization under Stochastic Nuisance Blocking**  
+  *Benchmark*: California Housing ($N=20,640$, 8 continuous features, 5 spatial nuisance blocks).  
+  *Focus*: Factorial screening, first-order blocking, second-order Central Composite Design (CCD) curvature resolution, canonical stationary and ridge analysis ($\mathbf{x}_0 = -\frac{1}{2}\mathbf{B}^{-1}\mathbf{b}$), and multi-objective Derringer-Suich desirability optimization under pinned-CPU latency constraints.
+
+- **Phase B — High-Dimensional Sequential / Adaptive Central Composite Design with Explainable AI & Warmed Latency Calibration**  
+  *Benchmark*: IMDb Sentiment Analysis ($N=50,000$ documents, 10,000 sparse TF-IDF n-grams, 5 stratified folds).  
+  *Focus*: High-dimensional text classification, automated tree capacity calibration, standardized warmed single-core latency protocols, sequential adaptive coordinate augmentation under equal evaluation budgets, game-theoretic SHAP vs ANOVA variance concordance, and document-level word response surfaces.
+
+---
+
+## 2. Pristine Repository Structure & Deliverables
 
 ```
 .
-├── california_housing/               <- Study 1: Complete Tabular Benchmark & Manuscript
-│   ├── report.pdf                    <- Primary research manuscript (PDF)
-│   ├── report.tex                    <- Manuscript LaTeX source (macro-bound)
-│   ├── technical_supplement.pdf      <- Comprehensive technical supplement (PDF)
-│   ├── technical_supplement.tex      <- Supplement LaTeX source
-│   ├── REPORT.md                     <- Generated empirical research record
-│   ├── pipeline.py, analysis.py      <- Core optimization & ANOVA execution engine
-│   ├── plots.py, scientific_stats.py <- Publication diagnostics & inference
-│   ├── scripts/                      <- Publication build, verification & audit tools
-│   ├── tables/                       <- 16 LaTeX & CSV tables for California Housing
-│   ├── figures/                      <- Publication figures, response surfaces, Pareto front
-│   ├── results/                      <- Canonical frozen empirical runs (17,077 fits)
-│   ├── docs/                         <- Scientific audits, claim bindings & provenance
-│   └── tests/                        <- 26 statistical, protocol & integrity test suites
+├── EXPECTED_VALUES.md           <- Pre-experiment expected values & measurement contract (Phases A & B)
+├── EXPERIMENT_EXPLANATION.md    <- Comprehensive scientific explanation & mathematical formulations
+├── README.md                    <- This repository guide & execution manual
+├── requirements.txt             <- Python runtime dependencies
+├── run_experiment.py            <- Root single-command CLI orchestrator for all phases
 │
-├── experiment_code/                  <- Study 2: Clean code to run the whole experiment
-│   ├── run_experiment.py             <- Single master orchestrator script
-│   ├── xgb_doe_xai/                  <- Modular Python package (design, XAI, profiling)
-│   └── README.md                     <- Code architecture and execution manual
+├── findings/                    <- Unified directory for all produced deliverables
+│   ├── phase_a/                 <- Automated findings for Phase A (California Housing)
+│   │   ├── figures/             <- Publication figures (Pareto fronts, 3D response surfaces, diagnostics)
+│   │   ├── tables/              <- Publication tables (ANOVA, benchmarks, LOF, confirmation) [CSV & TeX]
+│   │   └── values/              <- benchmark_summary.json, diagnostics.json, macros.tex
+│   └── phase_b/                 <- Automated findings for Phase B (IMDb Sentiment)
+│       ├── figures/             <- Publication figures (Pareto fronts, ANOVA vs SHAP, interaction heatmaps)
+│       ├── tables/              <- Publication tables (ANOVA loss/latency, benchmarks, confirmation) [CSV & TeX]
+│       └── values/              <- metrics.json, macros.tex
 │
-├── findings/                         <- Study 2: Automated findings, tables & figures
-│   ├── tables/                       <- Automated ANOVA, benchmark & confirmation tables (CSV & TeX)
-│   ├── figures/                      <- Publication plots: Pareto fronts, heatmaps, profiles (PNG)
-│   ├── values/                       <- Reconstructed metrics.json and LaTeX macros.tex
-│   ├── evidence_sources.yaml         <- Evidence registry schema
-│   ├── measurement_contract.yaml     <- Metric binding contracts
-│   └── README.md                     <- Summary of generated empirical findings
+├── phase_a_rsm_blocking/        <- Minimal Phase A execution code & canonical results
+│   ├── pipeline.py              <- First-order screening, blocking & optimization pipeline
+│   ├── analysis.py              <- Second-order ANOVA, lack-of-fit & canonical stationary analysis
+│   ├── latency.py               <- Pinned single-row latency measurement protocol
+│   ├── final_evaluation.py      <- Holdout test set evaluation gate
+│   ├── scientific_stats.py      <- Non-parametric Wilcoxon and paired statistical tests
+│   ├── config.yaml              <- Experimental bounds and factor coding rules
+│   ├── report.pdf               <- Peer-reviewed publication manuscript (Phase A)
+│   ├── technical_supplement.pdf <- Technical supplement detailing mathematical proofs
+│   ├── scripts/                 <- Benchmark and replication scripts (run_benchmarks.py, reproduce_all.py)
+│   └── results/                 <- Canonical empirical runs (17,077 fits, full_run_001, runs.csv)
 │
-├── EXPERIMENT_EXPLANATION.md         <- Deliverable: Detailed explanation of the experiment
-├── EXPECTED_VALUES.md                <- Deliverable: Pre-experiment expected values registry
-├── run_experiment.py                 <- Root single-command entry point to run Study 2
-├── requirements.txt                  <- Python environment dependencies
-└── .gitignore                        <- Local archive/ and raw data/ exclusion
+├── phase_b_sequential_xai/      <- Modular Phase B execution package & pipeline
+│   ├── run_phase_b.py           <- Master CLI runner for Phase B
+│   ├── xgb_doe_xai/             <- Modular Python package (design, XAI, surrogates, benchmarks, profiler)
+│   └── README.md                <- Detailed Phase B architecture and developer guide
+│
+└── archive/                     <- Strictly local backup of non-deliverable auxiliary docs (git-ignored)
 ```
 
 ---
 
-## Quick Start & Execution
+## 3. Quick Start & Execution Guide
 
-### 1. Study 2: Sequential DoE NLP Experiment (IMDb Sentiment Analysis)
+The entire repository can be replicated or verified through `run_experiment.py`:
 
-All operations can be run via the root entry point `run_experiment.py`:
-
-```bash
-# A. Fast 12-Second Smoke Verification (Synthetic corpus end-to-end)
-python run_experiment.py --stage smoke
-
-# B. Download & Preprocess Full IMDb Dataset (49,578 unique documents)
-python run_experiment.py --stage prepare --data-dir data
-
-# C. Tree Capacity & Latency Calibration (Resolves underfitting on development pool)
-python run_experiment.py --stage calibrate --data-dir data --output-dir results/calibration
-
-# D. Run Equal-Budget Multi-Objective Benchmark (Static CCD vs Sequential CCD vs MO-TPE)
-python run_experiment.py --stage run --dataset full_imdb --data-dir data --calibration-dir results/calibration --output-dir results/experiment_run
-
-# E. Automatically Regenerate All Deliverables (Tables, Figures, Values)
-python run_experiment.py --stage generate-findings --output-dir results/experiment_run --findings-dir findings
-
-# F. Single Command Complete Pipeline
-python run_experiment.py --stage all --dataset full_imdb --data-dir data --findings-dir findings --training-threads 4
+### A. Fast End-to-End Smoke Verification (< 25s)
+Runs an automated synthetic verification across both Phase A and Phase B to confirm that all pipeline stages, mathematical solvers, XAI routines, and findings generators function seamlessly without error:
+```powershell
+python run_experiment.py --smoke
 ```
 
-### 2. Study 1: California Housing Tabular Study Verification
+### B. Run Phase A: Continuous Tabular RSM & Blocking
+Executes the full replication campaign on California Housing, fitting the factorial designs, second-order CCD, and benchmark baselines:
+```powershell
+python run_experiment.py --phase a --mode full
+```
 
-All verification commands for Study 1 are executed inside `california_housing/`:
+### C. Run Phase B: High-Dimensional Sequential CCD & XAI
+Executes data preparation, capacity calibration, sequential adaptive CCD, Optuna MO-TPE, exact surrogate SHAP attributions, document-level word studies, and findings generation on the full IMDb dataset:
+```powershell
+python run_experiment.py --phase b --stage all --dataset full_imdb --training-threads 4
+```
 
-```bash
-cd california_housing
-
-# Run full test suite (182 tests)
-python -m pytest tests/ test_verification.py -q
-
-# Run repository-wide scientific consistency audit
-python scripts/audit_scientific_consistency.py
-
-# Verify artifact bindings and report synchronization
-python scripts/generate_report_artifacts.py --check
-python scripts/generate_research_reporting.py --check
-python scripts/build_publication.py --check
+### D. Run Both Phases End-to-End
+```powershell
+python run_experiment.py --phase all
 ```
 
 ---
 
-## Deliverables Checklist
+## 4. Key Scientific Documents
 
-| Deliverable | Location | Description |
-|---|---|---|
-| **Whole Experiment Code** | [`experiment_code/`](experiment_code/) | Self-contained package (`xgb_doe_xai`) & orchestrator (`run_experiment.py`) |
-| **Findings, Tables & Figures** | [`findings/`](findings/) | Automated `tables/` (CSV & TeX), `figures/` (PNG), `values/` (`metrics.json`, `macros.tex`) |
-| **Experiment Explanation** | [`EXPERIMENT_EXPLANATION.md`](EXPERIMENT_EXPLANATION.md) | Formulations of CCD, RSM, ANOVA-SHAP alignment, and 5 research questions |
-| **Expected Values Contract** | [`EXPECTED_VALUES.md`](EXPECTED_VALUES.md) | Pre-experiment measurement contract & value bounds per scientific integrity |
-| **California Housing Study** | [`california_housing/`](california_housing/) | Complete Study 1 code, data, reports ([`report.pdf`](california_housing/report.pdf)), tables, and tests |
-| **Root Runner** | [`run_experiment.py`](run_experiment.py) | 1-click execution entry point delegating to `experiment_code` |
+- [EXPECTED_VALUES.md](EXPECTED_VALUES.md): Full pre-experiment measurement registry detailing invariants, metric IDs, mathematical formulas, and expected bounds for both Phase A and Phase B.
+- [EXPERIMENT_EXPLANATION.md](EXPERIMENT_EXPLANATION.md): Deep-dive document covering theoretical derivations, canonical analysis, ANOVA vs SHAP reconciliation, and experimental accounting.
