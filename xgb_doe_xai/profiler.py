@@ -16,7 +16,37 @@ from typing import Any, Dict, Optional, Tuple, Union
 import numpy as np
 import xgboost as xgb
 from scipy import sparse
-from latency import pin_cpu_affinity
+import sys
+
+
+def pin_cpu_affinity(core_id: int = 0) -> bool:
+    """Pin this process to one CPU core where the platform supports it."""
+    if hasattr(os, "sched_setaffinity"):
+        try:
+            os.sched_setaffinity(0, {core_id})
+            return True
+        except (OSError, ValueError):
+            pass
+
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+            kernel32.SetProcessAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+            kernel32.SetProcessAffinityMask.restype = ctypes.c_bool
+            kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+            kernel32.SetPriorityClass.restype = ctypes.c_bool
+
+            handle = kernel32.GetCurrentProcess()
+            affinity_applied = kernel32.SetProcessAffinityMask(handle, 1 << core_id)
+            kernel32.SetPriorityClass(handle, 0x00008000)
+            return bool(affinity_applied)
+        except (AttributeError, OSError, ValueError):
+            pass
+
+    return False
 
 
 def get_process_affinity():
