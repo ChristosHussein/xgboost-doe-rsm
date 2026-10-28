@@ -1,6 +1,6 @@
 # Experimental Findings & Deliverables
 
-Generated on 2026-10-28T02:05:04.245805+00:00 from `smoke_study`.
+Generated on 2026-10-28T02:13:14.241378+00:00 from `smoke_study`.
 
 ## Contents:
 - `tables/`:

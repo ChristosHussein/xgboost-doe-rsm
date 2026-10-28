@@ -1,0 +1,17 @@
+{
+  "declared_at_utc": "2026-10-28T01:38:41.467232+00:00",
+  "training_threads": 4,
+  "stage": "development-only calibration",
+  "tree_grid": [
+    100,
+    300,
+    600
+  ],
+  "eta_grid": [
+    -0.0,
+    -1.0
+  ],
+  "selection_rule": "smallest tree count whose low-rate macro F1 is within 0.005 of largest tested count",
+  "latency_limit": "median uncached classic latency across calibration fits",
+  "reference": "loss 1.0, latency 2x max calibration median latency"
+}

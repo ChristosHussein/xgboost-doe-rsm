@@ -29,7 +29,7 @@ Fix Plan*.md
 # Agent tools output
 graphify-out/
 output/
-archive/
+/archive/
 
 # Ephemeral experiment runs and raw data
 results/revision_v2/smoke*/

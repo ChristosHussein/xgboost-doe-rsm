@@ -1,0 +1,21 @@
+{
+  "latency_threshold_us": 229.4,
+  "warmup_inferences": 100,
+  "timed_inferences": 500,
+  "n_trees": 600,
+  "holdout_ratio": 0.2,
+  "n_nuisance_blocks": 5,
+  "hv_ref_loss": 1.0,
+  "hv_ref_latency_us": 507.9,
+  "random_seed": 42,
+  "center_replicates": 2,
+  "adaptive_cycles": 2,
+  "infill_per_cycle": 1,
+  "confirmation_points": 12,
+  "search_replicates": 3,
+  "acquisition": "hybrid",
+  "mode": "research",
+  "include_static_baseline": true,
+  "training_threads": 4,
+  "max_features": 10000
+}

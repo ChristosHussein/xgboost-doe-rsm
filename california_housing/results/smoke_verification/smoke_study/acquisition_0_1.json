@@ -1,0 +1,28 @@
+{
+  "criterion": "hybrid",
+  "points": [
+    {
+      "point_id": "C1_ADAPT_01",
+      "point_type": "adaptive",
+      "coded": {
+        "x1": 0.000610312709,
+        "x2": 0.666666666667,
+        "x3": 0.839741868261,
+        "x4": -0.889686818796
+      },
+      "block_id": 0
+    },
+    {
+      "point_id": "C1_ADAPT_02",
+      "point_type": "adaptive",
+      "coded": {
+        "x1": 0.029866699827,
+        "x2": -0.666666666667,
+        "x3": -0.832891324979,
+        "x4": -0.961742067125
+      },
+      "block_id": 0
+    }
+  ],
+  "source_snapshot": "snapshot_0_doe_0.json"
+}

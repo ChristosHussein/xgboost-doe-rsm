@@ -67,14 +67,14 @@ The seven candidate denominators reconstructed in `ds.curvature_sensitivity` (`s
 
 To prevent any future validation report or supplementary document from bypassing numerical verification, `scripts/generate_research_reporting.py` implements an automated **Scientific Artifact Registry and Discovery Gate** (`discover_scientific_and_documentation_files`, `build_scientific_artifact_registry`, and `verify_scientific_artifact_registry`):
 
-1. **Automatic File Discovery**: 79 scientific/documentation artifacts discovered, including 9 SHA-locked historical exclusions. Current publication claims use exact source/context bindings; archival records do not endorse current empirical claims.
+1. **Automatic File Discovery**: 77 scientific/documentation artifacts discovered, including 9 SHA-locked historical exclusions. Current publication claims use exact source/context bindings; archival records do not endorse current empirical claims.
 2. **Mandatory Registration & Fail-Closed Enforcement**: Every discovered file must be explicitly registered in `build_scientific_artifact_registry(ds)` with a declared verification mechanism. Any newly added or renamed scientific document lacking registration causes `verify_scientific_artifact_registry(ds)` and `check_research_reporting(ds)` to fail immediately.
 3. **Independent Verification by Mechanism**:
    - `generated_full_document` (28 files): verified by the declared registry mechanism.
    - `generated_sections_with_zero_outside_floats` (1 file): `REPORT.md`, verified by exact section-marker reconstruction plus zero floating-point tokens permitted outside auto-generated blocks.
    - `latex_macro_bound_zero_hardcoded_floats` (1 files): verified by the declared registry mechanism.
    - `compiled_pdf_verified` (2 files): verified by the declared registry mechanism.
-   - `cryptographic_sha256_provenance` (23 files): verified by the declared registry mechanism.
+   - `cryptographic_sha256_provenance` (21 files): verified by the declared registry mechanism.
    - `claim_registry_verified` (15 files): verified by the declared registry mechanism.
    - `justified_exclusion` (9 files): verified by the declared registry mechanism.
      - `docs/archive/review_notes.md`: Historical reviewer handoff prompt pinned to historical commit `caf3a5bf59f2eae2541d3478d5fc370f0b339717` (2026-10-08); preserved verbatim as review provenance.

@@ -1,0 +1,328 @@
+{
+  "config": {
+    "latency_threshold_us": 145.0,
+    "warmup_inferences": 3,
+    "timed_inferences": 5,
+    "n_trees": 5,
+    "holdout_ratio": 0.2,
+    "n_nuisance_blocks": 2,
+    "hv_ref_loss": 0.5,
+    "hv_ref_latency_us": 250.0,
+    "random_seed": 42,
+    "center_replicates": 4,
+    "adaptive_cycles": 1,
+    "infill_per_cycle": 2,
+    "confirmation_points": 3,
+    "search_replicates": 1,
+    "acquisition": "hybrid",
+    "mode": "smoke",
+    "include_static_baseline": true,
+    "training_threads": 1,
+    "max_features": 10000
+  },
+  "methods": [
+    "static_doe",
+    "doe",
+    "tpe"
+  ],
+  "factors": {
+    "x1": {
+      "name": "learning_rate",
+      "code_name": "x1",
+      "low": 0.05,
+      "center": 0.175,
+      "high": 0.3,
+      "is_integer": false,
+      "log_scale": false
+    },
+    "x2": {
+      "name": "max_depth",
+      "code_name": "x2",
+      "low": 3.0,
+      "center": 6.0,
+      "high": 9.0,
+      "is_integer": true,
+      "log_scale": false
+    },
+    "x3": {
+      "name": "subsample",
+      "code_name": "x3",
+      "low": 0.5,
+      "center": 0.75,
+      "high": 1.0,
+      "is_integer": false,
+      "log_scale": false
+    },
+    "x4": {
+      "name": "reg_lambda",
+      "code_name": "x4",
+      "low": 0.1,
+      "center": 1.0,
+      "high": 10.0,
+      "is_integer": false,
+      "log_scale": true
+    }
+  },
+  "dataset_id": "synthetic-smoke-v1",
+  "dataset_sha256": "9f4aec889af5b1614d28c5f62471f1221d8a20c1e9a3b3a0881b1fb55480a7db",
+  "evidence_kind": "smoke",
+  "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "platform": "Windows-10-10.0.26300-SP0",
+  "declared_at_utc": "2026-10-28T02:04:54.663291+00:00",
+  "git_revision": "18e95232f21e0220161dca5ed4e2146c9bde7e42",
+  "git_worktree_dirty": true,
+  "dependencies": {
+    "numpy": "2.4.4",
+    "scipy": "1.17.1",
+    "pandas": "3.0.2",
+    "scikit-learn": "1.8.0",
+    "xgboost": "3.2.0",
+    "optuna": "5.0.0",
+    "matplotlib": "3.10.8"
+  },
+  "source_hashes": {
+    "xgb_doe_xai/benchmarks.py": "1ee27fbfac7a0f6aa1ff188605778308973c022da5a5a7d314b3658e658bba78",
+    "xgb_doe_xai/config.py": "fd2cd6c25da83237e6155ef673f9b23c80fbdff3e99b8d3087ca2b0a6a16c66b",
+    "xgb_doe_xai/data.py": "1d2f590e06dd568be3202ab9d757457cc0384ad0044afc8f290726b05b663d79",
+    "xgb_doe_xai/design.py": "78c89ecbb1b3f68383a2357cc4c3a942394d94cff376f97575fdf6daa652a5b3",
+    "xgb_doe_xai/execution.py": "ce5b8630e69ac32c9e0959b576e201417bbc0b98180c8ef11ddeb99185d88fb5",
+    "xgb_doe_xai/final_evaluation.py": "e7ec8d2354316b19301b3027e72931b029ab62fa94a9380545e978807f8f0310",
+    "xgb_doe_xai/local_explanations.py": "8c43cb8dac1f5fba33f0991903a2b6506425d776e7ce1b5b81f74f3fa6a6232c",
+    "xgb_doe_xai/profiler.py": "b69872edff21819602016a283e54fab049743911dd83dc5b97aee9fd02eb6df3",
+    "xgb_doe_xai/reporting.py": "b2b23397e372119400a3a0177ccd579195553eef2059612f7cb1f2dbcfec970a",
+    "xgb_doe_xai/research_analysis.py": "a73ff8c50d1dfe0610fa9f23e54b8c7257c8bd073288a8f936b23777f9aecf7b",
+    "xgb_doe_xai/study.py": "f1e149fd2bfea0cc2d0827af718069927198b472b47c35fc1d1a342ef693dc3b",
+    "xgb_doe_xai/study_reporting.py": "7b8df5ca31f0d8a7080855e4b28ddcee071e4b4bf41aac6f5b8307e22be83a24",
+    "xgb_doe_xai/surrogates.py": "d1e1f0800ab586f6e90c7a08e7bafb80d6378cf4cc31185c0fc91a0e9e4621e5",
+    "xgb_doe_xai/word_study.py": "e352766f0d81b1c0b8a4615a6855287f6512a410e1dc2faf5a5ef29b1ad4cc7e",
+    "xgb_doe_xai/xai.py": "a3fc3e4843fe0faf8aa53154294c80d7c74ef8537a4e44e49f9a27295b2c9c6f",
+    "xgb_doe_xai/__init__.py": "d346b0c5c9ea793a53a3fd8ab902e90a378ceca9446e10007125d69f5a83555c"
+  },
+  "confirmation": [
+    {
+      "point_id": "CONF_0",
+      "point_type": "confirmation",
+      "coded": {
+        "x1": -1.0,
+        "x2": 0.0,
+        "x3": 0.717195839823,
+        "x4": 0.394736058119
+      },
+      "block_id": 0
+    },
+    {
+      "point_id": "CONF_1",
+      "point_type": "confirmation",
+      "coded": {
+        "x1": -0.811645304225,
+        "x2": 1.0,
+        "x3": 0.522279403981,
+        "x4": 0.572128610554
+      },
+      "block_id": 0
+    },
+    {
+      "point_id": "CONF_2",
+      "point_type": "confirmation",
+      "coded": {
+        "x1": 1.0,
+        "x2": 0.0,
+        "x3": -0.258403951535,
+        "x4": 0.853529977697
+      },
+      "block_id": 0
+    }
+  ],
+  "background": [
+    [
+      -1.0,
+      -1.0,
+      -1.0,
+      -1.0
+    ],
+    [
+      -1.0,
+      -1.0,
+      -1.0,
+      1.0
+    ],
+    [
+      -1.0,
+      -1.0,
+      1.0,
+      -1.0
+    ],
+    [
+      -1.0,
+      -1.0,
+      1.0,
+      1.0
+    ],
+    [
+      -1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      -1.0,
+      1.0,
+      -1.0,
+      -1.0
+    ],
+    [
+      -1.0,
+      1.0,
+      -1.0,
+      1.0
+    ],
+    [
+      -1.0,
+      1.0,
+      1.0,
+      -1.0
+    ],
+    [
+      -1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    [
+      0.0,
+      -1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      -1.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      -1.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    [
+      1.0,
+      -1.0,
+      -1.0,
+      -1.0
+    ],
+    [
+      1.0,
+      -1.0,
+      -1.0,
+      1.0
+    ],
+    [
+      1.0,
+      -1.0,
+      1.0,
+      -1.0
+    ],
+    [
+      1.0,
+      -1.0,
+      1.0,
+      1.0
+    ],
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      1.0,
+      1.0,
+      -1.0,
+      -1.0
+    ],
+    [
+      1.0,
+      1.0,
+      -1.0,
+      1.0
+    ],
+    [
+      1.0,
+      1.0,
+      1.0,
+      -1.0
+    ],
+    [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ]
+  ],
+  "search_fits_per_method": 60,
+  "confirmation_fits": 18,
+  "final_fits": 3,
+  "selection_rule": "largest dominated rectangle to predeclared reference; observed coordinate",
+  "acquisition_interpretation": "EI uses an equally normalized loss/latency scalarization with independent GP predictive variances; not EHVI",
+  "metrics": {
+    "loss": {
+      "source": "evaluations.jsonl:val_loss",
+      "unit": "1 - macro F1",
+      "aggregation": "mean across blocks"
+    },
+    "latency": {
+      "source": "evaluations.jsonl:latency_us",
+      "unit": "us/document",
+      "aggregation": "mean across blocks"
+    },
+    "hypervolume": {
+      "source": "search rows, block-averaged by coordinate",
+      "reference": [
+        0.5,
+        250.0
+      ]
+    },
+    "feasibility": {
+      "source": "same block-averaged search rows",
+      "limit_us": 145.0
+    },
+    "coverage": {
+      "source": "confirmation.json",
+      "definition": "fraction of reserved observations inside fixed-block OLS PI"
+    },
+    "explanations": {
+      "source": "snapshot_*.json",
+      "definition": "exact interventional Shapley values/interactions on declared background"
+    },
+    "final_test": {
+      "source": "final_results.json:results",
+      "definition": "test macro F1 and log loss reconstructed from final labels/probabilities; no post-test selection"
+    }
+  }
+}

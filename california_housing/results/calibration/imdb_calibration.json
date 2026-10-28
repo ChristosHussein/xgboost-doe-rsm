@@ -1,0 +1,9 @@
+{
+  "dataset_sha256": "201fdc0b1765174afe6fde3feb39d0bdfced2762e6dac6f7811936e842d3abdf",
+  "dataset_path": "C:\\Users\\chris\\Desktop\\Sequential Response Surface Methodology and Central Composite Design for Multi-Objective Hyperparameter Optimization in Gradient Boosted Trees under Stochastic Nuisance Blocking\\data\\imdb.csv",
+  "selected_tree_count": 600,
+  "latency_threshold_us": 229.4,
+  "hv_ref_latency_us": 507.9,
+  "calibration_fits": 6,
+  "underfitting_resolved": true
+}

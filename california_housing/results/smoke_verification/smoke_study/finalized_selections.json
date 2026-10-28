@@ -1,0 +1,66 @@
+{
+  "dataset_id": "synthetic-smoke-v1",
+  "development_sha256": "e79818a7ec177cf7052d329867e6f031bcefafd376876b660e0965157cad5c59",
+  "holdout_sha256": "d821f6f9aa3996cf6d54bf19b35efc50f3d752a371519dec17b0c0804bba5089",
+  "preprocessing": {
+    "max_features": 500,
+    "ngram_range": [
+      1,
+      2
+    ],
+    "sublinear_tf": true
+  },
+  "selections": [
+    {
+      "coded_params": {
+        "x1": 1.0,
+        "x2": -1.0,
+        "x3": 1.0,
+        "x4": -1.0
+      },
+      "method": "static_doe",
+      "replicate": 0
+    },
+    {
+      "coded_params": {
+        "x1": 1.0,
+        "x2": 0.0,
+        "x3": 0.0,
+        "x4": 0.0
+      },
+      "method": "doe",
+      "replicate": 0
+    },
+    {
+      "coded_params": {
+        "x1": 0.334128047189,
+        "x2": -0.666666666667,
+        "x3": 0.806049415377,
+        "x4": -0.463208342439
+      },
+      "method": "tpe",
+      "replicate": 0
+    }
+  ],
+  "training_config": {
+    "acquisition": "hybrid",
+    "adaptive_cycles": 1,
+    "center_replicates": 4,
+    "confirmation_points": 3,
+    "holdout_ratio": 0.2,
+    "hv_ref_latency_us": 250.0,
+    "hv_ref_loss": 0.5,
+    "include_static_baseline": true,
+    "infill_per_cycle": 2,
+    "latency_threshold_us": 145.0,
+    "max_features": 10000,
+    "mode": "smoke",
+    "n_nuisance_blocks": 2,
+    "n_trees": 5,
+    "random_seed": 42,
+    "search_replicates": 1,
+    "timed_inferences": 5,
+    "training_threads": 1,
+    "warmup_inferences": 3
+  }
+}
