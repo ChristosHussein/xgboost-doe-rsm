@@ -29,6 +29,7 @@ Fix Plan*.md
 # Agent tools output
 graphify-out/
 output/
+archive/
 
 # Ephemeral smoke test runs
 results/revision_v2/smoke*/

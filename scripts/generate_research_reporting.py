@@ -2756,6 +2756,10 @@ def build_scientific_artifact_registry(ds: Optional[ReportingDataset] = None) ->
     registry['scripts/templates/report_coverage.md'] = dict(mechanism='generated_full_document',
         expected_renderer=lambda d: (d.root_dir/'scripts/templates/report_coverage.md').read_text(encoding='utf-8'),
         source_artifacts=[], required=True)
+    registry['EXPERIMENT_PROTOCOL.md'] = dict(mechanism='cryptographic_sha256_provenance', required=True,
+        expected_sha256='5a84d20b471e73c7758aec85c016553a43a5fd1c4da1da2781421bba826f89e5',
+        source_artifacts=['tasks/plan.md'],
+        description='Prospective review draft; proposed settings are not experimental results or execution approval.')
     catalog_path=ds.root_dir/'docs/archive/catalog.json'
     registry['docs/archive/catalog.json'] = dict(mechanism='cryptographic_sha256_provenance', required=True,
         expected_sha256='18ea3a898ddf0420cd351041f9ec4b74e8a934995d5e6483da74ee169118c247',

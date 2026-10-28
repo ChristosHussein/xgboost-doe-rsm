@@ -14,9 +14,9 @@ reports use separate output directories and never replace that frozen evidence.
    coordinates before the first model fit.
 3. Start with the four-factor face-centered CCD, with independently seeded
    center repeats in each development block. Factor ranges are explicit in
-   `config.py`. The fourth factor is feature subsampling rather than the
-   regularization factor of the historical regression study; this is a changed
-   experiment, not a replication.
+   `config.py`. The factors retain the historical identities: learning rate,
+   depth, row subsampling and leaf-weight regularization. The new application
+   calibrates its ranges and capacity on development data.
 4. Fit quadratic fixed-block OLS surfaces and Matern GP alternatives. Compute
    exact interventional Shapley values and pair interactions by enumerating the
    four-input coalition game against the declared empirical background. Keep
@@ -26,14 +26,16 @@ reports use separate output directories and never replace that frozen evidence.
    uncertainty/space filling and scalarized expected improvement. EI is not
    expected hypervolume improvement. Integer tree depths are never treated as
    fractional model settings.
-6. Repeat MO-TPE with the same real model-fit budget, block information, tree
+6. Repeat MO-TPE and optionally the fixed-CCD baseline with the same real model-fit budget, block information, tree
    count and profiling operation. Methods run serially with randomized method
    order across search replicates. Save every evaluation and sampling/surrogate
    overhead. Report validation hypervolume, feasible fraction, observed-reference
    regret, and variability across repeated searches.
 7. Evaluate reserved configurations after fitting. Compare predicted and actual
    responses, fixed-block OLS prediction-interval coverage, GP prediction error,
-   model-based GP interval coverage and boundary bias. These observations never
+   model-based GP interval coverage and boundary bias. GP confirmation targets
+   block means; fixed-block OLS prediction intervals target block observations.
+   These observations never
    enter the fitted surfaces. Initial and updated explanation snapshots permit
    before/after comparisons.
 8. Freeze one observed selection per method/search replicate before the final
@@ -48,6 +50,21 @@ reports use separate output directories and never replace that frozen evidence.
    the generated report with reconstructed results.
 
 ## Run commands
+
+The recorded research revision uses dataset-specific configuration files from
+development-only calibration. Generic CLI defaults are not a substitute for
+those frozen settings. Its sequential design releases center replication for
+adaptive evaluations while preserving the original classifier-fit cap.
+
+Public dataset preparation is explicit, uses pinned sources, and records
+normalization, duplicate exclusions and dataset digests. Preparation requires
+`requirements-research.txt`; the study itself uses the core requirements.
+The orchestration script is `scripts/run_research_programme.py`.
+
+Local feature-weight explanations are in `local_explanations.py` and
+`word_study.py`. A separate `scripts/word_masking_study.py` removes literal
+words and re-vectorizes their contexts, including related bigrams. It uses
+the saved classifier and does not train additional optimization candidates.
 
 Install from the repository with `python -m pip install -e .` (or install
 `requirements.txt` and run the script directly). The console entry point is
@@ -109,5 +126,6 @@ different dataset/hardware are configuration choices, not demonstrated serving
 requirements. Calibrate them, tree count and the learning-rate range using
 development data before approving the final measurement contract.
 
-Real-data convergence, effect rankings, generalization and comparative optimizer
-performance remain **NOT RUN** until a real campaign is performed and reviewed.
+Execution records determine research status. Incomplete campaigns cannot be
+published as completed findings. Synthetic software tests are never empirical
+substitutes for the real-data campaign or its author review.

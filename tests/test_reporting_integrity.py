@@ -223,6 +223,7 @@ def _create_isolated_workspace(tmp_path: Path, root_dir: Path) -> Path:
         "config.yaml",
         "REPORT.md",
         "README.md",
+        "EXPERIMENT_PROTOCOL.md",
         "report.tex",
         "report.pdf",
         "technical_supplement.tex",

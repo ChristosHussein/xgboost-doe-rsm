@@ -4,6 +4,11 @@ Source requirements: the author's Remarks,.txt and Research approach.txt.
 These documents are requirements, not scientific evidence. Their historical
 description of online timing as unwarmed is contradicted by saved warmup metadata.
 
+Current instruction: experimental execution is suspended. Audit readiness against
+Original specs.txt and the two research notes, finish packaging and measurement
+contracts, verify and merge the preparation before any further real-data run.
+Earlier partial executions are preserved locally for audit and are not findings.
+
 ## Acceptance criteria and execution order
 
 - Preserve frozen housing evidence and the original experimental factor identities.
