@@ -80,6 +80,18 @@ def resolve_device(device_arg: str = "auto") -> str:
     except Exception:
         return "cpu"
 
+
+def safe_to_latex(df: pd.DataFrame, index: bool = False) -> str:
+    try:
+        return df.to_latex(index=index)
+    except Exception:
+        cols = [str(c) for c in df.columns]
+        lines = [r'\begin{tabular}{' + 'l' * len(cols) + r'}', r'\hline', ' & '.join(cols) + r' \\', r'\hline']
+        for _, row in df.iterrows():
+            lines.append(' & '.join(str(val) for val in row) + r' \\')
+        lines.extend([r'\hline', r'\end{tabular}'])
+        return '\n'.join(lines)
+
 def file_sha256(path: Path | str) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -412,7 +424,7 @@ def generate_all_findings(study_dir: Path, findings_dir: Path, dataset_name: str
         df_anova.to_csv(csv_file, index=False)
         with tex_file.open("w", encoding="utf-8") as f:
             f.write(f"% 2nd-Order ANOVA Table for {label}\n")
-            f.write(df_anova.to_latex(index=False))
+            f.write(safe_to_latex(df_anova, index=False))
         print(f"  [Table] Generated {csv_file.name} and {tex_file.name}")
 
     # 2. Benchmark Comparison Table
@@ -434,7 +446,7 @@ def generate_all_findings(study_dir: Path, findings_dir: Path, dataset_name: str
     df_bench = pd.DataFrame(benchmark_data)
     df_bench.to_csv(tables_dir / "benchmark_comparison.csv", index=False)
     with (tables_dir / "benchmark_comparison.tex").open("w", encoding="utf-8") as f:
-        f.write(df_bench.to_latex(index=False))
+        f.write(safe_to_latex(df_bench, index=False))
     print(f"  [Table] Generated benchmark_comparison.csv and .tex")
 
     # 3. Confirmation Predictions & Boundary Interval Coverage Table
@@ -452,7 +464,7 @@ def generate_all_findings(study_dir: Path, findings_dir: Path, dataset_name: str
     df_conf = pd.DataFrame(confirm_data)
     df_conf.to_csv(tables_dir / "confirmation_predictions.csv", index=False)
     with (tables_dir / "confirmation_predictions.tex").open("w", encoding="utf-8") as f:
-        f.write(df_conf.to_latex(index=False))
+        f.write(safe_to_latex(df_conf, index=False))
     print(f"  [Table] Generated confirmation_predictions.csv and .tex")
 
     # 4. ANOVA vs SHAP Agreement Table
@@ -475,7 +487,7 @@ def generate_all_findings(study_dir: Path, findings_dir: Path, dataset_name: str
         df_agree = pd.DataFrame(agreement_rows)
         df_agree.to_csv(tables_dir / "anova_vs_shap_agreement.csv", index=False)
         with (tables_dir / "anova_vs_shap_agreement.tex").open("w", encoding="utf-8") as f:
-            f.write(df_agree.to_latex(index=False))
+            f.write(safe_to_latex(df_agree, index=False))
         print("  [Table] Generated anova_vs_shap_agreement.csv and .tex")
 
     # 5. Figures Generation
