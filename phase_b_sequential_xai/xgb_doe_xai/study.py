@@ -146,8 +146,10 @@ def run_study(config, evaluator, output_dir, *, dataset_id, dataset_sha256,
     """
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=False)
-    if evidence_kind not in ('research', 'synthetic_fixture', 'smoke'):
+    if evidence_kind not in ('research', 'development_pilot', 'synthetic_fixture', 'smoke'):
         raise ValueError('Unknown evidence kind')
+    if evidence_kind == 'development_pilot' and (config.mode != 'research' or final_evaluator is not None):
+        raise ValueError('Development pilot requires research timing and must not evaluate final test data')
     if evidence_kind == 'research' and (config.mode != 'research' or final_evaluator is None):
         raise ValueError('Research requires the full protocol and a protected final evaluator')
     initial = generate_fccd_points(n_center=config.center_replicates)

@@ -122,7 +122,9 @@ def run_smoke_verification() -> int:
         return ret_a
 
     # 2. Phase B Smoke Mode
-    ret_b = run_phase_b(stage="smoke", findings_dir=FINDINGS_DIR / "phase_b", device="cpu")
+    smoke_dir = ROOT / 'results' / 'verification_smoke'
+    ret_b = run_phase_b(stage="smoke", output_dir=smoke_dir,
+                        findings_dir=smoke_dir / 'findings', device="cpu")
     if ret_b != 0:
         return ret_b
 

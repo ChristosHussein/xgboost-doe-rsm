@@ -11,6 +11,7 @@ from scipy import sparse
 import xgboost as xgb
 
 from .config import uncode_configuration
+from .features import canonical_features
 from .local_explanations import explain_feature_vector
 from .study import write_json
 
@@ -36,6 +37,7 @@ def run_word_study(partitions,config,selection,output,*,documents=10):
         scope='conditional feature-weight perturbations; not causal word effects')
     write_json(output/'contract.json',contract)
     x_train,y_train,x_valid,_=partitions.block_features[0]
+    x_train, x_valid = canonical_features(x_train), canonical_features(x_valid)
     params=uncode_configuration(selection['coded_params'])
     model=xgb.XGBClassifier(**params,n_estimators=config.n_trees,
         n_jobs=config.training_threads,device=getattr(config, 'device', 'cpu'),random_state=config.random_seed,objective='binary:logistic')

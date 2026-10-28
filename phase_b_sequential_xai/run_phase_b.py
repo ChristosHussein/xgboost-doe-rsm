@@ -81,6 +81,11 @@ def resolve_device(device_arg: str = "auto") -> str:
         return "cpu"
 
 
+def format_statistic(value, precision=4):
+    """Undefined dispersion is unavailable, not evidence of zero variability."""
+    return 'N/A' if value is None else f'{value:.{precision}f}'
+
+
 def safe_to_latex(df: pd.DataFrame, index: bool = False) -> str:
     try:
         return df.to_latex(index=index)
@@ -272,7 +277,8 @@ def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb"
         hv_ref_latency_us=cfg.hv_ref_latency_us,
         calibration_fits=len(records),
         device=cfg.device,
-        underfitting_resolved=True,
+        capacity_rule_satisfied=True,
+        underfitting_resolved=None,  # A relative capacity rule cannot prove adequate learning.
     )
     write_json(output_dir / f"{dataset_name}_calibration.json", calib_summary)
     print(f"\nCalibration complete for {dataset_name}:")
@@ -433,13 +439,13 @@ def generate_all_findings(study_dir: Path, findings_dir: Path, dataset_name: str
     for m, m_data in summary["methods"].items():
         reps = m_data["replicates"]
         hv_mean = m_data["hypervolume_mean"]
-        hv_sd = m_data["hypervolume_sd"] or 0.0
+        hv_sd = format_statistic(m_data["hypervolume_sd"])
         best_loss_mean = float(np.mean([r["best_observed_loss"] for r in reps]))
         feas_mean = float(np.mean([r["feasibility_rate"] for r in reps])) * 100
         benchmark_data.append({
             "Method": m.upper(),
             "Search Fits": summary["search_fits"][m],
-            "Mean Hypervolume": f"{hv_mean:.4f} +/- {hv_sd:.4f}",
+            "Mean Hypervolume": f"{hv_mean:.4f} +/- {hv_sd}",
             "Best Validation Loss": f"{best_loss_mean:.4f}",
             "Feasibility (%)": f"{feas_mean:.1f}%",
         })
@@ -624,7 +630,7 @@ def generate_all_findings(study_dir: Path, findings_dir: Path, dataset_name: str
     for m, m_data in summary["methods"].items():
         name_clean = m.replace("_", "").title()
         macros.append(f"\\newcommand{{\\numText{name_clean}HVMean}}{{{m_data['hypervolume_mean']:.4f}}}")
-        macros.append(f"\\newcommand{{\\numText{name_clean}HVSD}}{{{m_data['hypervolume_sd']:.4f}}}")
+        macros.append(f"\\newcommand{{\\numText{name_clean}HVSD}}{{{format_statistic(m_data['hypervolume_sd'])}}}")
         feas_mean = sum(r["feasibility_rate"] for r in m_data["replicates"]) / len(m_data["replicates"])
         macros.append(f"\\newcommand{{\\numText{name_clean}Feasibility}}{{{feas_mean * 100:.1f}\\{pct}}}")
         best_loss_mean = sum(r["best_observed_loss"] for r in m_data["replicates"]) / len(m_data["replicates"])
@@ -635,7 +641,7 @@ def generate_all_findings(study_dir: Path, findings_dir: Path, dataset_name: str
             k_clean = k.replace(":", "").replace("_", "").title()
             macros.append(f"\\newcommand{{\\numTextConfirm{k_clean}RMSE}}{{{c_data['rmse']:.4f}}}")
             macros.append(f"\\newcommand{{\\numTextConfirm{k_clean}PICoverage}}{{{c_data['pi_coverage'] * 100:.1f}\\{pct}}}")
-            macros.append(f"\\newcommand{{\\numTextConfirm{k_clean}BoundaryBias}}{{{c_data['boundary_bias']:.5f}}}")
+            macros.append(f"\\newcommand{{\\numTextConfirm{k_clean}BoundaryBias}}{{{format_statistic(c_data['boundary_bias'], 5)}}}")
 
     if summary.get("test_results"):
         doe_test_f1 = [t["test_macro_f1"] for t in summary["test_results"] if t["method"] == "doe"]
@@ -694,7 +700,7 @@ def main():
         return 0
 
     if args.stage == "smoke":
-        smoke_dir = ROOT / "results" / "smoke_verification"
+        smoke_dir = args.output_dir
         run_smoke_test(smoke_dir, device=args.device)
         generate_all_findings(smoke_dir / "smoke_study", args.findings_dir, dataset_name="synthetic")
         return 0

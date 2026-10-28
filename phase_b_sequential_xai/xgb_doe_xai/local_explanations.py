@@ -5,6 +5,7 @@ or that fractionally attenuated vectors are natural sentences.
 """
 from dataclasses import asdict
 import numpy as np
+from .features import canonical_features
 
 from .design import generate_fccd_points
 from .surrogates import PolynomialRSMSurrogate
@@ -70,7 +71,7 @@ def explain_feature_vector(model,row,names,*,seed=42,confirmation_points=64):
         vectors = sparse.vstack([row]*len(weights), format='lil')
         for j, index in enumerate(selected):
             vectors[:,index] = weights[:,j,None]*row[0,index]
-        return model.predict_proba(vectors.tocsr())[:,1]
+        return model.predict_proba(canonical_features(vectors.tocsr()))[:,1]
     result = explain_word_response(response, names[selected].tolist(), seed=seed,
                                    confirmation_points=confirmation_points)
     result['selected_feature_indices'] = selected

@@ -53,7 +53,7 @@ def reconstruct_summary(output):
     if any((r['latency']['n_warmup'], r['latency']['n_timed']) !=
            (config['warmup_inferences'], config['timed_inferences']) for r in rows):
         raise ValueError('Latency protocols differ from the frozen measurement contract')
-    if contract['evidence_kind'] == 'research':
+    if contract['evidence_kind'] in ('research', 'development_pilot'):
         for row in rows:
             latency = row['latency']
             if (not latency['affinity_applied'] or len(latency['predict_raw_us']) != config['timed_inferences']

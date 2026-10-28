@@ -17,6 +17,7 @@ from sklearn.metrics import f1_score, log_loss
 
 from xgb_doe_xai.config import DEFAULT_FACTORS, uncode_configuration, canonical_configuration
 from xgb_doe_xai.profiler import LatencyProfileResult, WarmedLatencyProfiler
+from xgb_doe_xai.features import canonical_features
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,7 @@ def train_and_evaluate_config(
 ) -> EvaluationResult:
     """Train XGBoost binary classifier and profile warmed inference latency."""
     coded_params = canonical_configuration(coded_params)
+    X_train, X_val = canonical_features(X_train), canonical_features(X_val)
     nat = uncode_configuration(coded_params)
     started = time.perf_counter()
 
