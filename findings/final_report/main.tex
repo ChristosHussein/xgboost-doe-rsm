@@ -1,0 +1,154 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs,array,tabularx}
+\usepackage{graphicx,float,xcolor,microtype}
+\usepackage[section]{placeins}
+\usepackage{hyperref,xurl}
+\hypersetup{colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black,pdftitle={Learning and Optimizing XGBoost with Planned Experiments: GPU Campaign Verification Draft},pdfauthor={Christos Chousein Sounios}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\linespread{1.05}
+\raggedbottom
+\setlength{\emergencystretch}{2em}
+\input{numbers.tex}
+\title{\textbf{Learning and Optimizing XGBoost with Planned Experiments}\\[0.35em]\large Sentiment Classification, CPU Prediction Speed, and GPU-Accelerated Sequential Search}
+\author{\textbf{Christos Chousein Sounios}}
+\date{28 October 2026\\[0.5em]\small Verification draft --- not approved for final scientific conclusions}
+\begin{document}
+\maketitle
+\begin{abstract}
+Can planned experiments explain which XGBoost settings matter, identify useful classifiers, and guide new experiments? This report develops that question for sentiment classification using static central composite design, sequential augmentation, and multi-objective TPE. A completed local campaign records CUDA training on an NVIDIA GeForce RTX 5080, while prediction latency is measured separately using a warmed CPU operation.
+
+The saved study contains \StudyFits{} model fits. Its artifact registry, classification observations, final-selection digest, and word-explanation replay pass the checks performed for this draft. File integrity, however, is not sufficient evidence that the learning procedure behaved correctly. Calibration probabilities are identical across different tree budgets, and the saved local-explanation classifier contains \LeafTrees{} leaf-only trees among \TreeCount{} trees. These findings prevent endorsing the claim that calibration resolved underfitting or that the observed optimizer rankings are reliable scientific conclusions.
+
+The report therefore preserves the experiment's methods and reconstructed observations while marking the interpretation provisional. Follow-up controlled diagnostics identified unsorted sparse training indices as the failure trigger in the installed CUDA path: sorting those indices reproduced normal learning without changing feature values. The latest repository CI also fails in a smoke-report formatting path, and the raw campaign evidence remains local rather than versioned with the published findings. No full campaign was rerun. Corrected input handling and new experimental evidence are required before final publication.
+\end{abstract}
+\noindent\textbf{Keywords:} XGBoost, design of experiments, response surfaces, sentiment classification, SHAP, GPU training, scientific verification.
+\clearpage
+\setcounter{tocdepth}{2}
+\begingroup\small\setlength{\parskip}{0pt}\tableofcontents\endgroup
+\clearpage
+
+\section{Introduction: the problem we want to solve}
+The original project asks whether designed experiments can select machine-learning hyperparameters efficiently while explaining their effects. The completed housing investigation motivates a sentiment extension: avoid a poorly calibrated learning-rate region, use comparable timing during search and verification, protect final-test outcomes, and assess the reliability of response models at unmeasured configurations.
+
+The central question is whether an explainable sequential design can improve the quality of experimental decisions without abandoning interpretable effects and interactions. Static CCD provides a structured comparator; TPE provides adaptive black-box search. The present campaign contains neither a random-search arm nor a completed second-dataset comparison. Consequently, it does not resolve the original grid/random-search question or demonstrate generalization across tasks.
+
+This document follows the attached report's article layout, title/abstract page, contents page, numbered explanatory sections, and native mathematical tables. Historical housing findings are background, not newly audited evidence in this document. The sentiment observations below are reconstructed from the local campaign rather than copied from the historical manuscript.
+
+\section{Experimental design and data separation}
+\subsection{Data and prediction target}
+The prepared IMDb file matches the dataset hash recorded in the run contract. After the recorded normalization and deduplication, it contains \DevCount{} development documents and \TestCount{} test documents. The nominal source dataset size must not be substituted for these retained counts. The recomputed development and test identities match the frozen final-evaluation contract.
+
+Text is represented using TF-IDF unigrams and bigrams. Preprocessing is fitted within each training fold. The primary predictive response is validation loss $1-\mathrm{macro\ F1}$; log loss is retained as a secondary diagnostic. This classification endpoint is different from the earlier housing-price RMSE.
+
+Five stratified folds provide nuisance blocks shared by all methods. Their training samples overlap. Repeated search seeds on these folds therefore do not represent independent draws of new datasets. The final-evaluation gate verifies a frozen set of selections, but file hashes cannot establish that test outcomes were never exposed in earlier work. After this run's test scoring, the same test set cannot be treated as untouched for subsequent tuning.
+
+\subsection{Factors and equal evaluation budgets}
+The searched factors are learning rate, maximum depth, row subsampling, and leaf-weight regularization. Learning rate spans $[0.05,0.30]$, depth spans $[3,9]$, subsampling spans $[0.50,1.00]$, and regularization spans $[0.10,10.00]$ on a logarithmic coding scale. These are protocol settings, not estimated outcomes. The recorded tree budget is held fixed after calibration.
+
+For four factors the CCD uses factorial and face-centered axial points. Static CCD retains four center entries per block; sequential CCD begins with two and spends the remaining budget on two adaptive coordinates. Each method receives the same number of actual model fits, and each proposed configuration is evaluated on every block. Center repetitions consume fits without creating new unique coordinates.
+
+The adaptive rule combines GP uncertainty with distance from existing configurations. This modest augmentation should not be interpreted as a comprehensive comparison of acquisition strategies. The best observed compromise is selected using the frozen hypervolume reference; it is not a solution to a hard-constrained TPE problem.
+
+\subsection{GPU training and CPU prediction timing}
+The measurement contract records CUDA and an RTX 5080. The training call passes the device into XGBoost. Before profiling, the booster is explicitly switched to CPU with a single prediction thread. The primary timing operation constructs a fresh DMatrix and predicts one already-vectorized document; it does not measure text preprocessing or GPU serving latency.
+
+The contract specifies 100 warmups and 500 timed calls for each interface. The audit checked counts, affinity records, and raw-duration medians for search, confirmation and final evaluation. Repeated calls on the first validation row of each block remain a limited input-specific measurement, not a representative end-to-end latency distribution.
+
+The programme records \Elapsed{} seconds from its study timer through the local word study. This is not a measured CPU-versus-GPU speedup, and its timer excludes earlier calibration and preparation. No acceleration factor can be inferred without a matched CPU baseline.
+
+\section{Calibration: a finding that blocks final interpretation}
+Development calibration tests multiple tree counts at the central and low learning rate. Its selection rule chooses the smallest budget whose low-rate macro F1 lies within the declared tolerance of the largest tested budget. The implementation writes an \texttt{underfitting\_resolved} flag unconditionally after selection. That flag is not an independently tested scientific conclusion.
+
+\begin{table}[htbp]\centering\small
+\input{calibration.tex}
+\caption{Calibration observations reconstructed from the saved pilot predictions. Coded learning rate is shown. The full probability arrays, not just the displayed rounded metrics, are identical across tree counts within each rate. These observations are diagnostic and do not establish learning adequacy.}
+\end{table}
+
+At the central learning rate, all saved validation probabilities are below the classification threshold. At both tested rates, increasing the number of trees leaves the entire probability vector unchanged. This explains why the minimum tree budget satisfies the selection rule; it does not demonstrate a useful convergence plateau.
+
+The saved word-study model supplies an additional diagnostic: \LeafTrees{} of its \TreeCount{} trees contain only a leaf. Leaf-only trees are not automatically an error, and this model is not the same fitted model as each calibration trial. Nevertheless, the combination of unchanged calibration predictions, extreme probabilities, and weak classification quality warrants investigation before interpretation. The available audit does not establish whether the cause lies in GPU execution, training behavior, numerical issues, data handling, or another mechanism.
+
+\section{Response models, ANOVA and Shapley explanations}
+A quadratic response model is fitted separately to classification loss and latency, with nuisance-block effects. Its explanatory terms represent main effects, pairwise interactions and curvature. A GP supplies a flexible alternative fitted to configuration-level means. These response models predict the performance of XGBoost configurations; they are not sentiment classifiers themselves.
+
+The implementation computes coalition-based Shapley values and pairwise interaction values on declared background and explanation coordinates. Comparing ANOVA partial sums of squares with mean absolute Shapley contributions asks whether different summaries emphasize the same factors. It does not make significance, variance contribution and attribution magnitude interchangeable.
+
+Initial and final sequential snapshots are retained, as are block-specific analyses. Classical tests after adaptive sampling, small factor-ranking correlations, and statistics across dependent folds require qualified interpretation. A high agreement score cannot rescue a surrogate whose underlying model evaluations are anomalous. For that reason, substantive attribution conclusions are deferred in this draft rather than asserted from the existing charts.
+
+\section{Independent confirmation and provisional benchmark observations}
+\subsection{Confirmation at unmeasured configurations}
+The campaign reserves hyperparameter coordinates before search and excludes their measured responses from fitting and acquisition. These checks evaluate response-model prediction at new configurations on the existing development folds. They are distinct from evaluating the classifier on new test documents.
+
+\begin{table}[htbp]\centering
+\input{confirmation.tex}
+\caption{Reconstructed quadratic-surrogate confirmation diagnostics for classification loss. Bias is observed minus predicted loss. Interval coverage is empirical coverage under the fitted fixed-block model; dependence and the unresolved training anomaly limit its interpretation.}
+\end{table}
+
+The existing checker reconstructs the quadratic confirmation predictions from the search records. GP intervals target block-averaged responses and must not be combined with block-specific quadratic intervals as though they estimate the same quantity. Coverage alone is insufficient: interval width, systematic boundary error and predictive usefulness also matter. The present audit does not claim that the earlier boundary-optimism issue has been universally resolved.
+
+\subsection{Observed comparisons, not endorsed rankings}
+\begin{table}[htbp]\centering\small
+\input{benchmark.tex}
+\caption{Provisional observations reconstructed from the saved campaign. Hypervolume (HV) describes development fronts; test F1 and log loss describe frozen selected models, averaged across search repeats. Larger HV/F1 and smaller log loss are preferable. HV SD is across search repeats. The unresolved calibration anomaly prevents a superiority claim.}
+\end{table}
+
+The stored development hypervolumes favor the structured designs in this run. That is an observation conditional on the recorded data, implementation and reference point, not evidence of general optimizer superiority. The small number of repeats and shared folds also prevent a strong equivalence argument. Poor test log loss deserves attention independently of hard-label F1 because it penalizes confident incorrect predictions.
+
+Search feasibility, selected-model verification feasibility, and hard-constrained optimization are different estimands. The recorded MO-TPE arm is not Constrained TPE. Matched timing removes a protocol difference but cannot guarantee that selected models satisfy a latency threshold on other inputs or sessions. Evaluating one frozen selection per repeat also does not establish a test-set Pareto frontier.
+
+\section{Local word-response surfaces}
+The local explanation study holds a development-trained classifier fixed and attenuates selected unigram TF-IDF weights. A quadratic surface approximates its positive-class probability under designed perturbations, while unused perturbations assess fidelity. Pairwise Shapley values describe the same declared feature-attenuation game.
+
+The saved classifier, sparse input vectors, vocabulary, observations and registry passed replay verification. This establishes reproducibility of those recorded local outputs, not their suitability as final scientific evidence for a healthy classifier. Interpretation remains limited by the leaf-only-tree finding.
+
+These are conditional feature-vector explanations, not causal word effects or necessarily grammatical edited sentences. Other weights, including bigrams, remain fixed; no text-level removal or renormalization is implied. The study does not establish superiority to LIME because a matched LIME comparator was not evaluated.
+
+\section{Execution verification and repository findings}
+\subsection{What passed}
+The local study registry and current package source hashes passed the existing integrity check. Classification metrics were reconstructed from stored labels/probabilities; confirmation predictions and published study summaries were checked. Additional checks verified dataset and partition identities, the final-selection digest, and raw timing medians for every saved evaluation. The local-word replay also passed.
+
+The recorded study total is \StudyFits{} fits, including \ConfirmFits{} confirmation fits and \FinalFits{} final fits. Adding the saved calibration fits and the separately trained word model gives \AllFits{} fits in the audited accounting scope. This ledger does not certify absence of earlier interrupted or unrecorded attempts.
+
+\subsection{What remains unresolved}
+The inspected GitHub main revision is \texttt{f2afe96}. Its latest Actions run fails on both operating-system jobs when the smoke exporter formats an undefined hypervolume standard deviation as a floating-point number. This is a reporting-path defect; it does not by itself invalidate the completed multi-repeat campaign, but prevents claiming that all repository checks are green.
+
+The workflow runs a synthetic smoke command, not a full independent GPU-campaign audit. Its success would therefore be a software execution check, not certification of the scientific findings. Running it in place also writes findings, so the scientific audit used the existing nonmutating evidence checks instead of overwriting published empirical outputs with smoke outputs.
+
+The raw Phase B run and calibration directories are ignored by Git. The committed findings agree with checked local summaries, but a fresh clone does not contain the raw observations needed to reproduce this audit. A durable, checksum-bound evidence archive is required. The run contract also records a dirty working tree: matching source hashes provide a stronger package-level link than its Git revision alone, but do not supply a complete clean environment snapshot.
+
+Historical non-exposure of the test set is not proven by the evaluation gate. Nor does the audit establish a GPU training speedup, validate every historical Phase A number, or supply missing random-search and second-dataset arms.
+
+\section{Follow-up diagnosis: sparse training index order}
+After the initial evidence audit, a controlled development-only diagnostic isolated the failure. The original TF-IDF training matrix has unsorted CSR column indices, whereas its validation matrix is sorted. Sorting the training indices preserves every mathematical feature value; matrix equality was explicitly checked.
+
+On the original development fold, the CUDA fit with unsorted input reproduced the saved word-study model's tree dump exactly. With sorted input, CUDA produced a model close in predictive quality to the CPU reference. Switching prediction between CPU and GPU did not repair the model trained on unsorted input. The failure therefore arises during training, rather than from the later CPU profiling operation.
+
+\begin{table}[htbp]\centering\small\input{diagnosis.tex}
+\caption{Controlled diagnosis on the original development fold with fixed hyperparameters and seed. These new diagnostics are not replacement campaign results; no official test observations were scored. Values are bound to \texttt{diagnostic/root\_cause.json}.}
+\end{table}
+
+The established trigger is the interaction between unsorted sparse TF-IDF input and the installed XGBoost CUDA training path. This is not proof of faulty GPU hardware, and the precise upstream implementation defect has not been isolated. A smaller input-format experiment also found that changing floating-point precision was unnecessary once indices were sorted.
+
+The remedy must canonicalize sparse input before every training entry point, including final refitting and the local word study, and add a regression test for equivalent sparse representations. A separate \texttt{ROOT\_CAUSE.md} records the diagnostic provenance. Production code and original observations were preserved during this investigation.
+
+\section{Conclusions and requirements for the final report}
+The experiment completed its recorded execution and produced internally consistent local evidence. That is a narrower conclusion than saying that everything ran scientifically correctly. The confirmed sparse-input training failure blocks endorsement of the performance and explanation conclusions.
+
+The controlled CPU/GPU comparison now supplies a concrete correction to test: sort sparse training indices while preserving feature values. After implementing and verifying that correction, rerun calibration and affected downstream experiments under a new version. The old calibration's flat, poor performance was not evidence that underfitting had been resolved. The current observations must not be overwritten or silently repaired.
+
+Then repair and test the smoke reporting failure, preserve the raw evidence in a durable release, document prior test exposure, and regenerate the numerical report from the accepted run. Any new tuning after the present test evaluation requires an honest account of its exploratory status and a suitable independent evaluation strategy.
+
+This draft preserves both the useful execution work and the unfavorable findings. It does not assume that a favorable optimizer ranking is the desired result. The final scientific contribution depends on trustworthy measurements and a clear account of what those measurements can support.
+
+\appendix
+\section{Evidence and reproduction}
+The companion \texttt{verification.json} contains the checked counts, exact source bindings, source hashes, diagnostic findings and derived table values. Run the read-only reconstruction from the repository root using:
+\begin{quote}\small\texttt{py -3.11 findings/final\_report/verify\_and\_prepare.py}\end{quote}
+It performs no model fitting. The generated numerical tables and macros consume the same accepted local observations, and report generation is separate from experimental execution. The source bindings in that file identify calibration observations, the saved local classifier, raw evaluations, final results, the dataset and the programme timer.
+
+GitHub failure evidence: \url{https://github.com/ChristosHussein/xgboost-doe-rsm/actions/runs/40690543343}. The reference manuscript is the user-supplied archived California Housing PDF. Its layout is reused; its empirical results are not copied into the sentiment tables.
+\end{document}

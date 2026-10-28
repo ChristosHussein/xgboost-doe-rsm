@@ -15,6 +15,15 @@ report.aux
 report.log
 report.out
 report.synctex.gz
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+
+# Diagnostic intermediate models and arrays
+findings/final_report/diagnostic/*.ubj
+findings/final_report/diagnostic/*.npy
 
 # OS generated files
 .DS_Store
