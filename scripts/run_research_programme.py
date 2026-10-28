@@ -51,9 +51,10 @@ def prepare(data_dir):
                 source_url=url.replace('/tree/','/resolve/')+'/'+split+'-00000-of-00001.parquet'
                 download(source_url,path)
                 source_files[source_url]=file_hash(path)
-                for i,row in pd.read_parquet(path).iterrows():
-                    text=' '.join(html.unescape(re.sub(r'<[^>]+>',' ',row['text'])).split())
-                    rows.append(dict(document_id=f'{split}/{i}',text=text,label=int(row['label']),split=split))
+                df = pd.read_parquet(path)
+                for i, (text_val, label_val) in enumerate(zip(df['text'], df['label'])):
+                    text=' '.join(html.unescape(re.sub(r'<[^>]+>',' ',text_val)).split())
+                    rows.append(dict(document_id=f'{split}/{i}',text=text,label=int(label_val),split=split))
         else:
             archive=data_dir/(name+'.zip')
             download(url,archive)
@@ -98,10 +99,18 @@ def download(url,path):
         return
     print('Downloading',path.name,flush=True)
     partial=path.with_suffix(path.suffix+'.partial')
-    with urllib.request.urlopen(url,timeout=45) as response,partial.open('wb') as target:
-        while chunk:=response.read(1024*1024):
-            target.write(chunk)
-    partial.replace(path)
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req,timeout=120) as response,partial.open('wb') as target:
+                while chunk:=response.read(1024*1024):
+                    target.write(chunk)
+            partial.replace(path)
+            return
+        except Exception as e:
+            if attempt == 2:
+                raise
+            time.sleep(2 ** attempt)
 
 
 def make_imdb_cohort(data_dir, limit):

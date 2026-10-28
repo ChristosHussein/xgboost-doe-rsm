@@ -1,0 +1,33 @@
+schema_version: "2.0"
+evidence_sources:
+  - id: "evaluations_log"
+    path: "results/experiment_run/imdb/evaluations.jsonl"
+    format: "jsonl"
+    role: "primary_experimental_observations"
+    fields: ["method", "replicate", "block_id", "coded_params", "val_macro_f1", "val_loss", "latency"]
+    description: "Append-only per-fit training and evaluation observations."
+
+  - id: "confirmation_records"
+    path: "results/experiment_run/imdb/confirmation.json"
+    format: "json"
+    role: "independent_surrogate_confirmation"
+    fields: ["method", "replicate", "response", "config_id", "observed", "predicted", "lower", "upper", "boundary"]
+    description: "Evaluations on 12 reserved interior and boundary coordinates."
+
+  - id: "reconstructed_summary"
+    path: "results/experiment_run/imdb/summary.json"
+    format: "json"
+    role: "canonical_reconstructed_summary"
+    description: "Reconstructed metrics, hypervolume, feasibility, and coverage."
+
+  - id: "word_study_observations"
+    path: "results/experiment_run/imdb_words/observations.json"
+    format: "json"
+    role: "local_word_explanation_evidence"
+    description: "Document-level word perturbation responses, RSM fidelity, and SHAP interactions."
+
+  - id: "final_results"
+    path: "results/experiment_run/imdb/final_results.json"
+    format: "json"
+    role: "protected_test_evaluation"
+    description: "Test macro F1 and latency on official test set for frozen selections."

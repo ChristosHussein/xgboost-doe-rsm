@@ -121,13 +121,17 @@ def metric_records(root=ROOT):
             f'configs.{dataset}.latency_threshold_us',2,'REGISTERED PROTOCOL')
         add(label+'Fits',item['measurement']['search_fits_per_method']/cfg['search_replicates'],
             f'{REL}/{dataset}/measurement_contract.json','search_fits_per_method / config.search_replicates',0)
-        dev=(bundle['contract']['imdb_cohort']['development_rows'] if dataset=='imdb' else
-             bundle['contract']['source_provenance'][dataset]['split_counts']['train'])
-        test=bundle['contract']['source_provenance'][dataset]['split_counts']['test']
-        for name,value,selector in [('DevelopmentRows',dev,'imdb_cohort.development_rows' if dataset=='imdb' else
-                 f'source_provenance.{dataset}.split_counts.train'),
-                 ('TestRows',test,f'source_provenance.{dataset}.split_counts.test')]:
-            add(label+name,value,f'{REL}/programme_contract.json',selector,0,'SOURCE-TRACED')
+        dev = (bundle['contract']['imdb_cohort'].get('development_rows') or
+               bundle['contract']['imdb_cohort'].get('split_counts', {}).get('train')
+               if dataset == 'imdb' else
+               bundle['contract']['source_provenance'][dataset]['split_counts']['train'])
+        test = bundle['contract']['source_provenance'][dataset]['split_counts']['test']
+        dev_selector = ('imdb_cohort.development_rows'
+                        if (dataset == 'imdb' and 'development_rows' in bundle['contract']['imdb_cohort'])
+                        else f'source_provenance.{dataset}.split_counts.train')
+        for name, value, selector in [('DevelopmentRows', dev, dev_selector),
+                                      ('TestRows', test, f'source_provenance.{dataset}.split_counts.test')]:
+            add(label+name, value, f'{REL}/programme_contract.json', selector, 0, 'SOURCE-TRACED')
         fields={'FOne':'test_macro_f1','LogLoss':'test_logloss','ProbabilityRmse':'test_probability_rmse',
                 'Latency':'test_latency_us','Hypervolume':'hypervolume','Regret':'observed_reference_regret',
                 'Feasibility':'feasibility_rate','Overhead':'overhead_seconds'}

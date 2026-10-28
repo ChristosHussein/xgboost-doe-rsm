@@ -1,0 +1,7 @@
+Method & Target,N,Prediction RMSE,Observed - Predicted Bias,PI Coverage (%),Boundary N,Boundary Bias
+static_doe:val_loss,6,0.07553,-0.03907,100.0%,6,-0.03907
+static_doe:latency_us,6,209.98575,198.87361,0.0%,6,198.87361
+doe:val_loss,6,0.06395,-0.02867,100.0%,6,-0.02867
+doe:latency_us,6,98.35133,70.61736,66.7%,6,70.61736
+tpe:val_loss,6,0.16071,-0.11537,83.3%,6,-0.11537
+tpe:latency_us,6,186.08127,-71.71860,100.0%,6,-71.71860
