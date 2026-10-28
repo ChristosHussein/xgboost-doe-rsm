@@ -1,0 +1,2 @@
+# Experimental records are frozen bytes, including their recorded line endings.
+results/sentiment_revision_v1/** -text

@@ -49,6 +49,7 @@ def train_and_evaluate_config(
     block_id: int = 0,
     n_trees: int = 100,
     random_seed: int = 42,
+    training_threads: int = 1,
 ) -> EvaluationResult:
     """Train XGBoost binary classifier and profile warmed inference latency."""
     coded_params = canonical_configuration(coded_params)
@@ -64,7 +65,7 @@ def train_and_evaluate_config(
         "reg_lambda": float(nat["reg_lambda"]),
         "n_estimators": n_trees,
         "random_state": random_seed,
-        "n_jobs": 1,
+        "n_jobs": training_threads,
     }
 
     clf = xgb.XGBClassifier(**params)

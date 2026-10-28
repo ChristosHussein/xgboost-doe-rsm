@@ -61,7 +61,7 @@ def main():
         texts, labels, official, dataset_hash = load_sentiment_csv(args.dataset_csv)
         dataset_id, evidence_kind = args.dataset_id, 'research'
     parts = create_strictly_isolated_partitions(texts, labels, cfg.holdout_ratio,
-        cfg.n_nuisance_blocks, cfg.random_seed, max_features=10000,
+        cfg.n_nuisance_blocks, cfg.random_seed, max_features=cfg.max_features,
         official_holdout_mask=official)
     result = run_study(cfg, make_development_evaluator(parts, cfg), args.output,
         dataset_id=dataset_id, dataset_sha256=dataset_hash, evidence_kind=evidence_kind,

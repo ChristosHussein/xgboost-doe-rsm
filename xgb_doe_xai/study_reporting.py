@@ -239,19 +239,9 @@ def plot_study(output):
         frontier.sort(key=lambda p: p['latency'])
         axes[0, 0].plot([r['latency'] for r in frontier], [1-r['loss'] for r in frontier],
                         color=color, linewidth=1.5)
-        # Evaluate progress only at prefixes with complete block coverage.
-        xs, hs = [], []
-        for end in range(cfg['n_nuisance_blocks'], len(subset)+1):
-            prefix = subset[:end]
-            keys = {}
-            for row in prefix:
-                keys.setdefault(tuple(row['coded_params'].values()), []).append(row)
-            complete = [r for cell in keys.values() if len({r['block_id'] for r in cell}) == cfg['n_nuisance_blocks'] for r in cell]
-            if complete:
-                pts = group_search(complete)
-                xs.append(end)
-                hs.append(compute_hypervolume_2d([(p['loss'], p['latency']) for p in pts],
-                                                (cfg['hv_ref_loss'], cfg['hv_ref_latency_us'])))
+        from .research_analysis import completed_block_progress
+        curve = completed_block_progress(subset,cfg)
+        xs,hs=zip(*curve)
         axes[1, 1].plot(xs, hs, label=method, color=color)
     axes[0, 0].set(xlabel='Block-mean uncached classic latency (us/document)', ylabel='Validation macro F1',
                    title='Observed candidates, search replicate 0')

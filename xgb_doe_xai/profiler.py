@@ -19,6 +19,32 @@ from scipy import sparse
 from latency import pin_cpu_affinity
 
 
+def get_process_affinity():
+    """Capture the caller's CPU allowance before a single-core measurement."""
+    if hasattr(os,'sched_getaffinity'):
+        return os.sched_getaffinity(0)
+    import ctypes
+    kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+    kernel.GetCurrentProcess.restype=ctypes.c_void_p
+    kernel.GetProcessAffinityMask.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_size_t),ctypes.POINTER(ctypes.c_size_t)]
+    process_mask,system_mask=ctypes.c_size_t(),ctypes.c_size_t()
+    if not kernel.GetProcessAffinityMask(kernel.GetCurrentProcess(),ctypes.byref(process_mask),ctypes.byref(system_mask)):
+        raise OSError('Cannot capture process affinity')
+    return process_mask.value
+
+
+def restore_process_affinity(mask):
+    if hasattr(os,'sched_setaffinity'):
+        os.sched_setaffinity(0,mask)
+        return
+    import ctypes
+    kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+    kernel.GetCurrentProcess.restype=ctypes.c_void_p
+    kernel.SetProcessAffinityMask.argtypes=[ctypes.c_void_p,ctypes.c_size_t]
+    if not kernel.SetProcessAffinityMask(kernel.GetCurrentProcess(),mask):
+        raise OSError('Cannot restore process affinity')
+
+
 @dataclass(frozen=True)
 class LatencyProfileResult:
     predict_median_us: float
@@ -72,7 +98,14 @@ class WarmedLatencyProfiler:
         self.n_timed = n_timed
         self.measure_inplace = measure_inplace
 
-    def profile_booster(
+    def profile_booster(self,booster,sample_input):
+        original=get_process_affinity()
+        try:
+            return self._profile_booster_pinned(booster,sample_input)
+        finally:
+            restore_process_affinity(original)
+
+    def _profile_booster_pinned(
         self,
         booster: xgb.Booster,
         sample_input: Union[np.ndarray, sparse.csr_matrix],

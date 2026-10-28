@@ -51,6 +51,14 @@ def explain_document(model, vectorizer, text, *, seed=42, confirmation_points=64
     from scipy import sparse
     row = vectorizer.transform([text]).tocsr()
     names = vectorizer.get_feature_names_out()
+    return explain_feature_vector(model,row,names,seed=seed,
+                                  confirmation_points=confirmation_points)
+
+
+def explain_feature_vector(model,row,names,*,seed=42,confirmation_points=64):
+    """Replay an explanation from a saved sparse vector and vocabulary."""
+    from scipy import sparse
+    names=np.asarray(names)
     present = [i for i in row.indices if ' ' not in names[i]]
     selected = sorted(present, key=lambda i:(-row[0,i], names[i]))[:4]
     if len(selected) != 4:

@@ -107,13 +107,15 @@ class BenchmarkConfig:
     acquisition: str = 'hybrid'
     mode: str = 'research'
     include_static_baseline: bool = False
+    training_threads: int = 1
+    max_features: int = 10000
 
     def __post_init__(self):
         if self.mode not in ('research', 'smoke'):
             raise ValueError('mode must be research or smoke')
         if self.mode == 'research' and (self.warmup_inferences, self.timed_inferences) != (100, 500):
             raise ValueError('Research latency protocol requires 100 warmup and 500 timed calls')
-        if min(self.n_trees, self.n_nuisance_blocks, self.search_replicates,
+        if min(self.n_trees, self.n_nuisance_blocks, self.search_replicates, self.training_threads,self.max_features,
                self.center_replicates, self.confirmation_points, self.infill_per_cycle) < 1:
             raise ValueError('Budgets must be positive')
         if self.adaptive_cycles < 1:

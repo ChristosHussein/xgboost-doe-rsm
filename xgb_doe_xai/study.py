@@ -50,7 +50,7 @@ def source_hashes():
     root = Path(__file__).parent
     files = list(root.glob('*.py')) + [root.parent/'latency.py', root.parent/'run_explainable_doe_demo.py',
                                      root.parent/'requirements.txt']
-    return {p.relative_to(root.parent).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+    return {p.relative_to(root.parent).as_posix(): hashlib.sha256(p.read_bytes().replace(b'\r\n',b'\n')).hexdigest()
             for p in files if p.is_file()}
 
 

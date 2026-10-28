@@ -41,7 +41,7 @@ def make_development_evaluator(partitions, config):
     def evaluate(point, block, seed, cfg):
         x_train, y_train, x_valid, y_valid = partitions.block_features[block]
         return train_and_evaluate_config(point.coded, x_train, y_train, x_valid, y_valid,
-                                         profiler, point.point_id, block, cfg.n_trees, seed)
+                                         profiler, point.point_id, block, cfg.n_trees, seed,cfg.training_threads)
     return evaluate
 
 
@@ -49,5 +49,6 @@ def final_classification(x_train, y_train, x_test, y_test, selection, training_c
     profiler = WarmedLatencyProfiler(training_config['warmup_inferences'], training_config['timed_inferences'])
     result = train_and_evaluate_config(selection['coded_params'], x_train, y_train, x_test, y_test,
         profiler, f"FINAL_{selection['method']}_{selection['replicate']}", -1,
-        training_config['n_trees'], training_config['random_seed']+900000+selection['replicate'])
+        training_config['n_trees'], training_config['random_seed']+900000+selection['replicate'],
+        training_config.get('training_threads',1))
     return dict(method=selection['method'], replicate=selection['replicate'], **asdict(result))

@@ -54,3 +54,14 @@ def test_document_explanation_uses_real_classifier_probabilities():
     evidence=explain_document(model,vectorizer,texts[0])
     assert set(evidence['words'])=={'good','acting','charming','ending'}
     assert all(0<=p<=1 for p in evidence['confirmation']['observed'])
+
+
+def test_local_word_evidence_reconstructs_from_saved_model(tmp_path):
+    from xgb_doe_xai import generate_synthetic_sentiment_corpus,create_strictly_isolated_partitions
+    from xgb_doe_xai.word_study import run_word_study,check_word_study
+    texts,labels=generate_synthetic_sentiment_corpus(100,42)
+    parts=create_strictly_isolated_partitions(texts,labels,n_blocks=2,max_features=100)
+    cfg=BenchmarkConfig(n_trees=2)
+    output=tmp_path/'words'
+    run_word_study(parts,cfg,{'coded_params':dict.fromkeys(DEFAULT_FACTORS,0.)},output,documents=2)
+    check_word_study(output)
