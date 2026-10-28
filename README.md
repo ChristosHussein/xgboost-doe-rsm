@@ -56,6 +56,7 @@ This project is organized into two sequential procedural phases:
 │
 ├── phase_b_sequential_xai/      <- Modular Phase B execution package & pipeline
 │   ├── run_phase_b.py           <- Master CLI runner for Phase B
+│   ├── data/                    <- Prepared benchmark datasets & manifests (imdb.csv, imdb.json)
 │   ├── xgb_doe_xai/             <- Modular Python package (design, XAI, surrogates, benchmarks, profiler)
 │   └── README.md                <- Detailed Phase B architecture and developer guide
 │

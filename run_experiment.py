@@ -83,7 +83,7 @@ def run_phase_b(
     if not runner_script.exists():
         raise FileNotFoundError(f"Phase B runner not found at: {runner_script}")
 
-    d_dir = data_dir or (ROOT / "data")
+    d_dir = data_dir or (PHASE_B_DIR / "data")
     out = output_dir or (ROOT / "results" / "phase_b_run")
     f_dir = findings_dir or (FINDINGS_DIR / "phase_b")
 
@@ -169,7 +169,7 @@ def main() -> int:
     parser.add_argument(
         "--data-dir",
         type=Path,
-        default=ROOT / "data",
+        default=PHASE_B_DIR / "data",
         help="Path to dataset storage directory.",
     )
     parser.add_argument(

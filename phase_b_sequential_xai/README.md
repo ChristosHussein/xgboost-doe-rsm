@@ -41,6 +41,7 @@ Phase B directly operationalizes the directives established in `Remarks,.txt` an
 phase_b_sequential_xai/
 ├── run_phase_b.py           <- Master unified CLI orchestrator for Phase B execution
 ├── README.md                <- This package architecture and developer manual
+├── data/                    <- Prepared benchmark datasets & manifests (imdb.csv, imdb.json)
 │
 └── xgb_doe_xai/             <- Modular Python package:
     ├── config.py            <- Experiment configurations, factor boundaries & coding transforms
@@ -83,22 +84,22 @@ cd phase_b_sequential_xai
 python run_phase_b.py --stage smoke
 
 # B. Download and Partition the IMDb Dataset (50,000 docs)
-python run_phase_b.py --stage prepare --data-dir ../data
+python run_phase_b.py --stage prepare --data-dir data
 
 # C. Tree Capacity & Latency SLA Calibration (Development pool only)
-python run_phase_b.py --stage calibrate --data-dir ../data --output-dir results/calibration
+python run_phase_b.py --stage calibrate --data-dir data --output-dir results/calibration
 
 # D. Run Equal-Budget Benchmark (Static CCD vs Sequential CCD vs MO-TPE)
-python run_phase_b.py --stage run --dataset full_imdb --data-dir ../data --calibration-dir results/calibration --output-dir results/experiment_run
+python run_phase_b.py --stage run --dataset full_imdb --data-dir data --calibration-dir results/calibration --output-dir results/experiment_run
 
 # E. Document-Level Word Response Surface Study
-python run_phase_b.py --stage words --data-dir ../data --output-dir results/experiment_run
+python run_phase_b.py --stage words --data-dir data --output-dir results/experiment_run
 
 # F. Automatically Generate All Deliverables (Tables, Figures, Values)
 python run_phase_b.py --stage generate-findings --output-dir results/experiment_run --findings-dir ../findings/phase_b
 
 # G. Complete One-Click Full Pipeline
-python run_phase_b.py --stage all --dataset full_imdb --data-dir ../data --findings-dir ../findings/phase_b --training-threads 4
+python run_phase_b.py --stage all --dataset full_imdb --data-dir data --findings-dir ../findings/phase_b --training-threads 4
 ```
 
 ---

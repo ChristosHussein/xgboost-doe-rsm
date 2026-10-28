@@ -37,6 +37,6 @@ output/
 **/smoke_verification/
 **/smoke_test/
 # Raw archive downloads
-data/*.parquet
-data/*.zip
+phase_b_sequential_xai/data/*.parquet
+phase_b_sequential_xai/data/*.zip
 phase_b_sequential_xai/results/

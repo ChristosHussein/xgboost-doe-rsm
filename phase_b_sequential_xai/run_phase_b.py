@@ -613,6 +613,7 @@ def generate_all_findings(study_dir: Path, findings_dir: Path, dataset_name: str
     write_json(values_dir / "metrics.json", metrics_export)
 
     # Render LaTeX Macros
+    pct = "%"
     macros = [
         f"\\newcommand{{\\numTextTrees}}{{{cfg['n_trees']}}}",
         f"\\newcommand{{\\numTextBlocks}}{{{cfg['n_nuisance_blocks']}}}",
@@ -623,6 +624,28 @@ def generate_all_findings(study_dir: Path, findings_dir: Path, dataset_name: str
     for m, m_data in summary["methods"].items():
         name_clean = m.replace("_", "").title()
         macros.append(f"\\newcommand{{\\numText{name_clean}HVMean}}{{{m_data['hypervolume_mean']:.4f}}}")
+        macros.append(f"\\newcommand{{\\numText{name_clean}HVSD}}{{{m_data['hypervolume_sd']:.4f}}}")
+        feas_mean = sum(r["feasibility_rate"] for r in m_data["replicates"]) / len(m_data["replicates"])
+        macros.append(f"\\newcommand{{\\numText{name_clean}Feasibility}}{{{feas_mean * 100:.1f}\\{pct}}}")
+        best_loss_mean = sum(r["best_observed_loss"] for r in m_data["replicates"]) / len(m_data["replicates"])
+        macros.append(f"\\newcommand{{\\numText{name_clean}BestValLoss}}{{{best_loss_mean:.4f}}}")
+
+    if "confirmation" in summary:
+        for k, c_data in summary["confirmation"].items():
+            k_clean = k.replace(":", "").replace("_", "").title()
+            macros.append(f"\\newcommand{{\\numTextConfirm{k_clean}RMSE}}{{{c_data['rmse']:.4f}}}")
+            macros.append(f"\\newcommand{{\\numTextConfirm{k_clean}PICoverage}}{{{c_data['pi_coverage'] * 100:.1f}\\{pct}}}")
+            macros.append(f"\\newcommand{{\\numTextConfirm{k_clean}BoundaryBias}}{{{c_data['boundary_bias']:.5f}}}")
+
+    if summary.get("test_results"):
+        doe_test_f1 = [t["test_macro_f1"] for t in summary["test_results"] if t["method"] == "doe"]
+        tpe_test_f1 = [t["test_macro_f1"] for t in summary["test_results"] if t["method"] == "tpe"]
+        if doe_test_f1:
+            macros.append(f"\\newcommand{{\\numTextDoeTestFOne}}{{{sum(doe_test_f1)/len(doe_test_f1):.4f}}}")
+        if tpe_test_f1:
+            macros.append(f"\\newcommand{{\\numTextTpeTestFOneMean}}{{{sum(tpe_test_f1)/len(tpe_test_f1):.4f}}}")
+            macros.append(f"\\newcommand{{\\numTextTpeTestFOneMin}}{{{min(tpe_test_f1):.4f}}}")
+            macros.append(f"\\newcommand{{\\numTextTpeTestFOneMax}}{{{max(tpe_test_f1):.4f}}}")
     with (values_dir / "macros.tex").open("w", encoding="utf-8") as f:
         f.write("\n".join(macros) + "\n")
     print(f"  [Values] Exported metrics.json and macros.tex")
