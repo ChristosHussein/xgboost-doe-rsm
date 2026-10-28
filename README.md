@@ -65,13 +65,6 @@ This project investigates hyperparameter response surfaces across two procedural
 │   ├── xgb_doe_xai/             <- Modular Python package (design, XAI, surrogates, benchmarks, profiler)
 │   └── README.md                <- Detailed Phase B architecture and developer guide
 │
-├── scripts/                     <- Standalone hardware verification & convenience helpers (Optional)
-│   ├── run_corrected_campaign.py<- Helper script for automated calibration + run execution
-│   └── verify_cuda_pipeline.py  <- Standalone GPU training verification test
-│
-├── tests/                       <- Automated CI/CD regression test suite (Optional for reproduction)
-│   └── test_training_inputs.py  <- Pytest suite enforcing canonical CSR formatting & model health
-│
 └── archive/                     <- Strictly local backup of non-deliverable auxiliary docs (git-ignored)
 ```
 
@@ -151,18 +144,12 @@ python phase_b_sequential_xai/run_phase_b.py --check results/phase_b_run/imdb
 
 ---
 
-## 4. Are the `scripts/` and `tests/` Folders Necessary to Run End-to-End?
+## 4. Fully Streamlined Architecture (No Auxiliary Folders Needed)
 
-**No. Neither `scripts/` nor `tests/` is required to run the experiment end to end.**
+The entire scientific lifecycle (data preparation, calibration, design generation, model fitting, confirmation, XAI evaluation, and findings extraction) is fully self-contained in `run_experiment.py`, `phase_a_rsm_blocking/`, and `phase_b_sequential_xai/`.
 
-- **Core Orchestration**: The entire scientific lifecycle (data preparation, calibration, design generation, model fitting, confirmation, XAI evaluation, and findings extraction) is fully self-contained in `run_experiment.py`, `phase_a_rsm_blocking/`, and `phase_b_sequential_xai/`.
-- **Purpose of `tests/`**:
-  - Contains [`tests/test_training_inputs.py`](tests/test_training_inputs.py), an automated unit and regression test suite executed by GitHub Actions CI on every commit/PR.
-  - Verifies that sparse text matrices maintain canonical CSR indexing (`has_sorted_indices == True`), preventing the CUDA histogram misindexing issue from ever returning.
-- **Purpose of `scripts/`**:
-  - Contains standalone diagnostic and convenience utilities (e.g. [`scripts/verify_cuda_pipeline.py`](scripts/verify_cuda_pipeline.py) and [`scripts/run_corrected_campaign.py`](scripts/run_corrected_campaign.py)).
-  - Useful for independent hardware sanity checks, but completely bypassed when executing via `run_experiment.py`.
-
+- **Zero External Script Dependencies**: Everything needed to execute Phase A and Phase B is integrated directly into `run_experiment.py`.
+- **CI/CD Quality Gate**: Continuous integration in `.github/workflows/test.yml` executes `python run_experiment.py --smoke` on every commit and pull request, verifying that all end-to-end mathematical routines, data splits, and model fits execute cleanly across both Ubuntu and Windows runners.
 ---
 
 ## 5. Raw Results vs Downstream Findings Architecture

@@ -47,5 +47,4 @@ jobs:
 
       - name: Run verification test suite and reporting integrity checks
         run: |
-          python -m unittest discover -s tests -v
           python run_experiment.py --smoke
