@@ -2,36 +2,23 @@
 
 A modular, scientifically rigorous framework combining **Design of Experiments (Face-Centered CCD & RSM)** with **Explainable AI (ANOVA & SHAP)** for multi-objective hyperparameter optimization in **XGBoost** under stochastic nuisance blocking.
 
-Directly addresses:
-- `Original specs.txt`: Factorial screening & RSM for ML HPO; classical response surfaces vs ML models; Explainable AI.
-- `Remarks,.txt` (and `Remarks.txt`):
-  1. Calibrated capacity to resolve underfitting.
-  2. Unified warmed latency measurement (100 warmups + 500 timed single-document calls, pinned CPU affinity) to resolve false feasibility.
-  3. Strictly protected test set and reserved confirmation coordinates (interior vs boundary) to resolve boundary candidate optimism bias.
-  4. ANOVA vs SHAP interaction pipeline.
-  5. Sentiment analysis task (IMDb).
-  6. Clean, modular Python package that automatically produces tables, values, and plots.
-- `Research approach.txt`: Explainable Sequential DOE, ANOVA-SHAP agreement, Pareto benchmarking, and local word explanations.
-
 ---
 
-## Deliverables & Repository Structure
+## Deliverables
 
-- **`experiment_code/`**:
-  - `run_experiment.py`: Single-file master orchestrator to prepare, calibrate, run, and export all findings in 1 command.
-  - `README.md`: Codebase architecture and instructions.
-- **`run_experiment.py`**: Root entry point shortcut delegating to `experiment_code/run_experiment.py`.
-- **`xgb_doe_xai/`**: Clean, modular Python package containing tested modules:
-  - `config.py`, `data.py`, `design.py`, `execution.py`, `profiler.py`, `surrogates.py`, `xai.py`, `local_explanations.py`, `word_study.py`, `benchmarks.py`, `study.py`, `study_reporting.py`.
-- **`findings/`**: Automated deliverables folder:
-  - `tables/`: ANOVA tables (`val_loss` & `latency_us`), benchmark comparisons, confirmation predictions, and ANOVA vs SHAP agreement (CSV and LaTeX).
-  - `figures/`: Multi-objective Pareto frontiers, ANOVA SS vs SHAP importance, interaction heatmaps, curvature profiles, and boundary confirmation boxplots.
-  - `values/`: Reconstructed `metrics.json` and publication-ready LaTeX `macros.tex`.
-  - `README.md`: Guide to all findings.
-- **`EXPERIMENT_EXPLANATION.md`**: Complete explanation file of the research experiment, mathematical formulations, Q1-Q5 research questions, and experimental protocol.
-- **`EXPECTED_VALUES_MEASUREMENT_CONTRACT.md`**: Pre-experiment measurement contract & expected values registry as per the Scientific Integrity skill (Phase -1).
-- **`archive/`**: Local archive preserving all legacy California Housing scripts, previous reports, and historical runs.
-- **GitHub PR #5**: Preserves all report-writing publication tooling, LaTeX templates, PDF build scripts, and full verification test suites.
+1. **`experiment_code/`**:
+   - `run_experiment.py`: Single master orchestrator script to prepare, calibrate, execute, and export the entire experiment.
+   - `xgb_doe_xai/`: Modular Python package implementing the design, execution, surrogates, ANOVA, SHAP, and latency profiling.
+   - `README.md`: Code documentation and module guide.
+2. **`findings/`**:
+   - `tables/`: Automated ANOVA tables (`val_loss` and `latency_us`), benchmark comparisons, confirmation predictions, and ANOVA vs SHAP agreement (CSV and LaTeX).
+   - `figures/`: Multi-objective Pareto frontiers, factor importance comparisons, interaction heatmaps, curvature profiles, and boundary confirmation boxplots.
+   - `values/`: Reconstructed `metrics.json` and publication-ready LaTeX `macros.tex`.
+   - `README.md`: Summary guide to generated findings.
+3. **`EXPERIMENT_EXPLANATION.md`**:
+   - Complete scientific explanation of the research experiment, mathematical formulations of CCD and RSM, the 5 core research questions, and experimental protocols.
+4. **`EXPECTED_VALUES.md`**:
+   - Pre-experiment measurement contract and expected values registry documenting all metric IDs, source selectors, formulas, and bounds prior to data collection as per the scientific integrity standard.
 
 ---
 
