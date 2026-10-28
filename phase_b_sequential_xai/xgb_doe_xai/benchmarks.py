@@ -50,6 +50,7 @@ def train_and_evaluate_config(
     n_trees: int = 100,
     random_seed: int = 42,
     training_threads: int = 1,
+    device: str = 'cpu',
 ) -> EvaluationResult:
     """Train XGBoost binary classifier and profile warmed inference latency."""
     coded_params = canonical_configuration(coded_params)
@@ -66,6 +67,7 @@ def train_and_evaluate_config(
         "n_estimators": n_trees,
         "random_state": random_seed,
         "n_jobs": training_threads,
+        "device": device,
     }
 
     clf = xgb.XGBClassifier(**params)
@@ -188,6 +190,8 @@ def run_matched_motpe_benchmark(
     profiler: WarmedLatencyProfiler,
     random_seed: int = 42,
     n_trees: int = 100,
+    training_threads: int = 1,
+    device: str = 'cpu',
 ) -> List[EvaluationResult]:
     """Run Optuna Multi-Objective TPE under identical evaluation budget and warmed latency profiler."""
     sampler = optuna.samplers.TPESampler(seed=random_seed)
@@ -213,6 +217,8 @@ def run_matched_motpe_benchmark(
             config_id=f"TPE_{trial.number:03d}",
             random_seed=random_seed + trial.number,
             n_trees=n_trees,
+            training_threads=training_threads,
+            device=device,
         )
         tpe_results.append(res)
         return res.val_loss, res.latency.predict_median_us

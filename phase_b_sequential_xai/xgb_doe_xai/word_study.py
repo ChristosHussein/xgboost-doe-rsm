@@ -38,7 +38,7 @@ def run_word_study(partitions,config,selection,output,*,documents=10):
     x_train,y_train,x_valid,_=partitions.block_features[0]
     params=uncode_configuration(selection['coded_params'])
     model=xgb.XGBClassifier(**params,n_estimators=config.n_trees,
-        n_jobs=config.training_threads,random_state=config.random_seed,objective='binary:logistic')
+        n_jobs=config.training_threads,device=getattr(config, 'device', 'cpu'),random_state=config.random_seed,objective='binary:logistic')
     started=time.perf_counter()
     model.fit(x_train,y_train)
     training_seconds=time.perf_counter()-started
@@ -73,7 +73,7 @@ def check_word_study(output):
         raise ValueError('Local explanation evidence was altered')
     booster=xgb.Booster()
     booster.load_model(output/'classifier.ubj')
-    booster.set_param({'nthread':1})
+    booster.set_param({'nthread': 1, 'device': 'cpu'})
     class Oracle:
         def predict_proba(self,x):
             p=booster.predict(xgb.DMatrix(x,nthread=1))

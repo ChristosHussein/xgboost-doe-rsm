@@ -150,7 +150,7 @@ class WarmedLatencyProfiler:
         affinity_applied = pin_cpu_affinity(core)
         if self.require_affinity and not affinity_applied:
             raise RuntimeError('Required single-core affinity could not be applied')
-        booster.set_param({'nthread': 1})
+        booster.set_param({'nthread': 1, 'device': 'cpu'})
         # A new DMatrix for every call prevents warmed prediction-cache hits.
         # Construction is intentionally included: this is the uncached classic
         # API operation, distinct from inplace_predict on an existing CSR row.

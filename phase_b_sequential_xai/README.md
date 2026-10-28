@@ -68,7 +68,11 @@ From the repository root:
 python run_experiment.py --phase b --stage smoke
 
 # Complete end-to-end execution on full IMDb dataset
-python run_experiment.py --phase b --stage all --dataset full_imdb --training-threads 4
+# Complete end-to-end execution on full IMDb with GPU acceleration (RTX 5080)
+python run_experiment.py --phase b --stage all --dataset full_imdb --device cuda --training-threads 4
+
+# Or fallback to CPU
+python run_experiment.py --phase b --stage all --dataset full_imdb --device cpu --training-threads 4
 ```
 
 ### 4.2 Running Directly within `phase_b_sequential_xai`

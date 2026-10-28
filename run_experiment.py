@@ -73,6 +73,7 @@ def run_phase_b(
     output_dir: Path | None = None,
     findings_dir: Path | None = None,
     training_threads: int = 4,
+    device: str = "auto",
 ) -> int:
     """Execute Phase B: Sequential / Adaptive CCD with Explainable AI & Warmed Latency Calibration."""
     print("\n" + "=" * 80)
@@ -95,6 +96,7 @@ def run_phase_b(
         "--output-dir", str(out),
         "--findings-dir", str(f_dir),
         "--training-threads", str(training_threads),
+        "--device", str(device),
     ]
 
     print(f"[Phase B] Executing: {' '.join(cmd)}")
@@ -120,7 +122,7 @@ def run_smoke_verification() -> int:
         return ret_a
 
     # 2. Phase B Smoke Mode
-    ret_b = run_phase_b(stage="smoke", findings_dir=FINDINGS_DIR / "phase_b")
+    ret_b = run_phase_b(stage="smoke", findings_dir=FINDINGS_DIR / "phase_b", device="cpu")
     if ret_b != 0:
         return ret_b
 
@@ -171,6 +173,12 @@ def main() -> int:
         help="Path to dataset storage directory.",
     )
     parser.add_argument(
+        "--device",
+        choices=["auto", "cuda", "cpu"],
+        default="auto",
+        help="Compute device for Phase B XGBoost training (auto, cuda, cpu)",
+    )
+    parser.add_argument(
         "--training-threads",
         type=int,
         default=4,
@@ -192,6 +200,7 @@ def main() -> int:
             dataset=args.dataset,
             data_dir=args.data_dir,
             training_threads=args.training_threads,
+            device=args.device,
         )
         if ret != 0:
             return ret

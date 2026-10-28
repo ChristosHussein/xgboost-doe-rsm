@@ -67,6 +67,19 @@ SOURCES = {
 }
 
 
+
+def resolve_device(device_arg: str = "auto") -> str:
+    """Detect whether CUDA is available and functional for XGBoost."""
+    if device_arg in ("cuda", "cpu"):
+        return device_arg
+    try:
+        import xgboost as xgb
+        clf = xgb.XGBClassifier(device="cuda", n_estimators=1)
+        clf.fit(np.array([[0.0], [1.0]]), np.array([0, 1]))
+        return "cuda"
+    except Exception:
+        return "cpu"
+
 def file_sha256(path: Path | str) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -178,13 +191,14 @@ def prepare_datasets(data_dir: Path) -> dict:
     return results
 
 
-def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb", training_threads: int = 4) -> dict:
+def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb", training_threads: int = 4, device: str = "auto") -> dict:
     """Run development-only capacity and latency calibration to resolve underfitting and establish thresholds."""
     output_dir.mkdir(parents=True, exist_ok=True)
     contract_file = output_dir / "calibration_contract.json"
     contract = dict(
         declared_at_utc=datetime.now(timezone.utc).isoformat(),
         training_threads=training_threads,
+        device=resolve_device(device),
         stage="development-only calibration",
         tree_grid=[100, 300, 600],
         eta_grid=[-0.0, -1.0],  # 0.175 and 0.05
@@ -199,12 +213,14 @@ def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb"
         raise FileNotFoundError(f"Dataset CSV not found: {csv_path}. Run --stage prepare first.")
 
     texts, labels, mask, checksum = load_sentiment_csv(csv_path)
+    dev = resolve_device(device)
     cfg = BenchmarkConfig(
         center_replicates=2,
         adaptive_cycles=2,
         infill_per_cycle=1,
         training_threads=training_threads,
         include_static_baseline=True,
+        device=dev,
     )
     parts = create_strictly_isolated_partitions(
         texts, labels, cfg.holdout_ratio, cfg.n_nuisance_blocks, cfg.random_seed, max_features=10000, official_holdout_mask=mask
@@ -243,6 +259,7 @@ def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb"
         latency_threshold_us=cfg.latency_threshold_us,
         hv_ref_latency_us=cfg.hv_ref_latency_us,
         calibration_fits=len(records),
+        device=cfg.device,
         underfitting_resolved=True,
     )
     write_json(output_dir / f"{dataset_name}_calibration.json", calib_summary)
@@ -259,6 +276,7 @@ def run_experiment_study(
     output_dir: Path,
     dataset_name: str = "imdb",
     training_threads: int = 4,
+    device: str = "auto",
 ) -> dict:
     """Execute the full experimental comparison across Static CCD, Sequential CCD, and MO-TPE."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -269,6 +287,7 @@ def run_experiment_study(
 
     cfg_dict = json.loads(cfg_file.read_text(encoding="utf-8"))
     cfg_dict["training_threads"] = training_threads
+    cfg_dict["device"] = resolve_device(device)
     cfg = BenchmarkConfig(**cfg_dict)
 
     calib_meta = json.loads(calib_file.read_text(encoding="utf-8"))
@@ -317,7 +336,7 @@ def run_experiment_study(
     return summary
 
 
-def run_smoke_test(output_dir: Path) -> dict:
+def run_smoke_test(output_dir: Path, device: str = "cpu") -> dict:
     """Fast 25-second synthetic smoke verification testing all pipelines, exports, and integrity gates."""
     output_dir.mkdir(parents=True, exist_ok=True)
     print("\n--- Running Fast Synthetic Smoke Demonstration ---")
@@ -332,6 +351,7 @@ def run_smoke_test(output_dir: Path) -> dict:
         warmup_inferences=3,
         timed_inferences=5,
         include_static_baseline=True,
+        device=resolve_device(device),
     )
     texts, labels = generate_synthetic_sentiment_corpus(240, cfg.random_seed)
     checksum = digest([texts, labels.tolist()])
@@ -627,6 +647,7 @@ def main():
     parser.add_argument("--output-dir", type=Path, default=ROOT / "results" / "experiment_run")
     parser.add_argument("--findings-dir", type=Path, default=ROOT / "findings")
     parser.add_argument("--training-threads", type=int, default=4)
+    parser.add_argument("--device", choices=["auto", "cuda", "cpu"], default="auto", help="Compute device for XGBoost training")
     parser.add_argument("--check", type=Path, help="Verify study evidence integrity and fail-closed checks")
     args = parser.parse_args()
 
@@ -639,7 +660,7 @@ def main():
 
     if args.stage == "smoke":
         smoke_dir = ROOT / "results" / "smoke_verification"
-        run_smoke_test(smoke_dir)
+        run_smoke_test(smoke_dir, device=args.device)
         generate_all_findings(smoke_dir / "smoke_study", args.findings_dir, dataset_name="synthetic")
         return 0
 
@@ -647,10 +668,10 @@ def main():
         prepare_datasets(args.data_dir)
 
     if args.stage in ("calibrate", "all"):
-        run_calibration(args.data_dir, args.calibration_dir, dataset_name=dataset_name, training_threads=args.training_threads)
+        run_calibration(args.data_dir, args.calibration_dir, dataset_name=dataset_name, training_threads=args.training_threads, device=args.device)
 
     if args.stage in ("run", "all"):
-        run_experiment_study(args.data_dir, args.calibration_dir, args.output_dir, dataset_name=dataset_name, training_threads=args.training_threads)
+        run_experiment_study(args.data_dir, args.calibration_dir, args.output_dir, dataset_name=dataset_name, training_threads=args.training_threads, device=args.device)
 
     if args.stage in ("generate-findings", "all"):
         generate_all_findings(args.output_dir / dataset_name, args.findings_dir, dataset_name=dataset_name)

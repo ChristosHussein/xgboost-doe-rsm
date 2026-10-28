@@ -1,5 +1,5 @@
-"""Logged sequential experiments with reserved configurations and matched fit budgets."""
 from __future__ import annotations
+"""Logged sequential experiments with reserved configurations and matched fit budgets."""
 
 from dataclasses import asdict
 import hashlib
@@ -21,6 +21,21 @@ from .config import FACTOR_NAMES, canonical_configuration
 from .design import DesignPoint, generate_fccd_points, select_adaptive_infill_points
 from .surrogates import PolynomialRSMSurrogate, GaussianProcessSurrogate
 from .xai import extract_anova_attributions, compute_surrogate_shap_attributions, compare_anova_vs_shap
+
+def get_accelerator_info(device='cpu'):
+    if device != 'cuda':
+        return None
+    try:
+        import subprocess
+        out = subprocess.run(['nvidia-smi', '--query-gpu=name,driver_version,memory.total', '--format=csv,noheader'],
+                             capture_output=True, text=True, check=False)
+        if out.returncode == 0 and out.stdout.strip():
+            return out.stdout.strip()
+    except Exception:
+        pass
+    return 'CUDA'
+
+
 
 
 def write_json(path, value):
@@ -155,6 +170,7 @@ def run_study(config, evaluator, output_dir, *, dataset_id, dataset_sha256,
                     factors={name:asdict(spec) for name,spec in DEFAULT_FACTORS.items()},
                     dataset_id=dataset_id, dataset_sha256=dataset_sha256,
                     evidence_kind=evidence_kind, python=sys.version, platform=platform.platform(),
+                    device=getattr(config, 'device', 'cpu'), accelerator=get_accelerator_info(getattr(config, 'device', 'cpu')),
                     declared_at_utc=datetime.now(timezone.utc).isoformat(),
                     **git_provenance(),
                     dependencies={name: version(name) for name in ('numpy', 'scipy', 'pandas',
@@ -199,6 +215,7 @@ def run_study(config, evaluator, output_dir, *, dataset_id, dataset_sha256,
             added.append(record)
             with log_path.open('a', encoding='utf-8') as stream:
                 stream.write(json.dumps(record, allow_nan=False)+'\n')
+            print(f"  [{method} | rep {replicate} | {stage}] {point.point_id} (b{b}) -> loss: {record['val_loss']:.4f}, lat: {record['latency_us']:.1f}us ({record['elapsed_seconds']:.2f}s)")
         return added
 
     for replicate in range(config.search_replicates):

@@ -109,6 +109,7 @@ class BenchmarkConfig:
     include_static_baseline: bool = False
     training_threads: int = 1
     max_features: int = 10000
+    device: str = 'cpu'
 
     def __post_init__(self):
         if self.mode not in ('research', 'smoke'):
@@ -126,6 +127,8 @@ class BenchmarkConfig:
             raise ValueError('Latency limits and hypervolume reference coordinates must be positive')
         if self.acquisition not in ('uncertainty', 'discrepancy', 'hybrid', 'expected_improvement'):
             raise ValueError('Unknown acquisition criterion')
+        if self.device not in ('cpu', 'cuda'):
+            raise ValueError('device must be cpu or cuda')
 
 
 def code_configuration(natural_params: Dict[str, float]) -> Dict[str, float]:
