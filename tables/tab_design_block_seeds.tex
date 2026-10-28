@@ -1,0 +1,9 @@
+\begin{tabular}{lcccccc}
+\toprule
+\makecell{\textbf{Phase /}\\\textbf{Design Point}} & \makecell{\textbf{Point}\\\textbf{IDs}} & \textbf{Block} & \makecell{\textbf{Split}\\\textbf{Seed}} & \makecell{\textbf{Model}\\\textbf{Seed}} & \textbf{Reps} & \makecell{\textbf{Isolated}\\\textbf{Variance}} \\
+\midrule
+\makecell[l]{Phase 1:\\Corner Runs} & $1 \dots 16$ & $b \in \{1..5\}$ & $S_b$ & $S_b$ & 1 & Factorial + Block \\
+\makecell[l]{Phase 1:\\Center Points} & $17$ & $b \in \{1..5\}$ & $S_b$ & $S_b + 1000r$ & 4 & \makecell{Subsampling Error\\($15$ df)} \\
+\makecell[l]{Phase 2:\\Axial Runs} & $18 \dots 25$ & $b \in \{1..5\}$ & $S_b$ & $S_b$ & 1 & Quadratic + Block \\
+\bottomrule
+\end{tabular}

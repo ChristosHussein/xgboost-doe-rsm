@@ -31,6 +31,9 @@ graphify-out/
 output/
 archive/
 
-# Ephemeral smoke test runs
+# Ephemeral experiment runs and raw data
 results/revision_v2/smoke*/
-
+results/smoke_verification/
+results/calibration/
+results/experiment_run/
+data/

@@ -1,0 +1,3 @@
+# Optional preparation dependency; the core study uses requirements.txt.
+-r requirements.txt
+pyarrow==26.0.0
