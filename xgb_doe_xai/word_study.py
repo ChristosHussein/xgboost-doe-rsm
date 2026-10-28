@@ -2,6 +2,7 @@
 from dataclasses import asdict
 import hashlib
 import json
+import math
 from pathlib import Path
 import time
 
@@ -12,6 +13,17 @@ import xgboost as xgb
 from .config import uncode_configuration
 from .local_explanations import explain_feature_vector
 from .study import write_json
+
+
+def equivalent_reconstruction(actual,expected):
+    """Permit roundoff in rebuilt algebra, never a changed claim or measurement."""
+    if isinstance(actual,dict) and isinstance(expected,dict):
+        return actual.keys()==expected.keys() and all(equivalent_reconstruction(actual[k],expected[k]) for k in actual)
+    if isinstance(actual,list) and isinstance(expected,list):
+        return len(actual)==len(expected) and all(equivalent_reconstruction(a,b) for a,b in zip(actual,expected))
+    if isinstance(actual,float) and isinstance(expected,float):
+        return math.isclose(actual,expected,rel_tol=1e-10,abs_tol=1e-12)
+    return actual==expected
 
 
 def run_word_study(partitions,config,selection,output,*,documents=10):
@@ -72,5 +84,5 @@ def check_word_study(output):
     for row,original in zip(vectors,observations):
         replay=explain_feature_vector(Oracle(),row,names,seed=original['seed'],
                                      confirmation_points=len(original['confirmation']['weights']))
-        if replay!={k:v for k,v in original.items() if k!='validation_document_index'}:
+        if not equivalent_reconstruction(replay,{k:v for k,v in original.items() if k!='validation_document_index'}):
             raise ValueError('Local explanations do not reconstruct from saved classifier and vectors')

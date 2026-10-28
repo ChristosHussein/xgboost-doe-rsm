@@ -65,3 +65,17 @@ def test_local_word_evidence_reconstructs_from_saved_model(tmp_path):
     output=tmp_path/'words'
     run_word_study(parts,cfg,{'coded_params':dict.fromkeys(DEFAULT_FACTORS,0.)},output,documents=2)
     check_word_study(output)
+
+
+def test_word_reconstruction_tolerates_only_roundoff():
+    from xgb_doe_xai.word_study import equivalent_reconstruction
+    assert equivalent_reconstruction({'values':[.25+1e-15]},{'values':[.25]})
+    assert not equivalent_reconstruction({'values':[.251]},{'values':[.25]})
+    assert not equivalent_reconstruction({'word':'good'},{'word':'bad'})
+
+
+def test_constant_local_response_has_no_invented_ranking():
+    from xgb_doe_xai.local_explanations import explain_word_response
+    evidence=explain_word_response(lambda x:np.repeat(.5,len(x)),['a','b','c','d'])
+    assert evidence['rsm']['rank_defined'] is False
+    assert evidence['rsm']['main_effect_ranking']==[]

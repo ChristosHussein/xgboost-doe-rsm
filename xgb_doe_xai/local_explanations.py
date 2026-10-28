@@ -35,6 +35,9 @@ def explain_word_response(response, words, *, seed=42, confirmation_points=64):
     shap = compute_surrogate_shap_attributions(Oracle(), np.zeros((1,4)), np.ones((1,4)), words)
     effects = asdict(extract_anova_attributions(surface))
     effects['feature_names'] = list(words)
+    effects['rank_defined']=bool(np.ptp(list(effects['main_effect_ss'].values()))>1e-12)
+    if not effects['rank_defined']:
+        effects['main_effect_ranking']=[]
     return dict(scope='conditional feature-weight perturbations; not causal word effects',
                 words=list(words), seed=seed,
                 training=dict(weights=weights.tolist(), observed=observed.tolist()),
