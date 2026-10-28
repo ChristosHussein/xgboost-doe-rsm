@@ -1,0 +1,39 @@
+{
+  "dataset": "yelp",
+  "source_url": "https://archive.ics.uci.edu/static/public/331/sentiment+labelled+sentences.zip",
+  "source_files": {
+    "https://archive.ics.uci.edu/static/public/331/sentiment+labelled+sentences.zip": "afc26626d710899948693e1a61405dce197f57ffa719fa1130d346b4cc095343"
+  },
+  "prepared_at_utc": "2026-10-28T01:38:25.462283+00:00",
+  "original_rows": 1000,
+  "prepared_rows": 996,
+  "split_counts": {
+    "train": 796,
+    "test": 200
+  },
+  "csv_sha256": "4801cf89d89b0016a873e4cb37d03f5a211f480af2e3180498c0e77da133e719",
+  "exclusions": [
+    {
+      "document_id": "383",
+      "split": "train",
+      "reason": "empty_or_duplicate"
+    },
+    {
+      "document_id": "814",
+      "split": "train",
+      "reason": "empty_or_duplicate"
+    },
+    {
+      "document_id": "843",
+      "split": "train",
+      "reason": "empty_or_duplicate"
+    },
+    {
+      "document_id": "846",
+      "split": "train",
+      "reason": "empty_or_duplicate"
+    }
+  ],
+  "preparation": "HTML stripping, whitespace normalization, casefolded deduplication, test preserved",
+  "holdout": "pre-calibration stratified split, seed 137"
+}
