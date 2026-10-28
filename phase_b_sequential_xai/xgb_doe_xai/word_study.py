@@ -34,6 +34,7 @@ def run_word_study(partitions,config,selection,output,*,documents=10):
         document_rule='first eligible documents in development validation block zero; labels not used to select',
         document_limit=documents,confirmation_points=64,
         perturbation='attenuate four highest-TFIDF present unigrams; all other feature weights fixed; no renormalization',
+        explanation_prediction_device='cpu',
         scope='conditional feature-weight perturbations; not causal word effects')
     write_json(output/'contract.json',contract)
     x_train,y_train,x_valid,_=partitions.block_features[0]
@@ -44,6 +45,9 @@ def run_word_study(partitions,config,selection,output,*,documents=10):
     started=time.perf_counter()
     model.fit(x_train,y_train)
     training_seconds=time.perf_counter()-started
+    # Generate and replay the explanation with the same prediction device.
+    # GPU/CPU float32 differences otherwise change derived attribution values.
+    model.get_booster().set_param({'device': 'cpu', 'nthread': 1})
     model.save_model(output/'classifier.ubj')
     names=partitions.vectorizers[0].get_feature_names_out()
     results,indices=[],[]

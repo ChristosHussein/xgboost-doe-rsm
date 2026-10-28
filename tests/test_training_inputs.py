@@ -66,6 +66,14 @@ class TrainingInputTests(unittest.TestCase):
             run_word_study(self.parts, self.cfg, dict(coded_params=self.coded), Path(tmp)/'words', documents=1)
 
     @unittest.skipUnless(os.environ.get('RUN_CUDA_TESTS') == '1', 'Explicit CUDA hardware check')
+    def test_gpu_trained_word_model_replays_on_cpu(self):
+        self.cfg.device = 'cuda'
+        self.cfg.n_trees = 100
+        self.parts.block_features[0] = (self.a, self.y, self.b, self.z)
+        with tempfile.TemporaryDirectory() as tmp:
+            run_word_study(self.parts, self.cfg, dict(coded_params=self.coded), Path(tmp)/'words', documents=2)
+
+    @unittest.skipUnless(os.environ.get('RUN_CUDA_TESTS') == '1', 'Explicit CUDA hardware check')
     def test_cuda_predictions_are_invariant_to_sparse_storage(self):
         profiler = WarmedLatencyProfiler(3, 5)
         a = self.a.copy(); a.sort_indices()

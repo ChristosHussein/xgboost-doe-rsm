@@ -1,6 +1,7 @@
 """Bounded, real-development-only verification; never scores official test data."""
 from dataclasses import asdict
 from pathlib import Path
+import argparse
 import hashlib
 import json
 import sys
@@ -18,7 +19,9 @@ from xgb_doe_xai.study import run_study, check_study, write_json, source_hashes
 from xgb_doe_xai.word_study import run_word_study, check_word_study
 from run_phase_b import generate_all_findings
 
-output = ROOT/'results/cuda_fix_verification'
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output', type=Path, default=ROOT/'results/cuda_fix_verification')
+output = parser.parse_args().output.resolve()
 output.mkdir(exist_ok=False)
 source = ROOT/'phase_b_sequential_xai/data/imdb.csv'
 frame = pd.read_csv(source)
@@ -45,7 +48,7 @@ run_study(cfg, make_development_evaluator(parts,cfg), output/'study',
     dataset_sha256=hashlib.sha256(subset.to_csv(index=False).encode()).hexdigest(),
     evidence_kind='development_pilot', final_evaluator=None)
 summary=check_study(output/'study')
-selection=json.loads((output/'study/selected.json').read_text())[0]
+selection=next(row for row in json.loads((output/'study/selected.json').read_text()) if row['method']=='doe')
 run_word_study(parts,cfg,selection,output/'words',documents=2)
 check_word_study(output/'words')
 generate_all_findings(output/'study', output/'findings', dataset_name='imdb-development-pilot')
