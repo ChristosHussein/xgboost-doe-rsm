@@ -36,6 +36,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent if Path(__file__).resolve().parent.name == "experiment_code" else Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import numpy as np
 import pandas as pd
