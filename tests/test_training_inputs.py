@@ -1,4 +1,5 @@
 import os
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -68,8 +69,16 @@ class TrainingInputTests(unittest.TestCase):
     def test_cuda_predictions_are_invariant_to_sparse_storage(self):
         profiler = WarmedLatencyProfiler(3, 5)
         a = self.a.copy(); a.sort_indices()
-        results = [train_and_evaluate_config(self.coded, m, self.y, self.b, self.z,
-                   profiler, n_trees=20, device='cuda') for m in [self.a, a]]
+        original_fit = xgb.XGBClassifier.fit
+        devices = []
+        def fit_and_record(model, *args, **kwargs):
+            result = original_fit(model, *args, **kwargs)
+            devices.append(json.loads(model.get_booster().save_config())['learner']['generic_param']['device'])
+            return result
+        with patch.object(xgb.XGBClassifier, 'fit', fit_and_record):
+            results = [train_and_evaluate_config(self.coded, m, self.y, self.b, self.z,
+                       profiler, n_trees=20, device='cuda') for m in [self.a, a]]
+        self.assertTrue(all(device.startswith('cuda') for device in devices), devices)
         np.testing.assert_allclose(results[0].validation_probabilities,
                                    results[1].validation_probabilities, rtol=0, atol=1e-7)
 
