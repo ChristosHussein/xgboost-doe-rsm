@@ -37,12 +37,12 @@ OUT=args.output
 (OUT/'figures').mkdir(parents=True,exist_ok=True)
 sys.path.insert(0,str(ROOT/'phase_b_sequential_xai'))
 from xgb_doe_xai.study import check_study
-from xgb_doe_xai.word_study import check_word_study
+from verify_words import verify_words
 from xgb_doe_xai.surrogates import PolynomialRSMSurrogate
 read=lambda p:json.loads(p.read_text(encoding='utf-8'))
 A=ROOT/'phase_a_rsm_blocking/results'; V=A/'revision_v2/full_run_001'
 B=ROOT/'results/phase_b'; S=B/'imdb'
-summary=check_study(S);check_word_study(B/'imdb_words')
+summary=check_study(S);verify_words(ROOT)
 contract=read(S/'measurement_contract.json'); cfg=contract['config']
 provenance=read(V/'provenance.json')
 for n,h in provenance['artifact_sha256'].items():

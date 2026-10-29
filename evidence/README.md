@@ -14,3 +14,5 @@ The restoration command verifies checksums, extracts missing observations and re
 Phase A observations remain under `phase_a_rsm_blocking/results/`. The prepared dataset under `phase_b_sequential_xai/data/` and the reference dependency pins accompany the code. Dataset and method references are given in the paper.
 
 `phase_a_sources.zip` preserves the original housing benchmark source files. Their hashes are checked against the recorded benchmark provenance. The verifier accepts documentation-only changes in Python files only when the executable syntax tree is identical; changes to experimental logic fail verification.
+
+Word-classifier replay checks primary probabilities within two float32 rounding units across platforms. It independently refits the saved local surfaces, checks Shapley values against propagated rounding bounds and requires the published RMSE precision to remain unchanged. Original observations and experimental code are preserved; exact saved-result calculations and file checksums use the frozen evidence.

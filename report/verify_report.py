@@ -14,6 +14,7 @@ import shutil
 import tempfile
 
 from verify_evidence import audit
+from verify_words import verify_words
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = Path(__file__).resolve().parent
@@ -166,11 +167,12 @@ def main():
     verify_sources(ROOT, registry['source_sha256'])
     contexts = verify_contexts(OUT, registry)
     reconstruction = audit(ROOT, registry)
+    word_replay = verify_words(ROOT)
     counts = Counter(key for context in contexts['contexts'] for key in context['metrics'])
     result = dict(verdict='VERIFIED WITH DECLARED LIMITATIONS',
         bound_occurrences=sum(counts.values()), used_metrics=len(counts),
         unbound_empirical_literals=0, evidence_hashes_checked=len(registry['source_sha256']),
-        metrics_by_occurrence=dict(counts), reconstruction=reconstruction,
+        metrics_by_occurrence=dict(counts), reconstruction=reconstruction, word_model_replay=word_replay,
         limitations=['Historical evaluation-set exposure limits external generalization.',
                      'Shared folds and few search repeats limit method-level inference.',
                      'Single-input CPU timings do not estimate deployment latency.',

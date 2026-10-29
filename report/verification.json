@@ -507,6 +507,11 @@
       "Independent reconstruction of saved evidence is not a new training experiment."
     ]
   },
+  "word_model_replay": {
+    "documents": 10,
+    "probability_ulp_bound": 2,
+    "published_rmse_decimals": 4
+  },
   "limitations": [
     "Historical evaluation-set exposure limits external generalization.",
     "Shared folds and few search repeats limit method-level inference.",
