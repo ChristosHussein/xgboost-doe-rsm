@@ -48,6 +48,20 @@
 \expandafter\def\csname metricBVocab\endcsname{10000}
 \expandafter\def\csname metricBCap\endcsname{162.8}
 \expandafter\def\csname metricBReference\endcsname{358.3}
+\expandafter\def\csname metricBReferenceLoss\endcsname{1.0}
+\expandafter\def\csname metricBBackground\endcsname{25}
+\expandafter\def\csname metricBConfirmPerMethod\endcsname{180}
+\expandafter\def\csname metricBIntervalLevel\endcsname{95}
+\expandafter\def\csname metricBBoundaryCutoff\endcsname{0.9}
+\expandafter\def\csname metricBWordConfirm\endcsname{64}
+\expandafter\def\csname metricACapacity\endcsname{100}
+\expandafter\def\csname metricASplittrain\endcsname{60}
+\expandafter\def\csname metricASplitval\endcsname{20}
+\expandafter\def\csname metricASplittest\endcsname{20}
+\expandafter\def\csname metricAConfirmationCount\endcsname{10}
+\expandafter\def\csname metricAIntervalLevel\endcsname{95}
+\expandafter\def\csname metricAEvaluationCount\endcsname{20}
+\expandafter\def\csname metricBCalTolerance\endcsname{0.005}
 \expandafter\def\csname metricBTotal\endcsname{1810}
 \expandafter\def\csname metricBSearch\endcsname{1260}
 \expandafter\def\csname metricBConfirmationFits\endcsname{540}
@@ -88,6 +102,52 @@
 \expandafter\def\csname metricBCCoverage\endcsname{81.1}
 \expandafter\def\csname metricBCRank\endcsname{0.400}
 \expandafter\def\csname metricBCInteraction\endcsname{0.224}
+\expandafter\def\csname metricBSelectedDepth\endcsname{3}
+\expandafter\def\csname metricSelectionstaticdoeARepeat\endcsname{1}
+\expandafter\def\csname metricSelectionstaticdoeARate\endcsname{0.3000}
+\expandafter\def\csname metricSelectionstaticdoeADepth\endcsname{3}
+\expandafter\def\csname metricSelectionstaticdoeASample\endcsname{1.0000}
+\expandafter\def\csname metricSelectionstaticdoeALambda\endcsname{0.1000}
+\expandafter\def\csname metricSelectionstaticdoeBRepeat\endcsname{2}
+\expandafter\def\csname metricSelectionstaticdoeBRate\endcsname{0.1750}
+\expandafter\def\csname metricSelectionstaticdoeBDepth\endcsname{3}
+\expandafter\def\csname metricSelectionstaticdoeBSample\endcsname{0.7500}
+\expandafter\def\csname metricSelectionstaticdoeBLambda\endcsname{1.0000}
+\expandafter\def\csname metricSelectionstaticdoeCRepeat\endcsname{3}
+\expandafter\def\csname metricSelectionstaticdoeCRate\endcsname{0.1750}
+\expandafter\def\csname metricSelectionstaticdoeCDepth\endcsname{3}
+\expandafter\def\csname metricSelectionstaticdoeCSample\endcsname{0.7500}
+\expandafter\def\csname metricSelectionstaticdoeCLambda\endcsname{1.0000}
+\expandafter\def\csname metricSelectiondoeARepeat\endcsname{1}
+\expandafter\def\csname metricSelectiondoeARate\endcsname{0.3000}
+\expandafter\def\csname metricSelectiondoeADepth\endcsname{3}
+\expandafter\def\csname metricSelectiondoeASample\endcsname{1.0000}
+\expandafter\def\csname metricSelectiondoeALambda\endcsname{10.0000}
+\expandafter\def\csname metricSelectiondoeBRepeat\endcsname{2}
+\expandafter\def\csname metricSelectiondoeBRate\endcsname{0.3000}
+\expandafter\def\csname metricSelectiondoeBDepth\endcsname{3}
+\expandafter\def\csname metricSelectiondoeBSample\endcsname{1.0000}
+\expandafter\def\csname metricSelectiondoeBLambda\endcsname{0.1000}
+\expandafter\def\csname metricSelectiondoeCRepeat\endcsname{3}
+\expandafter\def\csname metricSelectiondoeCRate\endcsname{0.3000}
+\expandafter\def\csname metricSelectiondoeCDepth\endcsname{3}
+\expandafter\def\csname metricSelectiondoeCSample\endcsname{1.0000}
+\expandafter\def\csname metricSelectiondoeCLambda\endcsname{0.1000}
+\expandafter\def\csname metricSelectiontpeARepeat\endcsname{1}
+\expandafter\def\csname metricSelectiontpeARate\endcsname{0.1849}
+\expandafter\def\csname metricSelectiontpeADepth\endcsname{3}
+\expandafter\def\csname metricSelectiontpeASample\endcsname{0.8674}
+\expandafter\def\csname metricSelectiontpeALambda\endcsname{2.6232}
+\expandafter\def\csname metricSelectiontpeBRepeat\endcsname{2}
+\expandafter\def\csname metricSelectiontpeBRate\endcsname{0.2392}
+\expandafter\def\csname metricSelectiontpeBDepth\endcsname{3}
+\expandafter\def\csname metricSelectiontpeBSample\endcsname{0.6232}
+\expandafter\def\csname metricSelectiontpeBLambda\endcsname{0.1605}
+\expandafter\def\csname metricSelectiontpeCRepeat\endcsname{3}
+\expandafter\def\csname metricSelectiontpeCRate\endcsname{0.2989}
+\expandafter\def\csname metricSelectiontpeCDepth\endcsname{3}
+\expandafter\def\csname metricSelectiontpeCSample\endcsname{0.9264}
+\expandafter\def\csname metricSelectiontpeCLambda\endcsname{0.3525}
 \expandafter\def\csname metricBWordDocs\endcsname{10}
 \expandafter\def\csname metricBWordMaxError\endcsname{0.0224}
 \expandafter\def\csname metricCalSmall\endcsname{0.8049}
@@ -183,3 +243,9 @@
 \expandafter\def\csname metricConfirmClatencyusBoundary\endcsname{-0.60}
 \expandafter\def\csname metricWordExampleIndex\endcsname{6}
 \newcommand{\AcceleratorName}{NVIDIA GeForce RTX 5080}
+
+\newcommand{\InferenceProcessor}{AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD}
+
+\newcommand{\XGBoostVersion}{3.2.0}
+
+\newcommand{\PythonVersion}{3.11.9}

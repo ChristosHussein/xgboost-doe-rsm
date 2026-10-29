@@ -6,17 +6,39 @@ import hashlib
 import json
 import shutil
 import sys
+import argparse
+import subprocess
+import tempfile
+import inspect
+import re
 import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-ROOT=Path(__file__).resolve().parents[1]; OUT=Path(__file__).parent
-(OUT/'figures').mkdir(exist_ok=True)
+ROOT=Path(__file__).resolve().parents[1]
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output',type=Path,default=Path(__file__).parent)
+parser.add_argument('--check',action='store_true')
+args=parser.parse_args()
+if args.check:
+    with tempfile.TemporaryDirectory() as temporary:
+        destination=Path(temporary)
+        subprocess.run([sys.executable,__file__,'--output',str(destination)],check=True)
+        changed=[str(p.relative_to(destination)) for p in destination.rglob('*')
+                 if p.is_file() and (not (args.output/p.relative_to(destination)).exists()
+                 or p.read_bytes()!=(args.output/p.relative_to(destination)).read_bytes())]
+        if changed:
+            raise SystemExit('Stale generated publication files: '+', '.join(changed))
+    print('All generated tables, metrics and figures match their source observations.')
+    raise SystemExit(0)
+OUT=args.output
+(OUT/'figures').mkdir(parents=True,exist_ok=True)
 sys.path.insert(0,str(ROOT/'phase_b_sequential_xai'))
 from xgb_doe_xai.study import check_study
 from xgb_doe_xai.word_study import check_word_study
+from xgb_doe_xai.surrogates import PolynomialRSMSurrogate
 read=lambda p:json.loads(p.read_text(encoding='utf-8'))
 A=ROOT/'phase_a_rsm_blocking/results'; V=A/'revision_v2/full_run_001'
 B=ROOT/'results/phase_b'; S=B/'imdb'
@@ -26,16 +48,19 @@ provenance=read(V/'provenance.json')
 for n,h in provenance['artifact_sha256'].items():
     assert hashlib.sha256((V/n).read_bytes()).hexdigest()==h,n
 sources={}; registry={}
+def source_digest(path):
+    data=path.read_bytes()
+    return hashlib.sha256(data.replace(b'\r\n',b'\n') if path.suffix=='.py' else data).hexdigest()
 def metric(name,value,source,selector,fmt='.4f',kind='empirical'):
     registry[name]=dict(value=float(value),source=str(source.relative_to(ROOT)),selector=selector,format=fmt,kind=kind)
-    sources[str(source.relative_to(ROOT))]=hashlib.sha256(source.read_bytes()).hexdigest()
+    sources[str(source.relative_to(ROOT))]=source_digest(source)
     return '\\m{'+name+'}'
 def show(name):
     r=registry[name];return format(r['value'],r['format'])
 def table(name,headers,rows):
     s='\\begin{tabular}{l'+'r'*(len(headers)-1)+'}\n\\toprule\n'+' & '.join(headers)+' \\\\\n\\midrule\n'
     s+=''.join(' & '.join(row)+' \\\\\n' for row in rows)+'\\bottomrule\n\\end{tabular}\n'
-    (OUT/(name+'.tex')).write_text(s,encoding='utf-8')
+    (OUT/(name+'.tex')).write_text(s,encoding='utf-8',newline='\n')
 
 
 figure_sources={}
@@ -43,7 +68,7 @@ figure_sources={}
 
 def save_figure(fig,name,paths):
     fig.tight_layout()
-    fig.savefig(OUT/'figures'/name)
+    fig.savefig(OUT/'figures'/name,metadata={'CreationDate':None,'ModDate':None} if name.endswith('.pdf') else {})
     plt.close(fig)
     figure_sources[name]=[str(p.relative_to(ROOT)).replace('\\','/') for p in paths]
 labels={'static_doe':'Static CCD','doe':'Sequential CCD','tpe':'MO-TPE'}
@@ -94,6 +119,23 @@ for name,key in [('BTrees','n_trees'),('BBlocks','n_nuisance_blocks'),('BRepeats
     metric(name,cfg[key],S/'measurement_contract.json','config.'+key,'.0f','protocol')
 metric('BCap',cfg['latency_threshold_us'],S/'measurement_contract.json','config.latency_threshold_us','.1f','protocol')
 metric('BReference',cfg['hv_ref_latency_us'],S/'measurement_contract.json','config.hv_ref_latency_us','.1f','protocol')
+metric('BReferenceLoss',cfg['hv_ref_loss'],S/'measurement_contract.json','config.hv_ref_loss','.1f','protocol')
+metric('BBackground',len(contract['background']),S/'measurement_contract.json','background coordinate count','.0f','protocol')
+metric('BConfirmPerMethod',len(read(S/'confirmation.json'))/(2*len(labels)),S/'confirmation.json','per-method, per-response observation count','.0f','protocol')
+metric('BIntervalLevel',100*(1-inspect.signature(PolynomialRSMSurrogate.predict_interval).parameters['alpha'].default),ROOT/'phase_b_sequential_xai/xgb_doe_xai/surrogates.py','100*(1 - predict_interval default alpha)','.0f','protocol')
+boundary_source=ROOT/'phase_b_sequential_xai/xgb_doe_xai/study.py'
+boundary_cutoff=float(re.search(r'boundary=max\(.+>=\s*([.\d]+)',boundary_source.read_text()).group(1))
+metric('BBoundaryCutoff',boundary_cutoff,boundary_source,'confirmation boundary: max absolute coded coordinate cutoff','.1f','protocol')
+metric('BWordConfirm',len(read(B/'imdb_words/observations.json')['documents'][0]['confirmation']['weights']),B/'imdb_words/observations.json','per-document reserved perturbation count','.0f','protocol')
+metric('ACapacity',aconfig['model']['n_estimators'],ROOT/'phase_a_rsm_blocking/config.yaml','model.n_estimators','.0f','protocol')
+for split in ['train','val','test']:
+    metric('ASplit'+split,100*aconfig['project'][split+'_ratio'],ROOT/'phase_a_rsm_blocking/config.yaml','project.'+split+'_ratio *100','.0f','protocol')
+metric('AConfirmationCount',len(pd.read_csv(A/'confirmation_runs.csv')),A/'confirmation_runs.csv','confirmation observations per candidate','.0f','protocol')
+metric('AIntervalLevel',float(next(k for k in conf['Y1_Val_RMSE'] if k.startswith('prediction_interval_')).rsplit('_',1)[1]),A/'confirmation.json','Y1_Val_RMSE prediction-interval nominal level','.0f','protocol')
+metric('AEvaluationCount',evaluations.groupby('selection_id').size().iloc[0],V/'final_evaluations.csv','retraining observations per selection','.0f','protocol')
+calibration_contract=ROOT/'results/phase_b_calibration/calibration_contract.json'
+capacity_tolerance=float(re.search(r'within\s+([.\d]+)',read(calibration_contract)['selection_rule']).group(1))
+metric('BCalTolerance',capacity_tolerance,calibration_contract,'selection_rule: low-rate macro F1 tolerance','.3f','protocol')
 metric('BTotal',summary['total_fits']+read(B/'imdb_words/contract.json')['training_fits'],S/'summary.json','total_fits + imdb_words/contract.json:training_fits','.0f')
 metric('BSearch',sum(summary['search_fits'].values()),S/'summary.json','sum search_fits','.0f')
 metric('BConfirmationFits',summary['confirmation_fits'],S/'summary.json','confirmation_fits','.0f')
@@ -125,6 +167,20 @@ for i,(method,label) in enumerate(labels.items()):
     agreement.append([label,'\\m{B'+chr(65+i)+'Rank}','\\m{B'+chr(65+i)+'Interaction}'])
     btest.append((label,np.mean([r['test_macro_f1'] for r in rows]),np.mean([r['test_latency_us'] for r in rows]),np.std([r['test_macro_f1'] for r in rows],ddof=1)))
 table('b_benchmark',['Method','Test macro F1','Log loss','CPU latency ($\\mu$s)','Dev. HV'],btable)
+selection_rows=[]
+selected_depths={r['natural_params']['max_depth'] for r in read(S/'final_results.json')['results']}
+if len(selected_depths)!=1:
+    raise ValueError('Selected-depth statement requires a common recorded depth')
+metric('BSelectedDepth',next(iter(selected_depths)),S/'final_results.json','common natural_params.max_depth across frozen selections','.0f','protocol')
+for method,label in labels.items():
+    records=[r for r in read(S/'final_results.json')['results'] if r['method']==method]
+    for r in sorted(records,key=lambda row:row['replicate']):
+        prefix='Selection'+method.replace('_','')+chr(65+r['replicate'])
+        row=[label,metric(prefix+'Repeat',r['replicate']+1,S/'final_results.json',method+': repeat label (one-based)','.0f','protocol')]
+        for key,title,fmt in [('learning_rate','Rate','.4f'),('max_depth','Depth','.0f'),('subsample','Sample','.4f'),('reg_lambda','Lambda','.4f')]:
+            row.append(metric(prefix+title,r['natural_params'][key],S/'final_results.json',method+': repeat '+str(r['replicate'])+' natural_params.'+key,fmt,'protocol'))
+        selection_rows.append(row)
+table('b_selected',['Method','Repeat','Learning rate','Depth','Subsample','Regularization'],selection_rows)
 table('b_agreement',['Method','Factor rank correlation','Interaction correlation'],agreement)
 words=read(B/'imdb_words/observations.json')['documents']
 metric('BWordDocs',len(words),B/'imdb_words/observations.json','documents count','.0f')
@@ -239,7 +295,7 @@ for method,label in labels.items():
     x=curves[0,:,0];y=curves[:,:,1]
     axes[0].plot(x,np.median(y,axis=0),label=label,color=colors[method]);axes[0].fill_between(x,np.quantile(y,.25,axis=0),np.quantile(y,.75,axis=0),color=colors[method],alpha=.16)
     axes[1].scatter(np.repeat(label,cfg['search_replicates']),[summary['methods'][method]['replicates'][rep]['hypervolume'] for rep in range(cfg['search_replicates'])],color=colors[method],s=28)
-axes[0].set(xlabel='Completed XGBoost fits',ylabel='Development hypervolume',title='Information gained during search');axes[0].legend(fontsize=8)
+axes[0].set(xlabel='Completed XGBoost fits',ylabel='Development hypervolume',title='Complete-block results available');axes[0].legend(fontsize=8)
 axes[1].set(ylabel='Final development hypervolume',title='Variation across search repeats')
 save_figure(fig,'phase_b_progress.pdf',[B/'imdb_analysis.json',S/'evaluations.jsonl'])
 
@@ -257,7 +313,7 @@ for ri,(response,title) in enumerate([('val_loss','Classification loss'),('laten
             ax.bar(np.arange(4)+(mi-1)*.25,np.mean(scores,axis=0),width=.24,label=label,color=colors[method])
         ax.set_xticks(range(4),names,rotation=10);ax.set(title=title+': '+method_name,ylabel='Normalized contribution')
 axes[0,0].legend(fontsize=8)
-save_figure(fig,'phase_b_importance.pdf',list(set(snapshot_paths)))
+save_figure(fig,'phase_b_importance.pdf',sorted(set(snapshot_paths)))
 
 fig,axes=plt.subplots(2,2,figsize=(8.5,7))
 for ri,(response,title) in enumerate([('val_loss','Classification loss'),('latency_us','CPU latency')]):
@@ -305,13 +361,21 @@ x=np.array(document['confirmation']['predicted']);y=np.array(document['confirmat
 mat=np.array(document['shap']['interaction_matrix_shap']);np.fill_diagonal(mat,0);im=axes[2].imshow(mat,cmap='Oranges');axes[2].set_xticks(range(4),document['words'],rotation=25,ha='right');axes[2].set_yticks(range(4),document['words']);axes[2].set_title('Word-pair SHAP strength');fig.colorbar(im,ax=axes[2],shrink=.7)
 save_figure(fig,'phase_b_words.pdf',[B/'imdb_words/observations.json'])
 tex='\n'.join('\\expandafter\\def\\csname metric'+k+'\\endcsname{'+show(k)+'}' for k in registry)
-(OUT/'numbers.tex').write_text(tex,encoding='utf-8')
+(OUT/'numbers.tex').write_text(tex,encoding='utf-8',newline='\n')
 accelerator=contract['accelerator'].split(',')[0]
-with (OUT/'numbers.tex').open('a',encoding='utf-8') as stream:stream.write('\n\\newcommand{\\AcceleratorName}{'+accelerator+'}\n')
+timing_environment=observations[0]['latency']['environment']
+text_metrics={
+ 'AcceleratorName':dict(value=accelerator,source='results/phase_b/imdb/measurement_contract.json',selector='accelerator name'),
+ 'InferenceProcessor':dict(value=timing_environment['processor'],source='results/phase_b/imdb/evaluations.jsonl',selector='latency.environment.processor'),
+ 'XGBoostVersion':dict(value=contract['dependencies']['xgboost'],source='results/phase_b/imdb/measurement_contract.json',selector='dependencies.xgboost'),
+ 'PythonVersion':dict(value=contract['python'].split()[0],source='results/phase_b/imdb/measurement_contract.json',selector='python version')}
+with (OUT/'numbers.tex').open('a',encoding='utf-8',newline='\n') as stream:
+    for key,definition in text_metrics.items():
+        stream.write('\n\\newcommand{\\'+key+'}{'+definition['value']+'}\n')
 
 for paths in figure_sources.values():
- for path in paths:sources[path]=hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
+ for path in paths:sources[path]=source_digest(ROOT/path)
 (OUT/'metric_registry.json').write_text(json.dumps(dict(metrics=registry,source_sha256=sources,
-    text_metrics={'AcceleratorName':dict(value=accelerator,source='results/phase_b/imdb/measurement_contract.json',selector='accelerator name')},
-    figures=figure_sources),indent=2),encoding='utf-8')
+    text_metrics=text_metrics,
+    figures=figure_sources),indent=2),encoding='utf-8',newline='\n')
 print('Evidence prepared:',len(registry),'bound metrics;',len(sources),'source files; Phase A artifact hashes and Phase B reconstruction passed.')

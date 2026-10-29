@@ -350,6 +350,104 @@
       "format": ".1f",
       "kind": "protocol"
     },
+    "BReferenceLoss": {
+      "value": 1.0,
+      "source": "results\\phase_b\\imdb\\measurement_contract.json",
+      "selector": "config.hv_ref_loss",
+      "format": ".1f",
+      "kind": "protocol"
+    },
+    "BBackground": {
+      "value": 25.0,
+      "source": "results\\phase_b\\imdb\\measurement_contract.json",
+      "selector": "background coordinate count",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BConfirmPerMethod": {
+      "value": 180.0,
+      "source": "results\\phase_b\\imdb\\confirmation.json",
+      "selector": "per-method, per-response observation count",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BIntervalLevel": {
+      "value": 95.0,
+      "source": "phase_b_sequential_xai\\xgb_doe_xai\\surrogates.py",
+      "selector": "100*(1 - predict_interval default alpha)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BBoundaryCutoff": {
+      "value": 0.9,
+      "source": "phase_b_sequential_xai\\xgb_doe_xai\\study.py",
+      "selector": "confirmation boundary: max absolute coded coordinate cutoff",
+      "format": ".1f",
+      "kind": "protocol"
+    },
+    "BWordConfirm": {
+      "value": 64.0,
+      "source": "results\\phase_b\\imdb_words\\observations.json",
+      "selector": "per-document reserved perturbation count",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "ACapacity": {
+      "value": 100.0,
+      "source": "phase_a_rsm_blocking\\config.yaml",
+      "selector": "model.n_estimators",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "ASplittrain": {
+      "value": 60.0,
+      "source": "phase_a_rsm_blocking\\config.yaml",
+      "selector": "project.train_ratio *100",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "ASplitval": {
+      "value": 20.0,
+      "source": "phase_a_rsm_blocking\\config.yaml",
+      "selector": "project.val_ratio *100",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "ASplittest": {
+      "value": 20.0,
+      "source": "phase_a_rsm_blocking\\config.yaml",
+      "selector": "project.test_ratio *100",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "AConfirmationCount": {
+      "value": 10.0,
+      "source": "phase_a_rsm_blocking\\results\\confirmation_runs.csv",
+      "selector": "confirmation observations per candidate",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "AIntervalLevel": {
+      "value": 95.0,
+      "source": "phase_a_rsm_blocking\\results\\confirmation.json",
+      "selector": "Y1_Val_RMSE prediction-interval nominal level",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "AEvaluationCount": {
+      "value": 20.0,
+      "source": "phase_a_rsm_blocking\\results\\revision_v2\\full_run_001\\final_evaluations.csv",
+      "selector": "retraining observations per selection",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BCalTolerance": {
+      "value": 0.005,
+      "source": "results\\phase_b_calibration\\calibration_contract.json",
+      "selector": "selection_rule: low-rate macro F1 tolerance",
+      "format": ".3f",
+      "kind": "protocol"
+    },
     "BTotal": {
       "value": 1810.0,
       "source": "results\\phase_b\\imdb\\summary.json",
@@ -629,6 +727,328 @@
       "selector": "tpe:val_loss interaction_correlation mean",
       "format": ".3f",
       "kind": "empirical"
+    },
+    "BSelectedDepth": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "common natural_params.max_depth across frozen selections",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeARepeat": {
+      "value": 1.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeARate": {
+      "value": 0.3,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 0 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeADepth": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 0 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeASample": {
+      "value": 1.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 0 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeALambda": {
+      "value": 0.1,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 0 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeBRepeat": {
+      "value": 2.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeBRate": {
+      "value": 0.175,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 1 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeBDepth": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 1 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeBSample": {
+      "value": 0.75,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 1 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeBLambda": {
+      "value": 1.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 1 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeCRepeat": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeCRate": {
+      "value": 0.175,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 2 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeCDepth": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 2 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeCSample": {
+      "value": 0.75,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 2 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeCLambda": {
+      "value": 1.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "static_doe: repeat 2 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeARepeat": {
+      "value": 1.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeARate": {
+      "value": 0.3,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 0 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeADepth": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 0 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeASample": {
+      "value": 1.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 0 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeALambda": {
+      "value": 10.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 0 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeBRepeat": {
+      "value": 2.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeBRate": {
+      "value": 0.3,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 1 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeBDepth": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 1 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeBSample": {
+      "value": 1.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 1 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeBLambda": {
+      "value": 0.1,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 1 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeCRepeat": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeCRate": {
+      "value": 0.3,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 2 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeCDepth": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 2 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeCSample": {
+      "value": 1.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 2 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeCLambda": {
+      "value": 0.1,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "doe: repeat 2 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeARepeat": {
+      "value": 1.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeARate": {
+      "value": 0.18487563700075,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 0 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeADepth": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 0 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeASample": {
+      "value": 0.867392735168,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 0 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeALambda": {
+      "value": 2.6231809096697547,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 0 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeBRepeat": {
+      "value": 2.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeBRate": {
+      "value": 0.239214109376,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 1 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeBDepth": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 1 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeBSample": {
+      "value": 0.62316472883775,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 1 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeBLambda": {
+      "value": 0.1604917840307475,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 1 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeCRepeat": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeCRate": {
+      "value": 0.298938796851125,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 2 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeCDepth": {
+      "value": 3.0,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 2 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeCSample": {
+      "value": 0.92635139154575,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 2 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeCLambda": {
+      "value": 0.35249440287928535,
+      "source": "results\\phase_b\\imdb\\final_results.json",
+      "selector": "tpe: repeat 2 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
     },
     "BWordDocs": {
       "value": 10.0,
@@ -1300,13 +1720,17 @@
     "phase_a_rsm_blocking\\results\\revision_v2\\full_run_001\\final_summary.csv": "db5cfe8b23c149d437fe0ba628460603613473b27fbddd6a91e9d4ecb8b903a8",
     "phase_a_rsm_blocking\\config.yaml": "87366c92f71c8803594d3ea057bc4bc675e93eab79a81c239980449caeffb21d",
     "results\\phase_b\\imdb\\measurement_contract.json": "e0e08809086e02a5bcb95758d063e60cac861e4a4496143563e823adbadedde8",
+    "results\\phase_b\\imdb\\confirmation.json": "45655f57b32e3c3a3bfa17283549745d1fc655a9a4dd00bbf2abe2b8a0413a8e",
+    "phase_b_sequential_xai\\xgb_doe_xai\\surrogates.py": "d1e1f0800ab586f6e90c7a08e7bafb80d6378cf4cc31185c0fc91a0e9e4621e5",
+    "phase_b_sequential_xai\\xgb_doe_xai\\study.py": "a98769f765509d2676f1f3d125634cb9247489c0ee9b1dc4054af9c1c0adf9ad",
+    "results\\phase_b\\imdb_words\\observations.json": "b169751d314d0120724043f4489e8f163702b24105fd07285fa498a1a9665224",
+    "phase_a_rsm_blocking\\results\\revision_v2\\full_run_001\\final_evaluations.csv": "bae360166c588599499852878c3374a033918d3a62d6abc3ce67fc0a6966de2e",
+    "results\\phase_b_calibration\\calibration_contract.json": "c0733b437e3208f20d5737dcaa84c889e2b4cd9d79e5894b7bd7426080ff1ff6",
     "results\\phase_b\\imdb\\summary.json": "c8f7a33284ddb1017216db7df373150bbc7fd521898de589a0e742208275d12f",
     "results\\phase_b_calibration\\imdb_pilot.json": "353a41b4735ddf2f546981dee2cc2b02eac87ab4d095102239ce09bcc0674ce1",
     "results\\phase_b\\experiment_summary.json": "56e42f401b59a5c5e61307d08b0b3bdeec591d553aa5792b80c6bd94490a69f2",
     "phase_b_sequential_xai\\data\\imdb.csv": "201fdc0b1765174afe6fde3feb39d0bdfced2762e6dac6f7811936e842d3abdf",
     "results\\phase_b\\imdb\\final_results.json": "9ce2cc94563da2f5d5cb5d97162e7a762fdb69233444091e8edd2c77839db05e",
-    "results\\phase_b\\imdb\\confirmation.json": "45655f57b32e3c3a3bfa17283549745d1fc655a9a4dd00bbf2abe2b8a0413a8e",
-    "results\\phase_b\\imdb_words\\observations.json": "b169751d314d0120724043f4489e8f163702b24105fd07285fa498a1a9665224",
     "results\\phase_b\\imdb\\evaluations.jsonl": "7d1466f568bd7dacc696d4d1f760c05642dc141d50fa5a8fef734d4ae1c91ca6",
     "results\\phase_b\\imdb\\snapshot_0_doe_2.json": "a75dd72582ff7c5dc34b085f0e5a37c67064fb9cb4af35a2fa5d184de0069d3a",
     "findings/phase_a/figures/explainer_research_pipeline.pdf": "402bf27dd9699582a04520284d7b81be3ce9667ed6d70d7174c2fa9b33fdb11e",
@@ -1333,15 +1757,15 @@
     "results/phase_b/imdb/evaluations.jsonl": "7d1466f568bd7dacc696d4d1f760c05642dc141d50fa5a8fef734d4ae1c91ca6",
     "results/phase_b/imdb/final_results.json": "9ce2cc94563da2f5d5cb5d97162e7a762fdb69233444091e8edd2c77839db05e",
     "results/phase_b/imdb_analysis.json": "93b1f789fb1c1193a979f4b2e02f8b4b216a7dabe8689299991713f303d11518",
-    "results/phase_b/imdb/snapshot_0_tpe_final.json": "99c8c399049c1033c7bd662ab2c1b63bb54604b596bc3faf112d54d70b9cd932",
-    "results/phase_b/imdb/snapshot_2_tpe_final.json": "6b320495eb1fd5d72fe43d230f8e5cf176673c9c339d91caf39be2aff35a0738",
-    "results/phase_b/imdb/snapshot_1_static_doe_final.json": "24859ad85ce6bce51c51028945eb62d8115dc4a6b4091a984d968a057bfe800c",
-    "results/phase_b/imdb/snapshot_2_doe_2.json": "0a3d52508321bc8cef4f54416de3e2288af8d1b661fc56bccc3789c45e6133d2",
-    "results/phase_b/imdb/snapshot_1_doe_2.json": "cf91312b31977d33ae1da0fee2fc3ae1aa6c507b8b4ad484b198d20c45058c2d",
-    "results/phase_b/imdb/snapshot_0_static_doe_final.json": "11fcdd558e578806b60f46084eb4c6d1e936e9daeaf5b4c450d9e3180a73950c",
-    "results/phase_b/imdb/snapshot_2_static_doe_final.json": "c57dbd872c94e031946a5659fe3061807afa6ad71c410a1e99d094245b910640",
     "results/phase_b/imdb/snapshot_0_doe_2.json": "a75dd72582ff7c5dc34b085f0e5a37c67064fb9cb4af35a2fa5d184de0069d3a",
+    "results/phase_b/imdb/snapshot_0_static_doe_final.json": "11fcdd558e578806b60f46084eb4c6d1e936e9daeaf5b4c450d9e3180a73950c",
+    "results/phase_b/imdb/snapshot_0_tpe_final.json": "99c8c399049c1033c7bd662ab2c1b63bb54604b596bc3faf112d54d70b9cd932",
+    "results/phase_b/imdb/snapshot_1_doe_2.json": "cf91312b31977d33ae1da0fee2fc3ae1aa6c507b8b4ad484b198d20c45058c2d",
+    "results/phase_b/imdb/snapshot_1_static_doe_final.json": "24859ad85ce6bce51c51028945eb62d8115dc4a6b4091a984d968a057bfe800c",
     "results/phase_b/imdb/snapshot_1_tpe_final.json": "29cf0b08328a626f945965133c5d8f90c1ad34e0279fb44a39bfb833cb1f9536",
+    "results/phase_b/imdb/snapshot_2_doe_2.json": "0a3d52508321bc8cef4f54416de3e2288af8d1b661fc56bccc3789c45e6133d2",
+    "results/phase_b/imdb/snapshot_2_static_doe_final.json": "c57dbd872c94e031946a5659fe3061807afa6ad71c410a1e99d094245b910640",
+    "results/phase_b/imdb/snapshot_2_tpe_final.json": "6b320495eb1fd5d72fe43d230f8e5cf176673c9c339d91caf39be2aff35a0738",
     "results/phase_b/imdb/snapshot_0_doe_0.json": "1021f990f2079c83aac56583637d5698ab7eb28c9efb8732741efe3eab036272",
     "results/phase_b/imdb/snapshot_1_doe_0.json": "7117dde3fb0b950703ef2f299a180e575357aea5ddd8b574e7b18f211a5165ab",
     "results/phase_b/imdb/snapshot_2_doe_0.json": "3cba855f5af439107d3bf4e285b34f990ed30ba7dff4fc992a07ffeb1f22d933",
@@ -1353,6 +1777,21 @@
       "value": "NVIDIA GeForce RTX 5080",
       "source": "results/phase_b/imdb/measurement_contract.json",
       "selector": "accelerator name"
+    },
+    "InferenceProcessor": {
+      "value": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "latency.environment.processor"
+    },
+    "XGBoostVersion": {
+      "value": "3.2.0",
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "dependencies.xgboost"
+    },
+    "PythonVersion": {
+      "value": "3.11.9",
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "python version"
     }
   },
   "figures": {
@@ -1413,15 +1852,15 @@
       "results/phase_b/imdb/evaluations.jsonl"
     ],
     "phase_b_importance.pdf": [
-      "results/phase_b/imdb/snapshot_0_tpe_final.json",
-      "results/phase_b/imdb/snapshot_2_tpe_final.json",
-      "results/phase_b/imdb/snapshot_1_static_doe_final.json",
-      "results/phase_b/imdb/snapshot_2_doe_2.json",
-      "results/phase_b/imdb/snapshot_1_doe_2.json",
-      "results/phase_b/imdb/snapshot_0_static_doe_final.json",
-      "results/phase_b/imdb/snapshot_2_static_doe_final.json",
       "results/phase_b/imdb/snapshot_0_doe_2.json",
-      "results/phase_b/imdb/snapshot_1_tpe_final.json"
+      "results/phase_b/imdb/snapshot_0_static_doe_final.json",
+      "results/phase_b/imdb/snapshot_0_tpe_final.json",
+      "results/phase_b/imdb/snapshot_1_doe_2.json",
+      "results/phase_b/imdb/snapshot_1_static_doe_final.json",
+      "results/phase_b/imdb/snapshot_1_tpe_final.json",
+      "results/phase_b/imdb/snapshot_2_doe_2.json",
+      "results/phase_b/imdb/snapshot_2_static_doe_final.json",
+      "results/phase_b/imdb/snapshot_2_tpe_final.json"
     ],
     "phase_b_interactions.pdf": [
       "results/phase_b/imdb/snapshot_0_doe_2.json",

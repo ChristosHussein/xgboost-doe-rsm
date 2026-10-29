@@ -15,6 +15,7 @@ The paper is [report/report.pdf](report/report.pdf), with source in [report/repo
 - `results/phase_b_calibration/`: development calibration.
 - `findings/phase_a/` and `findings/phase_b/`: scientific figures and tables.
 - `report/`: the unified paper and its result-driven publication tools.
+- `evidence/`: the lossless published sentiment observations and calibration.
 - `specifications/`: original project brief and supervisor guidance.
 
 ## Run
@@ -22,9 +23,10 @@ The paper is [report/report.pdf](report/report.pdf), with source in [report/repo
 ```powershell
 git clone https://github.com/ChristosHussein/xgboost-doe-rsm.git
 cd xgboost-doe-rsm
+git checkout paper-2026-10
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-reproduction.txt
 python run_experiment.py --smoke
 python run_experiment.py --phase a --mode full
 ```
@@ -37,9 +39,14 @@ python phase_b_sequential_xai/run_phase_b.py --stage all --dataset full_imdb --d
 
 Use `--device cpu` for CPU training. Prediction latency uses CPU in either case. CUDA requires compatible hardware, driver and XGBoost installation.
 
+Check the published results without retraining:
+
 ```powershell
-python report/build_evidence.py
-python report/verify_report.py
+python report/restore_evidence.py
+python report/verify_report.py --check --self-test
+python report/build_evidence.py --check
 ```
 
-Compile `report/report.tex` from its directory. Reconstructing published numbers requires the raw experiment files; raw results are excluded from Git.
+The archive restores the original observation bytes into the ignored `results/` directory and refuses to replace different local results. The prepared IMDb data and the Phase A observations are also included in the repository.
+
+To regenerate the paper, run `python report/build_evidence.py`, then compile `report/report.tex` with pdfLaTeX from its directory. The fixed tag identifies the reference code, evidence and PDF. A new CPU or CUDA run is a separate experimental replication; its timings need not match the reference machine.
