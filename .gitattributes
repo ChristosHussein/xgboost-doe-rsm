@@ -1,2 +1,7 @@
 # Experimental records are frozen bytes, including their recorded line endings.
-results/sentiment_revision_v1/** -text
+results/phase_b/** -text
+results/phase_b_calibration/** -text
+*.pdf binary
+*.png binary
+*.npz binary
+*.ubj binary

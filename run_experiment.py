@@ -84,7 +84,7 @@ def run_phase_b(
         raise FileNotFoundError(f"Phase B runner not found at: {runner_script}")
 
     d_dir = data_dir or (PHASE_B_DIR / "data")
-    out = output_dir or (ROOT / "results" / "phase_b_run")
+    out = output_dir or (ROOT / "results" / "phase_b")
     f_dir = findings_dir or (FINDINGS_DIR / "phase_b")
 
     cmd = [
