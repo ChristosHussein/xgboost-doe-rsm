@@ -52,8 +52,8 @@ def source_digest(path):
     data=path.read_bytes()
     return hashlib.sha256(data.replace(b'\r\n',b'\n') if path.suffix=='.py' else data).hexdigest()
 def metric(name,value,source,selector,fmt='.4f',kind='empirical'):
-    registry[name]=dict(value=float(value),source=str(source.relative_to(ROOT)),selector=selector,format=fmt,kind=kind)
-    sources[str(source.relative_to(ROOT))]=source_digest(source)
+    registry[name]=dict(value=float(value),source=source.relative_to(ROOT).as_posix(),selector=selector,format=fmt,kind=kind)
+    sources[source.relative_to(ROOT).as_posix()]=source_digest(source)
     return '\\m{'+name+'}'
 def show(name):
     r=registry[name];return format(r['value'],r['format'])

@@ -3,7 +3,7 @@
   "bound_occurrences": 245,
   "used_metrics": 236,
   "unbound_empirical_literals": 0,
-  "evidence_hashes_checked": 61,
+  "evidence_hashes_checked": 53,
   "metrics_by_occurrence": {
     "BAFone": 2,
     "BBFone": 2,
@@ -446,6 +446,13 @@
     "development_and_confirmation_fits": 1800,
     "final_models": 9,
     "word_documents": 10,
+    "historical_source_checks": {
+      "runtime_files": 7,
+      "baseline_inputs": 3,
+      "documentation_only_differences": [
+        "pipeline.py"
+      ]
+    },
     "source_traced_metrics": [
       "AAccuracyLower",
       "AAccuracyUpper",

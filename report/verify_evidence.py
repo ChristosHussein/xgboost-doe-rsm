@@ -8,6 +8,9 @@ from itertools import combinations
 from pathlib import Path
 import json
 import re
+import ast
+import hashlib
+import subprocess
 
 import numpy as np
 import pandas as pd
@@ -174,6 +177,28 @@ def audit(root: Path, registry):
                 compare('Confirm' + letter + response.replace('_', '') + suffix, value)
 
     housing = root / 'phase_a_rsm_blocking/results'
+    provenance = read('phase_a_rsm_blocking/results/revision_v2/full_run_001/provenance.json')
+    documentation_only = []
+    def runtime_tree(source):
+        tree = ast.parse(source.decode('utf-8-sig'))
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant) and isinstance(node.body[0].value.value, str):
+                    node.body = node.body[1:]
+        return ast.dump(tree, include_attributes=False)
+    for name, expected in provenance['runtime_source_sha256'].items():
+        current = (housing.parent/name).read_bytes().replace(b'\r\n', b'\n')
+        if hashlib.sha256(current).hexdigest() != expected:
+            original = subprocess.check_output(['git', 'show', provenance['git_revision']+':'+name], cwd=root)
+            if (hashlib.sha256(original).hexdigest() != expected or not name.endswith('.py')
+                    or runtime_tree(current) != runtime_tree(original)):
+                raise ValueError('Historical runtime implementation differs: '+name)
+            documentation_only.append(name)
+    for selector, expected in provenance['baseline_input_sha256'].items():
+        original = subprocess.check_output(['git', 'show', selector], cwd=root)
+        current = (housing.parent/selector.split(':', 1)[1]).read_bytes().replace(b'\r\n', b'\n')
+        if hashlib.sha256(original).hexdigest() != expected or hashlib.sha256(current).hexdigest() != expected:
+            raise ValueError('Historical baseline observation differs: '+selector)
     data = pd.read_csv(housing / 'runs.csv')
     x = data[[f'x{i}' for i in range(1, 5)]].to_numpy()
     y = data.val_rmse.to_numpy()
@@ -270,6 +295,8 @@ def audit(root: Path, registry):
         compare(name, config[key])
     return dict(reconstructed_metrics=sorted(reconstructed), development_and_confirmation_fits=len(rows),
                 final_models=len(final), word_documents=len(words),
+                historical_source_checks=dict(runtime_files=len(provenance['runtime_source_sha256']),
+                    baseline_inputs=len(provenance['baseline_input_sha256']), documentation_only_differences=documentation_only),
                 source_traced_metrics=sorted(set(metrics)-reconstructed),
                 limitations=['Historical figures retain their original graphics; underlying saved summaries are source-traced.',
                              'GP Shapley arrays are source-traced; their agreement statistics are independently recomputed.',
