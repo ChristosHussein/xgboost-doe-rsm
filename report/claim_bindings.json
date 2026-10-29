@@ -227,7 +227,7 @@
     {
       "document": "report.tex",
       "section": "Local word explanations answer a separate question",
-      "context": "The word study asks how the probability from one fixed sentiment classifier changes when selected word-feature weights are attenuated. A local CCD varies the strongest present unigram features, fits a quadratic probability surface and evaluates fidelity on \\m{BWordConfirm} unused perturbations per document. Exact pairwise Shapley values describe the declared feature-weight game.",
+      "context": "The word study asks how the probability from one fixed sentiment classifier changes when selected word-feature weights are attenuated. This classifier uses the first sequential-CCD selection, refitted on the training portion of the first development fold; explanations concern that fold's validation documents. A local CCD varies the strongest present unigram features, fits a quadratic probability surface and evaluates fidelity on \\m{BWordConfirm} unused perturbations per document. Exact pairwise Shapley values describe the declared feature-weight game.",
       "metrics": [
         "BWordConfirm"
       ],
