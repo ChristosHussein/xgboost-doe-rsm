@@ -183,6 +183,7 @@ def main():
         require(args.write, '--seal requires --write')
         manifest = dict(paper='report.pdf', revision_tag='paper-2026-10', files=publication_files(),
                         evidence_archive_sha256=digest(ROOT/'evidence/phase_b.zip'),
+                        reference_source_archive_sha256=digest(ROOT/'evidence/phase_a_sources.zip'),
                         reference_environment_sha256=digest(ROOT/'requirements-reproduction.txt'))
         (OUT/'publication.json').write_text(json.dumps(manifest, indent=2)+'\n', encoding='utf-8')
     if args.check:
@@ -190,6 +191,7 @@ def main():
         published = read(OUT/'publication.json')
         require(published['files'] == publication_files(), 'Publication files differ from the compiled, checked release')
         require(published['evidence_archive_sha256'] == digest(ROOT/'evidence/phase_b.zip'), 'Published archive differs')
+        require(published['reference_source_archive_sha256'] == digest(ROOT/'evidence/phase_a_sources.zip'), 'Historical source snapshot differs')
         require(published['reference_environment_sha256'] == digest(ROOT/'requirements-reproduction.txt'), 'Reference environment differs')
     print(f"{result['verdict']}: {sum(counts.values())} bound occurrences; "
           f"{len(reconstruction['reconstructed_metrics'])} metrics independently reconstructed; "

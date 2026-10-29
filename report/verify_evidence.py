@@ -10,7 +10,7 @@ import json
 import re
 import ast
 import hashlib
-import subprocess
+import zipfile
 
 import numpy as np
 import pandas as pd
@@ -186,18 +186,21 @@ def audit(root: Path, registry):
                 if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant) and isinstance(node.body[0].value.value, str):
                     node.body = node.body[1:]
         return ast.dump(tree, include_attributes=False)
-    for name, expected in provenance['runtime_source_sha256'].items():
-        current = (housing.parent/name).read_bytes().replace(b'\r\n', b'\n')
-        if hashlib.sha256(current).hexdigest() != expected:
-            original = subprocess.check_output(['git', 'show', provenance['git_revision']+':'+name], cwd=root)
-            if (hashlib.sha256(original).hexdigest() != expected or not name.endswith('.py')
-                    or runtime_tree(current) != runtime_tree(original)):
-                raise ValueError('Historical runtime implementation differs: '+name)
-            documentation_only.append(name)
+    with zipfile.ZipFile(root/'evidence/phase_a_sources.zip') as sources:
+        if set(sources.namelist()) != set(provenance['runtime_source_sha256']):
+            raise ValueError('Historical source snapshot inventory differs')
+        for name, expected in provenance['runtime_source_sha256'].items():
+            original = sources.read(name)
+            if hashlib.sha256(original).hexdigest() != expected:
+                raise ValueError('Historical source snapshot differs: '+name)
+            current = (housing.parent/name).read_bytes().replace(b'\r\n', b'\n')
+            if hashlib.sha256(current).hexdigest() != expected:
+                if not name.endswith('.py') or runtime_tree(current) != runtime_tree(original):
+                    raise ValueError('Historical runtime implementation differs: '+name)
+                documentation_only.append(name)
     for selector, expected in provenance['baseline_input_sha256'].items():
-        original = subprocess.check_output(['git', 'show', selector], cwd=root)
         current = (housing.parent/selector.split(':', 1)[1]).read_bytes().replace(b'\r\n', b'\n')
-        if hashlib.sha256(original).hexdigest() != expected or hashlib.sha256(current).hexdigest() != expected:
+        if hashlib.sha256(current).hexdigest() != expected:
             raise ValueError('Historical baseline observation differs: '+selector)
     data = pd.read_csv(housing / 'runs.csv')
     x = data[[f'x{i}' for i in range(1, 5)]].to_numpy()

@@ -37,9 +37,10 @@
     "report.tex": "bc2cc9102170cb2d9301eff24f2ef43007bba6e443e52edec9cd7f8479e8c021",
     "restore_evidence.py": "a1d775c1f064572d090557949ab8732ac93318b983943e2c663a90d4ad51bc32",
     "verification.json": "0ae90e6cb3f5d12c99bcd67fe58a53da28eaf19eb7a2b6bfb473064563992c21",
-    "verify_evidence.py": "7cefa4e12920d2727a38e52ab257183861963e57506763cfa08773191f3d895b",
-    "verify_report.py": "bf2eb9a6ce8395eccbc0241ff89c18f2b9ce7a6ea9e151ec61b71f21a984c651"
+    "verify_evidence.py": "cce49c1ef44ebb7c0d6b1c3a58c0f3e57c690970ea3c52ecbe2546880fffc33d",
+    "verify_report.py": "94cf26093232929d0b7600ca71d8a7479f8b53c570ed14280be72cdaa32b2f5f"
   },
   "evidence_archive_sha256": "f348e2a5a1745860d6d349b7dbdd52f57452b8cacc4418f3571f69c8ec5f9c3b",
+  "reference_source_archive_sha256": "8e05650561449157cfaa61f766daa5eb09b15cb98cb7605eff5a62bdd79c084f",
   "reference_environment_sha256": "6edd85dd39b98f313dd22e748e51d9ddd8c5a741314a6faccf617674c8ce13e3"
 }
