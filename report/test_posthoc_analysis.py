@@ -1,6 +1,9 @@
 """Analytic fixtures for post-hoc estimands, pairing and design rank."""
 import unittest
 from itertools import product
+from pathlib import Path
+import tempfile
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -53,6 +56,27 @@ class PosthocAnalysisTests(unittest.TestCase):
         self.assertTrue(restricted['rank_deficient'])
         self.assertEqual(restricted['quadratic_rank'], restricted['quadratic_columns']-1)
         self.assertGreater(restricted['df_lack_of_fit'], 0)
+
+    def test_residual_figure_is_identical_under_coefficient_roundoff(self):
+        import matplotlib
+        matplotlib.use('Agg')
+        from posthoc_publication import residual_diagnostics
+
+        root = Path(__file__).resolve().parents[1]
+        original = np.linalg.lstsq
+        def perturbed(*args, **kwargs):
+            result = original(*args, **kwargs)
+            return (result[0]+1e-14, *result[1:])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            baseline, changed = [Path(temporary)/name for name in ('baseline', 'changed')]
+            for output in (baseline, changed):
+                (output/'figures').mkdir(parents=True)
+            residual_diagnostics(root, baseline)
+            with patch('numpy.linalg.lstsq', side_effect=perturbed):
+                residual_diagnostics(root, changed)
+            self.assertEqual((baseline/'figures/phase_a_diagnostics.pdf').read_bytes(),
+                             (changed/'figures/phase_a_diagnostics.pdf').read_bytes())
 
 
 if __name__ == '__main__':

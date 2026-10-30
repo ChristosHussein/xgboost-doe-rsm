@@ -17,6 +17,10 @@ def residual_diagnostics(root, out):
     inverse = np.linalg.pinv(X.T@X)
     leverage = np.einsum('ij,jk,ik->i', X, inverse, X)
     blocks = sorted(observations.block.unique())
+    # Display-only rounding removes platform BLAS noise far below print resolution.
+    def display(values):
+        rounded = np.round(values, 8)
+        return np.where(rounded == 0, 0., rounded)
     with plt.rc_context({'font.size':10, 'pdf.compression':0}):
         fig, axes = plt.subplots(2, 2, figsize=(9.5, 6.5))
         for row, (transform, title, unit) in enumerate([
@@ -29,13 +33,13 @@ def residual_diagnostics(root, out):
             studentized = residual/(sigma*np.sqrt(1-leverage))
             for index, block in enumerate(blocks):
                 selected = observations.block.to_numpy() == block
-                axes[row,0].scatter(fitted[selected], residual[selected], s=16, alpha=.65,
+                axes[row,0].scatter(display(fitted[selected]), display(residual[selected]), s=16, alpha=.65,
                     color=plt.get_cmap('tab10')(index), label=f'Block {block}')
             axes[row,0].axhline(0, color='black', linewidth=.8, linestyle='--')
             axes[row,0].set(title=title, xlabel='Fitted '+unit, ylabel='Residual ('+unit+')')
             (theoretical, ordered), (slope, intercept, _) = probplot(studentized, fit=True)
-            axes[row,1].scatter(theoretical, ordered, s=16, alpha=.7, color='#3566a1')
-            axes[row,1].plot(theoretical, intercept+slope*theoretical, 'k--', linewidth=.8)
+            axes[row,1].scatter(display(theoretical), display(ordered), s=16, alpha=.7, color='#3566a1')
+            axes[row,1].plot(display(theoretical), display(intercept+slope*theoretical), 'k--', linewidth=.8)
             axes[row,1].set(title='Normal Q–Q: '+title, xlabel='Normal theoretical quantile',
                             ylabel='Internally studentized residual')
         handles, labels = axes[0,0].get_legend_handles_labels()
