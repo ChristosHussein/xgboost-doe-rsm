@@ -1,0 +1,268 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[margin=1in]{geometry}
+
+\usepackage{amsmath,amssymb,bm}
+
+\usepackage{booktabs,array,tabularx}
+
+\usepackage{graphicx,float,xcolor,microtype}
+
+\usepackage[section]{placeins}
+
+\usepackage{hyperref,xurl,listings}
+
+\hypersetup{colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black,pdftitle={Learning and Optimizing XGBoost with Planned Experiments: From Blocked Response Surfaces to Explainable Sequential Search},pdfauthor={Christos Chousein Sounios}}
+
+\input{numbers.tex}
+
+\newcommand{\m}[1]{\csname metric#1\endcsname}
+
+\newcommand{\term}[1]{\textbf{#1}}
+
+\setlength{\parindent}{0pt}
+
+\setlength{\parskip}{0.55em}
+
+\linespread{1.05}
+
+\raggedbottom
+
+\renewcommand{\topfraction}{0.95}
+
+\renewcommand{\textfraction}{0.05}
+
+\renewcommand{\floatpagefraction}{0.8}
+
+\setlength{\emergencystretch}{2em}
+
+\lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,columns=fullflexible,keepspaces=true,frame=single,rulecolor=\color{black!15},showstringspaces=false}
+
+\title{\textbf{Learning and Optimizing XGBoost with Planned Experiments}\\[0.35em]\large From Blocked Response Surfaces to Explainable Sequential Search}
+\author{\textbf{Christos Chousein Sounios}}
+\date{}
+\begin{document}
+\maketitle
+\begin{abstract}
+Can planned experiments help us choose useful machine-learning settings, explain their effects, and decide which experiment to run next? We investigate this question through linked studies of XGBoost. Phase A uses California Housing regression to study prediction error and prediction time with a blocked central composite design. It reveals strong curvature, meaningful interactions and sensitivity to random data splits. It also exposes weaknesses: a quadratic response surface can be optimistic at untested configurations, short search-time latency estimates can disagree with verification, and a historically exposed test set cannot provide untouched confirmation.
+Phase B turns these lessons into a sentiment-classification experiment. Static and sequential central composite designs are compared with multi-objective TPE using shared development folds, equal model-fit budgets and a common warmed prediction-timing operation. Statistical ANOVA effects are compared with Shapley explanations of response models, while separate configurations test surrogate predictions and local word perturbations test explanation fidelity. The sentiment experiment uses GPU training and CPU latency measurement.
+Mean test macro F1 is \m{BAFone} for static CCD, \m{BBFone} for sequential CCD and \m{BCFone} for MO-TPE. These small observed differences do not establish superiority or equivalence. DOE provides more accurate quadratic predictions at reserved configurations, but the small adaptive extension does not demonstrate a clear benefit over the static design. No method meets the predeclared \m{BCap}\,$\mu$s latency threshold. The evidence supports DOE as an interpretable and competitive experimental approach, with conclusions limited by the sampled tasks, shared folds, modest replication and historical test exposure.
+\end{abstract}
+\noindent\textbf{Keywords:} design of experiments, XGBoost, response surfaces, hyperparameter optimization, inference latency, ANOVA, SHAP.
+\clearpage
+\setcounter{tocdepth}{2}
+\begingroup\small\setlength{\parskip}{0pt}\tableofcontents\endgroup
+\clearpage
+\section{Introduction and research question}
+A machine-learning model does not have a single automatic setting that is best for every task. In XGBoost~\cite{xgboost}, settings called \term{hyperparameters} control how quickly the model learns, how complex its trees can become, how much data each tree sees, and how strongly learning is regularized. Different settings can change accuracy, prediction time and sensitivity to the data used for evaluation.
+Our core question is:
+\begin{quote}\textbf{Can designed experiments find useful XGBoost configurations efficiently, explain why they work, and guide further experiments as reliably as conventional adaptive search?}\end{quote}
+The objective is broader than reporting the best accuracy. An experiment should also tell us whether the chosen setting remains useful when the data split changes, whether two settings interact, whether predictions of untested configurations can be trusted, and how much accuracy we exchange for faster predictions.
+We address these questions in two connected phases. \term{Phase A} develops the statistical picture on a tabular regression problem. Its successes and failures motivate \term{Phase B}, which combines statistical response models, model explanations and sequential experimental choices on text classification. The phases form a methodological progression, not a pooled contest between housing and sentiment scores. Their response scales, hardware histories and tasks differ.
+The original motivation included achieving good selection with fewer evaluations than conventional search. The present evidence primarily compares methods at equal budgets. Equal-budget performance and explanations are useful findings, but they do not by themselves prove substantial evaluation savings.
+\section{Experimental approach}
+\subsection{Designed experiments and response surfaces}
+Changing one setting at a time can miss interactions. For example, a small learning rate may work with many trees but look poor with a limited tree budget. Tree depth can improve accuracy while increasing prediction time. A \term{factorial design} deliberately combines low and high settings so that such joint effects can be studied.
+A \term{response} is a measured outcome, such as error or prediction time. \term{Response surface methodology (RSM)} fits a mathematical approximation linking hyperparameters to those responses. A quadratic surface can represent slopes, interactions and curvature. Curvature means that changing a setting has a different effect in different parts of its range. An interaction means that the effect of one setting depends on another.
+A \term{central composite design (CCD)} adds axial points and repeated center points to a factorial core~\cite{ccd}. The axial points help identify curvature. Repeated centers help distinguish systematic structure from repeat-to-repeat variation. A \term{block} groups evaluations conducted under the same nuisance condition, here a data partition. Modeling block effects helps avoid attributing a favorable split to a favorable hyperparameter.
+The design is valuable because its observations can support both selection and explanation. It does not guarantee that a quadratic equation is a faithful description everywhere. That claim must be checked independently.
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_a_workflow.pdf}
+\caption{Structure of the housing experiment: a planned design, hierarchical response analysis, compromise selection and independent confirmation.}\end{figure}
+\subsection{Performance measures and multi-objective selection}
+For housing regression, \term{root mean squared error (RMSE)} measures prediction error, giving extra weight to large errors. Smaller is better. For sentiment classification, \term{macro F1} averages the F1 scores of the sentiment classes, giving each class equal weight. Larger is better. The optimization response in Phase B is one minus macro F1, so smaller is better. \term{Log loss} additionally checks the quality of predicted probabilities and penalizes confident mistakes.
+\term{Latency} measures the time needed for a trained model to predict an observation. Lower latency is preferable, but the exact operation matters: constructing an input wrapper, transforming raw text and predicting an already-vectorized document are different tasks. A latency value is meaningful only with its measurement protocol.
+When no configuration is best on both accuracy and latency, we examine the \term{Pareto front}: configurations for which no tested alternative improves one objective without worsening the other. \term{Hypervolume} summarizes the area dominated by that front relative to a declared reference point. Larger hypervolume is preferable under the same objectives and reference. Hypervolumes from different tasks or reference points cannot be compared directly.
+\section{Phase A: experimental design}
+\subsection{A planned design with stochastic nuisance blocks}
+The historical design contains \m{ADesign} fitted evaluations across \m{ABlocks} data-split blocks. It studies learning rate, maximum depth, row subsampling and leaf-weight regularization. A globally randomized, preplanned face-centered CCD supplies the observations. The factorial and augmented analyses are hierarchical analyses of that completed design; they are not evidence that an early result adaptively determined whether the later points were run.
+California Housing~\cite{housing} is divided into \m{ASplittrain}\% training, \m{ASplitval}\% validation and \m{ASplittest}\% test data, with \m{ACapacity} boosting trees per model. The model predicts median house values; RMSE retains the dataset's target scale. The split is randomized, so this study does not test transfer to geographically separated regions. Early exploratory work exposed test outcomes; later access restrictions cannot undo that exposure.
+The block represents the seeded data partition, not a geographic region. Repeated center evaluations vary the model's stochastic seed while preserving the relevant split. This allows local algorithmic variation to be distinguished from larger changes between configurations and partitions, though those sources should not be interpreted as independent draws from all possible datasets.
+\begin{table}[!htbp]\centering\input{factors.tex}
+\caption{Hyperparameter ranges in the two phases. Learning rate uses logarithmic coding in Phase A and linear coding in Phase B; regularization uses logarithmic coding in both.}\end{table}
+\begin{figure}[!htbp]\centering
+\includegraphics[width=0.48\textwidth]{figures/phase_a_design.pdf}\hfill
+\includegraphics[width=0.48\textwidth]{figures/phase_a_blocking.pdf}
+\caption{Phase A design and blocking. Left: a projection of the central composite design onto learning rate and depth. Right: center-point outcomes across data-split blocks show why partition effects must be distinguished from hyperparameter effects.}\end{figure}
+\subsection{Screening, response fitting and selection}
+The first analysis asks whether a flat first-order model is adequate. A strong curvature contrast leads to examining a quadratic response model. The model contains main effects, pairwise interactions and squared terms, together with block effects. \term{ANOVA} partitions modeled variation and supplies model-conditional tests for these terms.
+We then use the fitted error and latency surfaces to explore candidate configurations. An accuracy-focused choice minimizes predicted error, while a compromise choice combines the responses through desirability. A fitted stationary point outside the tested region is not treated as an established optimum: it is extrapolation. Candidate choices are checked using separate confirmation observations.
+The subsequent repeated benchmark compares DOE selections with tree-structured Parzen estimator (TPE) search~\cite{tpe} and random search. TPE updates probabilistic models of promising and less promising trials to propose new settings. Each method receives the same fit budget, but DOE distributes fits across planned coordinates and data splits while the black-box searches explore configurations on a fixed development split. It is separate from the historical design and confirmation stage.
+\section{Phase A: results and limitations}
+\subsection{Useful structure, but not a perfect surface}
+The factorial-to-center curvature statistic is \m{ACurvature}. The response clearly departs from a flat plane over the tested range. The block-variance analysis reports an RMSE intraclass correlation of \m{AIcc}\%. This supports treating data partition as a meaningful nuisance condition rather than ignoring it.
+However, strong global structure is not the same as local predictive accuracy. The RMSE surface has a lack-of-fit statistic of \m{ALof}. A smooth quadratic equation captures major trends yet misses some systematic response behavior. The curvature contrast uses center-point pure error, whereas the stored lack-of-fit analysis has a different replicate-error decomposition. These denominators must not be conflated, and neither automatically represents uncertainty over all future datasets.
+One reason the global response is difficult is that \m{ALowCount} of the \m{ADesign} design runs, or \m{ALowPct}\%, use the lowest learning rate, \m{ALowRate}. Under the fixed tree budget this region learns poorly. A design that spends many evaluations on that region can produce dramatic curvature without giving equally precise guidance near the best-performing settings. Removing a difficult region after observing it is a diagnostic analysis, not a predeclared new experiment.
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_a_error_surface.png}
+\caption{Phase A fitted validation-error surface across coded learning rate and tree depth. Contours and the three-dimensional view show broad curvature, while the out-of-domain stationary point illustrates the danger of extrapolating a fitted optimum.}\end{figure}
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_a_latency.png}
+\caption{Phase A CPU prediction latency across tree depths. Linear and quadratic fits summarize the change in cost; distributions show variation among measured runs.}\end{figure}
+\subsection{Confirmation revealed boundary optimism}
+Table~\ref{tab:aconfirm} compares the response surface with independent confirmation. The compromise candidate's observed validation RMSE falls within its prediction interval. The accuracy-focused candidate is more optimistic: observed error exceeds the upper bound. Its observed-minus-predicted difference is \m{AAccuracyBias} RMSE. The practical lesson is that a mathematically attractive candidate is not yet a verified improvement.
+\begin{table}[!htbp]\centering\input{a_confirmation.tex}
+\caption{Phase A validation-RMSE confirmation. Model-based \m{AIntervalLevel}\% prediction intervals target the mean of \m{AConfirmationCount} confirmation runs per candidate; the observed column is that mean. The intervals do not cover every possible future dataset outcome.}\label{tab:aconfirm}\end{table}
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_a_tradeoff.png}
+\caption{Phase A accuracy--speed trade-off among the initial design configurations. Configuration means and between-block uncertainty distinguish the compromise candidate from the accuracy-focused candidate.}\end{figure}
+\subsection{Optimizer comparison and latency feasibility}
+Table~\ref{tab:abench} summarizes \m{ARepeats} searches per method, with \m{AEvaluationCount} retraining evaluations per selection. Its error SD describes variability between search-level mean test errors. The displayed zero for DOE accuracy reflects repeated selection of the same configuration and the same evaluation seeds; it does not mean error-free prediction or zero retraining variability.
+\begin{table}[!htbp]\centering\small\resizebox{\textwidth}{!}{\input{a_benchmark.tex}}
+\caption{Phase A repeated-benchmark selected-model results. RMSE is lower-is-better; CPU latency is in microseconds. Differences also reflect the methods' different information allocation and split structures.}\label{tab:abench}\end{table}
+The accuracy-focused TPE strategy attains lower observed error at a greater latency cost than the compromise strategies. This is evidence of a trade-off, not a universal winner. DOE invests observations in structured comparisons and replication; adaptive optimizers spend more on distinct proposed configurations.
+Latency also exposes a measurement problem. At the predeclared \m{ACap}\,$\mu$s threshold, Constrained TPE appears feasible in \m{ASearchFeasible} of \m{ARepeats} searches but only \m{AVerifiedFeasible} selections remain feasible under benchmark verification. The short online timing and longer final measurement differ in cost and precision. Selection near a noisy boundary can amplify their disagreement. The data do not establish one unique causal explanation for the discrepancy.
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_a_efficiency.pdf}
+\caption{Phase A search trajectories under equal fit budgets. Curves summarize the recorded validation histories; DOE uses multiple validation blocks, so these are descriptive efficiency curves rather than a common-estimand proof of optimizer superiority.}\end{figure}
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_a_pareto.png}
+\caption{Phase A Pareto comparisons. Development candidate fronts are separated from final evaluated selections, with their uncertainty. A development frontier and a final test frontier describe different evaluation stages.}\end{figure}
+\section{Motivation and research question for Phase B}
+Phase A establishes that DOE can explain substantial structure and select useful compromise models. It simultaneously identifies reasons to change the next experiment. The learning-rate domain needs development-only calibration; final timing must measure the same operation as search; test history must be stated honestly; and surrogate predictions need checks at genuinely unused hyperparameter coordinates.
+The next scientific question is therefore:
+\begin{quote}\textbf{Can an explainable sequential design retain DOE's interpretable effects while improving experimental choices, and can its response predictions and explanations withstand independent checks?}\end{quote}
+Moving to sentiment classification gives a different, sparse feature space and allows a second interpretation problem: explaining how selected word-feature changes affect an individual classifier prediction. It does not erase historical test exposure, and it does not turn the two datasets into a representative sample of every machine-learning task.
+Phase B has several connected objectives: compare ANOVA and SHAP for the same response; predict unseen configurations; test a modest adaptive extension against static CCD; benchmark both against TPE; and evaluate local word-response explanations. These objectives must remain distinguishable. Good classifier accuracy does not automatically establish good explanations, and agreement between explanations does not establish accurate response prediction.
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/sequential_design.pdf}
+\caption{Explainable sequential design: measured responses inform statistical and flexible surrogates; uncertainty and coverage guide new evaluations; reserved coordinates assess predictions. The classifier, response surrogate and local word explainer answer distinct questions.}\end{figure}
+\section{Phase B: experimental methodology}
+\subsection{Data, preprocessing and evaluation}
+The IMDb movie-review dataset~\cite{imdb} supplies \m{BDev} development documents and \m{BTest} test documents after HTML removal, whitespace normalization and exact-text deduplication. Official test copies are retained when duplicates span the two partitions. TF-IDF converts each document into a sparse vector of word and word-pair weights, using at most \m{BVocab} features and sublinear term frequency. Vocabulary and weights are fitted within each training fold, so validation text does not determine that fold's representation.
+The development pool is partitioned into \m{BBlocks} stratified folds. Every method evaluates a proposed configuration on the same folds and receives the mean response across them. The folds are useful shared nuisance conditions, but their training observations overlap. Different optimizer seeds on those folds do not create independently sampled datasets.
+All selected configurations are fixed before final test evaluation. Because the test partition has prior exposure, these scores are not fully independent external confirmation. This limits the generalization claim.
+\subsection{Calibration and computational setting}
+The lower learning-rate boundary is now \m{BRateLow}. Development calibration compares tree budgets before fixing the main study's capacity. At the low rate, observed calibration macro F1 changes from \m{CalSmall} at \m{CalSmallTrees} trees to \m{CalLarge} at \m{BTrees} trees. The capacity rule chooses the smallest tested budget whose low-rate F1 is within \m{BCalTolerance} of the largest tested budget, selecting \m{BTrees} trees. This reduces the low-capacity problem within the tested grid; it does not prove that larger models cannot improve.
+Models are trained on an \AcceleratorName{} accelerator. Prediction latency and local word-response probabilities are measured on CPU. This separates training acceleration from the inference operation being evaluated.
+\begin{table}[!htbp]\centering\small\input{b_calibration.tex}
+\caption{Phase B development calibration. Tree count is selected before the main study; accuracy and timing change with capacity. The timings are calibration observations, not final-model serving guarantees.}\end{table}
+\subsection{A fair comparison with a small adaptive extension}
+Static CCD, sequential CCD and MO-TPE each receive \m{BFitsPerSearch} actual XGBoost fits per search repeat. The comparison uses \m{BRepeats} repeats. A proposed coordinate is evaluated on every development fold, so model-fit count must not be confused with unique configuration count.
+Static CCD retains its center replication. Sequential CCD begins with fewer center repetitions and reallocates that budget to adaptive coordinates. A hybrid acquisition rule favors regions with high Gaussian-process uncertainty and separation from existing points. The response models are refitted as observations are added. This is a small sequential extension, not a broad test of every possible adaptive strategy. Its benefit must be judged against the loss of replication as well as any new information.
+MO-TPE, implemented with Optuna~\cite{optuna}, proposes configurations from the same domain and receives the same block-mean loss and latency responses. This arm is multi-objective TPE, not the historical hard-constrained TPE arm. All methods select an observed compromise by maximizing its dominated rectangle relative to the reference point. Selection does not require that point to satisfy the separately reported latency threshold.
+The complete Phase B experiment contains \m{BSearch} search fits, \m{BConfirmationFits} confirmation fits and \m{BFinalFits} final refits, plus the local explanation model: \m{BTotal} new model fits in total. Total runtime is \m{BHours} hours; this excludes the preceding calibration and is not a measured CPU-versus-GPU speedup.
+\begin{table}[!htbp]\centering\input{b_design.tex}
+\caption{Phase B fit allocation per method and search repeat, including all development folds. Sequential CCD reallocates center replication to adaptive points while preserving the total budget. TPE's proposals are reported as search fits.}\end{table}
+\subsection{The timing protocol and what the threshold means}
+The common measurement operation uses \m{BWarmups} warmups followed by \m{BCalls} timed predictions per interface, with CPU affinity and single-thread prediction recorded. The primary operation includes fresh DMatrix construction plus prediction of one already-vectorized document; \texttt{inplace\_predict} is recorded separately. Raw-text TF-IDF transformation is excluded.
+The measurement uses the first validation row in each fold. It supports an input-specific microbenchmark, not a latency distribution over representative documents or an end-to-end deployment guarantee. Pinning CPU execution controls one source of variation; it does not eliminate system noise.
+The latency threshold of \m{BCap}\,$\mu$s is the median of development calibration timings pooled across tree budgets. It serves as a descriptive feasibility threshold rather than an external deployment requirement. Hypervolume uses the common reference (classification loss \m{BReferenceLoss}, latency \m{BReference}\,$\mu$s); its latency coordinate is twice the largest calibration median.
+Feasibility is assessed against this threshold after measurement. Search and compromise selection optimize the accuracy--latency trade-off without imposing a hard latency constraint. Because calibration pools different tree capacities, threshold feasibility has a narrower operational interpretation than the observed accuracy--latency trade-off.
+\section{Phase B: statistical explanation and validation}
+\subsection{ANOVA and SHAP explain the same measured response}
+For each objective, a blocked quadratic RSM estimates statistical effects. A Gaussian process provides a flexible alternative for predicting configuration-level mean responses. Shapley explanations~\cite{shap,interactions} describe the fitted response model: its inputs are hyperparameters, and its output is predicted classification loss or latency. This is distinct from explaining the sentiment classifier's word features. Explanations assess the fitted structure; the executed acquisition rule uses GP uncertainty and distance, rather than SHAP scores.
+The explanation background contains the \m{BBackground} distinct initial CCD coordinates with equal weights; explanations are evaluated at the reserved confirmation coordinates. Missing factors in a coalition are replaced jointly by background values. ANOVA partial sums of squares and Shapley contributions have different meanings and units. We compare factor orderings and pairwise interaction patterns; total SHAP importance also includes interactions, so it need not rank factors like ANOVA's linear main effects.
+Table~\ref{tab:agreement} gives descriptive agreement for classification loss. Factor-rank agreement is more variable than the strong DOE interaction agreement. TPE-based response-model explanations are less consistent in this comparison. That finding is conditional on the sampled points and fitted surrogates; it is not a claim that all TPE explanations are poor.
+\begin{table}[!htbp]\centering\small\input{b_agreement.tex}
+\caption{Phase B ANOVA versus GP-surrogate SHAP agreement, averaged across searches. The factor column is Spearman rank correlation; the interaction column compares pairwise interaction strengths using correlation across pairwise strengths. These correlations are descriptive and have different estimands.}\label{tab:agreement}\end{table}
+\begin{table}[!htbp]\centering\small\input{b_anova.tex}
+\caption{Phase B sequential-CCD ANOVA for a representative search repeat. F statistics describe the fitted model conditional on its sampled coordinates and blocks. Nominal p-values after adaptive sampling are descriptive rather than independent confirmatory tests.}\end{table}
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_b_importance.pdf}
+\caption{Phase B factor contributions to classification loss and latency. ANOVA main-effect strengths and GP-surrogate SHAP contributions are normalized separately and averaged over repeats. Their relative patterns can be compared; their underlying units and estimands differ.}\end{figure}
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_b_interactions.pdf}
+\caption{Pairwise interaction patterns for sequential CCD, averaged over repeats. ANOVA and GP SHAP matrices are normalized independently. Agreement concerns which pairs matter, not numerical equality between variance attribution and Shapley contributions.}\end{figure}
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_b_curvature.pdf}
+\caption{Nonlinear hyperparameter profiles before and after sequential augmentation. Lines show the mean GP SHAP main-effect contribution at low, center and high settings; bands show variation across search repeats. Curvature is visible as a departure from a straight profile.}\end{figure}
+\subsection{New hyperparameter coordinates test response predictions}
+The experiment reserves \m{BConfirm} coordinates before search, including interior and boundary settings. Their measured responses are excluded from acquisition and surrogate fitting. This tests prediction at new configurations on the existing development folds. Final test documents address a different question: classifier generalization to documents not used for training.
+\begin{table}[!htbp]\centering\resizebox{\textwidth}{!}{\input{b_validation.tex}}
+\caption{Phase B quadratic-surrogate confirmation: \m{BConfirmPerMethod} fold-level observations per method and response at \m{BConfirm} reserved coordinates. Coverage refers to nominal \m{BIntervalLevel}\% fixed-block prediction intervals. Bias is observed minus predicted; boundary means at least one absolute coded coordinate is at least \m{BBoundaryCutoff}. Loss errors are in classification-loss units; latency errors are in microseconds.}\label{tab:bconfirm}\end{table}
+The DOE response models predict the reserved loss observations more accurately than the quadratic model fitted to TPE's samples. The static and sequential errors are very close, so this does not demonstrate a clear gain from adaptation. Interval coverage is imperfect, particularly for the TPE-fitted response model. A useful response surface remains an approximation whose uncertainty must be checked.
+Gaussian-process intervals target block-averaged responses, while the quadratic intervals here are conditional on the modeled blocks. Their coverages cannot be pooled as if they refer to identical future quantities. Neither estimates reliability on all unseen datasets. Formal tests after adaptive sampling and variability across overlapping folds also require cautious interpretation.
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_b_confirmation.pdf}
+\caption{Observed and predicted responses at reserved hyperparameter configurations. The dashed line denotes perfect agreement. Scatter about that line visualizes both prediction error and systematic departures from the response surface.}\end{figure}
+\subsection{Local word explanations answer a separate question}
+The word study asks how the probability from one fixed sentiment classifier changes when selected word-feature weights are attenuated. This classifier uses the first sequential-CCD selection, refitted on the training portion of the first development fold; explanations concern that fold's validation documents. A local CCD varies the strongest present unigram features, fits a quadratic probability surface and evaluates fidelity on \m{BWordConfirm} unused perturbations per document. Exact pairwise Shapley values describe the declared feature-weight game.
+The study covers \m{BWordDocs} eligible development-validation documents chosen by a fixed label-independent rule. The largest document-level confirmation RMSE is \m{BWordMaxError} probability units. Fidelity varies: some local response functions are simple under these perturbations, while others are less well represented by a quadratic surface.
+The perturbed inputs are conditional TF-IDF vectors. Other weights, including bigram features, remain fixed and the vector is not renormalized. These are not necessarily grammatical rewritten sentences, and the effects are not causal word effects. LIME is not included as a matched comparison arm, so no comparative superiority claim is made.
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_b_words.pdf}
+\caption{Local word-response results. Left: prediction error for each document on unused feature-weight perturbations. Center: the most difficult local example, document \m{WordExampleIndex}, compared with the classifier probabilities. Right: that example's pairwise word-feature Shapley interaction strengths. Word-feature effects are conditional model explanations, not causal language effects.}\end{figure}
+\section{Phase B: comparing model quality, latency and adaptation}
+\begin{table}[!htbp]\centering\small\resizebox{\textwidth}{!}{\input{b_benchmark.tex}}
+\caption{Phase B results. Test metrics average the frozen selected classifier from each search repeat. Development hypervolume summarizes each observed search front under its declared reference. The reported dispersions are sample standard deviations across search repeats. Larger F1 and hypervolume are preferable; smaller log loss and latency are preferable.}\label{tab:bbench}\end{table}
+Observed test macro F1 is almost the same across methods. The sequential choice has the highest mean in this run, while MO-TPE has the lowest mean selected latency. Static CCD has the highest mean development hypervolume. These small differences do not establish a decisive winner, and absence of a decisive difference does not establish statistical equivalence.
+Every frozen selection uses the lower depth boundary, \m{BSelectedDepth}. The reported scores therefore describe shallow compromise models chosen by the common accuracy--latency rule; the full selected settings are listed in the appendix.
+No method produces a searched configuration whose block-mean latency meets the recorded \m{BCap}\,$\mu$s threshold, and none of the final selected models meets it either. This is a negative feasibility result under the chosen definition. The run still supplies valid accuracy and timing observations and useful Pareto comparisons, but it does not demonstrate successful optimization under an externally justified latency requirement.
+The sequential design does not demonstrate a clear improvement over static CCD on the present budgets and acquisition rule. It retains explanatory structure and supports a functioning feedback loop, but reallocation of a small amount of replication to infill did not yield an unambiguous performance gain. A broader claim about evaluation savings would require an explicit target-quality analysis with appropriate repetition, not simply equal final fit counts.
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_b_pareto.pdf}
+\caption{Phase B accuracy--speed outcomes. Left: observed development configurations and their empirical nondominated fronts for each search repeat. Right: frozen selected models on test documents, with sample standard deviations across search repeats. The right panel evaluates selected points, not a complete test-set search front.}\end{figure}
+\begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_b_progress.pdf}
+\caption{Availability of complete-block Phase B results versus cumulative fits, with final hypervolume variation at right. DOE shuffles evaluations across configurations, while TPE completes each proposal's folds together. DOE's delayed first value therefore reflects scheduling; early curves cannot establish comparative search efficiency. Bands show interquartile ranges. Center-repeat updates can change configuration means.}\end{figure}
+\section{Discussion}
+Phase A shows why optimization and explanation need independent validation. Structured data can reveal curvature and interactions while still producing misleading local predictions. A high-quality fitted summary of a broad domain is not automatically accurate near a selected optimum. Timing precision and historical data exposure also affect what comparisons mean.
+Phase B turns those weaknesses into explicit design choices: development calibration, shared blocks, matched warmed measurements, reserved hyperparameter confirmation, separate final evaluation and reproducible local explanations. Phase B achieves competitive observed model quality under this design. Its strongest explanatory evidence is the agreement of DOE-based interaction descriptions and the relatively accurate quadratic predictions at reserved configurations.
+Several limitations remain. The classification study uses a limited set of factors, a fixed calibrated tree budget, a small number of search repeats and overlapping folds. The adaptive extension is modest. Its timing panel is narrow, its threshold is internally derived, and the official test set has historical exposure. Housing RMSE and sentiment F1 cannot be pooled into one accuracy result, and hardware-specific latencies cannot establish a general speed law.
+The two phases therefore provide complementary evidence for a method of investigation, not proof that DOE universally outperforms adaptive optimization or that every explanation reflects a causal mechanism. Unfavorable findings---including failed feasibility and imperfect interval coverage---are part of the scientific outcome.
+\section{Conclusion}
+Planned experiments can support useful XGBoost selection while making hyperparameter effects, interactions and uncertainty visible. Phase A established that explanatory structure and exposed the limits of a global response surface and inconsistent verification. Phase B implemented a more explicit explanatory feedback loop and obtained similar observed classifier quality to TPE, with more accurate DOE quadratic predictions at reserved settings and strong interaction agreement between statistical and surrogate-based explanations. The small sequential extension did not demonstrate a clear advantage over static CCD, and no method met the declared latency threshold. The defensible contribution is a reproducible way to connect design, explanation, acquisition and confirmation while keeping uncertainty and unfavorable evidence visible; stronger efficiency and generalization claims require further independent evidence.
+\section{Reproducibility and execution}
+\subsection{Obtain the repository and install the environment}
+The code, manuscript and lossless saved-result archive are available at \url{https://github.com/ChristosHussein/xgboost-doe-rsm}. The fixed tag \texttt{paper-2026-10} identifies this paper's revision. The following PowerShell commands use the repository root and the pinned reference environment:
+\begin{lstlisting}
+git clone https://github.com/ChristosHussein/xgboost-doe-rsm.git
+cd xgboost-doe-rsm
+git checkout paper-2026-10
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-reproduction.txt
+python report/restore_evidence.py
+python report/verify_report.py --check
+\end{lstlisting}
+These commands check the saved results without training new classifiers. The compressed observations are in \texttt{evidence/phase\_b.zip}; restoration preserves their original bytes and refuses to overwrite different local results. Phase A observations are stored under \texttt{phase\_a\_rsm\_blocking/results}. The reference measurement contracts record source hashes, dependencies and hardware. A new training run is an experimental replication whose timings may differ.
+\subsection{Start with the smoke verification}
+\begin{lstlisting}
+python run_experiment.py --smoke
+\end{lstlisting}
+This performs a small execution check of both phases before a full experiment.
+\subsection{Run Phase A on CPU}
+The master command runs the revised repeated benchmark rather than silently overwriting the historical housing design:
+\begin{lstlisting}
+python run_experiment.py --phase a --mode full
+\end{lstlisting}
+For explicit output control, the direct runner supports a fresh destination and budget acknowledgement:
+\begin{lstlisting}
+python phase_a_rsm_blocking/scripts/run_benchmarks.py --mode full --confirm-full-budget --output-dir results/housing_new_run
+\end{lstlisting}
+The Phase A runner supports \texttt{--resume} for interrupted checkpointed runs. Phase A uses CPU training. The historical response-surface study and repeated benchmark are separate experiments.
+\subsection{Run Phase B with CUDA training or CPU training}
+For a new CUDA campaign, use the direct Phase B runner so output and calibration paths are explicit:
+\begin{lstlisting}
+python phase_b_sequential_xai/run_phase_b.py --stage all --dataset full_imdb --data-dir phase_b_sequential_xai/data --calibration-dir results/imdb_cuda_new/calibration --output-dir results/imdb_cuda_new --findings-dir findings/imdb_cuda_new --device cuda
+\end{lstlisting}
+For CPU-only training, change the device and use a separate output destination:
+\begin{lstlisting}
+python phase_b_sequential_xai/run_phase_b.py --stage all --dataset full_imdb --data-dir phase_b_sequential_xai/data --calibration-dir results/imdb_cpu_new/calibration --output-dir results/imdb_cpu_new --findings-dir findings/imdb_cpu_new --device cpu
+\end{lstlisting}
+CUDA training requires a CUDA-enabled XGBoost installation and compatible NVIDIA hardware and driver. The measured run records an \AcceleratorName{}; other compatible hardware can run the method but may produce different timings. CUDA accelerates classifier training; surrogate analysis and the prediction-latency operation remain on CPU.
+The \texttt{--training-threads} option controls training-side CPU workers; it does not change the frozen single-thread inference measurement. \texttt{--device auto} selects a device automatically. An explicit \texttt{cuda} or \texttt{cpu} setting makes the computational configuration reproducible.
+\subsection{Run individual stages and verify saved evidence}
+The stages \texttt{prepare}, \texttt{calibrate}, \texttt{run} and \texttt{generate-findings} can be executed separately. The \texttt{run} stage includes the local word study; \texttt{all} runs the complete pipeline. Use a fresh output directory for each replication. Phase B does not provide checkpoint resumption.
+To verify a completed Phase B study without retraining:
+\begin{lstlisting}
+python phase_b_sequential_xai/run_phase_b.py --check results/phase_b/imdb
+\end{lstlisting}
+To regenerate only its findings, with the raw evidence available:
+\begin{lstlisting}
+python phase_b_sequential_xai/run_phase_b.py --stage generate-findings --dataset full_imdb --output-dir results/phase_b --findings-dir findings/reconstructed_imdb
+\end{lstlisting}
+The alternative \texttt{yelp} dataset option supports a separate sentiment application. The Phase B results reported here concern IMDb.
+To rebuild the paper's tables and figures from the published observations, run \texttt{python report/build\_evidence.py}, then compile \texttt{report/report.tex} with pdfLaTeX from its directory. Recalibration on another machine defines a new replication whose timing results should be reported separately.
+\clearpage
+\addcontentsline{toc}{section}{References}
+\input{references.tex}
+\clearpage
+\appendix
+\section{Technical definitions and interpretation}
+The quadratic response model has the form
+\[
+\widehat y(\mathbf{x},b)=\beta_0+\sum_i\beta_i x_i+\sum_i\beta_{ii}x_i^2+\sum_{i<j}\beta_{ij}x_ix_j+\gamma_b.
+\]
+
+Here $x_i$ are coded hyperparameters and $\gamma_b$ is a fitted nuisance-block effect. The linear terms describe slopes, squared terms describe curvature, and cross-products describe pairwise interactions. Coding gives the factors comparable numerical scales; it does not make all natural settings equally spaced when a logarithmic transformation is used.
+
+The GP is fitted to coordinate-level mean responses, while the RSM retains block-level observations. Its covariance is a scaled Mat\'ern kernel with separately fitted factor length scales plus white noise; responses are standardized during fitting. The acquisition score multiplies combined GP uncertainty by the square root of distance to the nearest existing or reserved coordinate. Objective uncertainties are divided by their hypervolume reference coordinates before combination. The appendix's selected settings identify the models summarized in the main results table.
+
+The sentiment run records Python \PythonVersion{}, XGBoost \XGBoostVersion{} and an \AcceleratorName{} for training. CPU timing records identify the processor as \texttt{\InferenceProcessor{}}. Timing measurements are specific to that environment and the declared input operation.
+
+\begin{table}[!htbp]\centering\small\input{b_selected.tex}
+\caption{Frozen Phase B selections in natural hyperparameter units. Repeat labels identify searches; they are not independent datasets. These settings are chosen from development responses before test evaluation.}\end{table}
+
+Benchmark dispersion describes variation between search-level summaries. Phase A first averages retraining outcomes within each selection; Phase B averages its frozen selected classifiers. Development-front hypervolume and selected-model test scores describe separate stages. Interval coverage is a model diagnostic on the sampled coordinates and folds, rather than evidence of reliability across independently sampled datasets.
+
+\end{document}

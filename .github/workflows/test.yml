@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Research verification
 
 permissions:
   contents: read
@@ -45,6 +45,55 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Run verification test suite and reporting integrity checks
+      - name: Run execution smoke checks
         run: |
           python run_experiment.py --smoke
+
+  paper:
+    name: Verify saved evidence and paper
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the publication
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-reproduction.txt
+      - name: Install the reference analysis environment
+        run: python -m pip install -r requirements-reproduction.txt
+      - name: Restore and verify the original observations
+        run: |
+          python report/restore_evidence.py
+          python report/verify_report.py --check --self-test
+      - name: Reconstruct all publication tables and figures
+        run: python report/build_evidence.py --check
+      - name: Install the document toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends texlive-latex-extra texlive-fonts-recommended poppler-utils
+      - name: Compile the manuscript and check its text against the published PDF
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/paper"
+          cd report
+          pdflatex -halt-on-error -interaction=nonstopmode -output-directory="$RUNNER_TEMP/paper" report.tex
+          pdflatex -halt-on-error -interaction=nonstopmode -output-directory="$RUNNER_TEMP/paper" report.tex
+          pdftotext -layout report.pdf "$RUNNER_TEMP/published.txt"
+          pdftotext -layout "$RUNNER_TEMP/paper/report.pdf" "$RUNNER_TEMP/rebuilt.txt"
+          python - <<'PY'
+          import os, pathlib, re
+          directory = pathlib.Path(os.environ['RUNNER_TEMP'])
+          normalize = lambda text: re.sub(r'\s+', '', text)
+          published = normalize((directory/'published.txt').read_text())
+          rebuilt = normalize((directory/'rebuilt.txt').read_text())
+          if published != rebuilt:
+              first = next((i for i, pair in enumerate(zip(published, rebuilt)) if pair[0] != pair[1]), min(len(published), len(rebuilt)))
+              raise SystemExit('Rebuilt PDF text differs near: '+repr(published[max(0, first-80):first+160])+' versus '+repr(rebuilt[max(0, first-80):first+160]))
+          PY
+      - name: Verify evidence remained unchanged
+        run: python report/verify_report.py --check

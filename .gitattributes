@@ -1,2 +1,14 @@
 # Experimental records are frozen bytes, including their recorded line endings.
-results/sentiment_revision_v1/** -text
+results/phase_b/** -text
+results/phase_b_calibration/** -text
+phase_a_rsm_blocking/results/** -text
+phase_a_rsm_blocking/config.yaml -text
+phase_b_sequential_xai/data/** -text
+report/** -text
+evidence/** -text
+requirements-reproduction.txt -text
+*.zip binary
+*.pdf binary
+*.png binary
+*.npz binary
+*.ubj binary

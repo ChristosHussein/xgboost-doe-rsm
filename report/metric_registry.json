@@ -1,0 +1,1877 @@
+{
+  "metrics": {
+    "ADesign": {
+      "value": 140.0,
+      "source": "phase_a_rsm_blocking/results/runs.csv",
+      "selector": "row count",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "ABlocks": {
+      "value": 5.0,
+      "source": "phase_a_rsm_blocking/results/runs.csv",
+      "selector": "distinct block count",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "ALowRate": {
+      "value": 0.01,
+      "source": "phase_a_rsm_blocking/results/runs.csv",
+      "selector": "eta minimum",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ALowCount": {
+      "value": 45.0,
+      "source": "phase_a_rsm_blocking/results/runs.csv",
+      "selector": "count eta at minimum",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "ALowPct": {
+      "value": 32.142857142857146,
+      "source": "phase_a_rsm_blocking/results/runs.csv",
+      "selector": "percentage eta at minimum",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ALof": {
+      "value": 62.2139164077348,
+      "source": "phase_a_rsm_blocking/results/lof.json",
+      "selector": "Y1.F_LoF",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "AIcc": {
+      "value": 40.68976820181815,
+      "source": "phase_a_rsm_blocking/results/icc.json",
+      "selector": "100*Y1.icc_reml",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ACurvature": {
+      "value": 105432.31230101374,
+      "source": "phase_a_rsm_blocking/results/phase1.json",
+      "selector": "f_curvature",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ABalancedPred": {
+      "value": 0.4804257992108739,
+      "source": "phase_a_rsm_blocking/results/confirmation.json",
+      "selector": "Balanced predicted validation RMSE",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "ABalancedObs": {
+      "value": 0.485286343413258,
+      "source": "phase_a_rsm_blocking/results/confirmation_runs.csv",
+      "selector": "mean val_rmse",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "ABalancedBias": {
+      "value": 0.004860544202384076,
+      "source": "phase_a_rsm_blocking/results/confirmation_runs.csv",
+      "selector": "mean val_rmse minus confirmation.json prediction",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "ABalancedLower": {
+      "value": 0.46767305684141425,
+      "source": "phase_a_rsm_blocking/results/confirmation.json",
+      "selector": "Balanced prediction interval Lower",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "ABalancedUpper": {
+      "value": 0.4931785415803336,
+      "source": "phase_a_rsm_blocking/results/confirmation.json",
+      "selector": "Balanced prediction interval Upper",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "AAccuracyPred": {
+      "value": 0.4482954119269636,
+      "source": "phase_a_rsm_blocking/results/confirmation.json",
+      "selector": "Accuracy predicted validation RMSE",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "AAccuracyObs": {
+      "value": 0.4700001392267918,
+      "source": "phase_a_rsm_blocking/results/confirmation_runs_single_obj.csv",
+      "selector": "mean val_rmse",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "AAccuracyBias": {
+      "value": 0.021704727299828197,
+      "source": "phase_a_rsm_blocking/results/confirmation_runs_single_obj.csv",
+      "selector": "mean val_rmse minus confirmation.json prediction",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "AAccuracyLower": {
+      "value": 0.435374138591811,
+      "source": "phase_a_rsm_blocking/results/confirmation.json",
+      "selector": "Accuracy prediction interval Lower",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "AAccuracyUpper": {
+      "value": 0.4612166852621162,
+      "source": "phase_a_rsm_blocking/results/confirmation.json",
+      "selector": "Accuracy prediction interval Upper",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "ABenchAError": {
+      "value": 0.48996858702042634,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "repeated_preplanned_doe_multi_objective: mean selection-level test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchASd": {
+      "value": 0.007318923547786334,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "repeated_preplanned_doe_multi_objective: SD selection-level mean test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchALatency": {
+      "value": 122.28652500000001,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "repeated_preplanned_doe_multi_objective: mean selected predict_latency_us",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ABenchBError": {
+      "value": 0.4685906357355905,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "repeated_preplanned_doe_single_objective: mean selection-level test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchBSd": {
+      "value": 1.1390647892519134e-16,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "repeated_preplanned_doe_single_objective: SD selection-level mean test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchBLatency": {
+      "value": 150.744575,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "repeated_preplanned_doe_single_objective: mean selected predict_latency_us",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ABenchCError": {
+      "value": 0.49255060443348164,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "multi_objective_tpe: mean selection-level test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchCSd": {
+      "value": 0.010804071753102983,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "multi_objective_tpe: SD selection-level mean test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchCLatency": {
+      "value": 121.45837499999998,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "multi_objective_tpe: mean selected predict_latency_us",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ABenchDError": {
+      "value": 0.4703616673631309,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "constrained_tpe: mean selection-level test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchDSd": {
+      "value": 0.0032363123650535805,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "constrained_tpe: SD selection-level mean test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchDLatency": {
+      "value": 144.267225,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "constrained_tpe: mean selected predict_latency_us",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ABenchEError": {
+      "value": 0.46691342801161284,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "single_objective_tpe: mean selection-level test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchESd": {
+      "value": 0.0011602240530571271,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "single_objective_tpe: SD selection-level mean test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchELatency": {
+      "value": 188.92567499999998,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "single_objective_tpe: mean selected predict_latency_us",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ABenchFError": {
+      "value": 0.4695321039992114,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "random_search: mean selection-level test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchFSd": {
+      "value": 0.002071015976695638,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "random_search: SD selection-level mean test RMSE",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ABenchFLatency": {
+      "value": 181.11767500000002,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "random_search: mean selected predict_latency_us",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ACap": {
+      "value": 145.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "revision_v2.max_latency_us",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "ASearchFeasible": {
+      "value": 20.0,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "constrained_tpe search_time_feasible count",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "AVerifiedFeasible": {
+      "value": 9.0,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "constrained_tpe benchmark_time_feasible count",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "ARepeats": {
+      "value": 20.0,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "selector": "constrained_tpe selection count",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "BTrees": {
+      "value": 600.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.n_trees",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BBlocks": {
+      "value": 5.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.n_nuisance_blocks",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BRepeats": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.search_replicates",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BWarmups": {
+      "value": 100.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.warmup_inferences",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BCalls": {
+      "value": 500.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.timed_inferences",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BConfirm": {
+      "value": 12.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.confirmation_points",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BThreads": {
+      "value": 4.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.training_threads",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BVocab": {
+      "value": 10000.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.max_features",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BCap": {
+      "value": 162.8,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.latency_threshold_us",
+      "format": ".1f",
+      "kind": "protocol"
+    },
+    "BReference": {
+      "value": 358.29999999999995,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.hv_ref_latency_us",
+      "format": ".1f",
+      "kind": "protocol"
+    },
+    "BReferenceLoss": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.hv_ref_loss",
+      "format": ".1f",
+      "kind": "protocol"
+    },
+    "BBackground": {
+      "value": 25.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "background coordinate count",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BConfirmPerMethod": {
+      "value": 180.0,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "per-method, per-response observation count",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BIntervalLevel": {
+      "value": 95.0,
+      "source": "phase_b_sequential_xai/xgb_doe_xai/surrogates.py",
+      "selector": "100*(1 - predict_interval default alpha)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BBoundaryCutoff": {
+      "value": 0.9,
+      "source": "phase_b_sequential_xai/xgb_doe_xai/study.py",
+      "selector": "confirmation boundary: max absolute coded coordinate cutoff",
+      "format": ".1f",
+      "kind": "protocol"
+    },
+    "BWordConfirm": {
+      "value": 64.0,
+      "source": "results/phase_b/imdb_words/observations.json",
+      "selector": "per-document reserved perturbation count",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "ACapacity": {
+      "value": 100.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "model.n_estimators",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "ASplittrain": {
+      "value": 60.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "project.train_ratio *100",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "ASplitval": {
+      "value": 20.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "project.val_ratio *100",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "ASplittest": {
+      "value": 20.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "project.test_ratio *100",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "AConfirmationCount": {
+      "value": 10.0,
+      "source": "phase_a_rsm_blocking/results/confirmation_runs.csv",
+      "selector": "confirmation observations per candidate",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "AIntervalLevel": {
+      "value": 95.0,
+      "source": "phase_a_rsm_blocking/results/confirmation.json",
+      "selector": "Y1_Val_RMSE prediction-interval nominal level",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "AEvaluationCount": {
+      "value": 20.0,
+      "source": "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_evaluations.csv",
+      "selector": "retraining observations per selection",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BCalTolerance": {
+      "value": 0.005,
+      "source": "results/phase_b_calibration/calibration_contract.json",
+      "selector": "selection_rule: low-rate macro F1 tolerance",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "BTotal": {
+      "value": 1810.0,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "total_fits + imdb_words/contract.json:training_fits",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "BSearch": {
+      "value": 1260.0,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "sum search_fits",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "BConfirmationFits": {
+      "value": 540.0,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "confirmation_fits",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "BFinalFits": {
+      "value": 9.0,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "final_fits",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "BFitsPerSearch": {
+      "value": 140.0,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "search_fits.doe / config.search_replicates",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BRateLow": {
+      "value": 0.05,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "factors.x1.low",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "CalSmallTrees": {
+      "value": 100.0,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "minimum n_trees",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BHours": {
+      "value": 7.39692598425,
+      "source": "results/phase_b/experiment_summary.json",
+      "selector": "wall_seconds/3600",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "BDev": {
+      "value": 24779.0,
+      "source": "phase_b_sequential_xai/data/imdb.csv",
+      "selector": "count split=train",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "BTest": {
+      "value": 24799.0,
+      "source": "phase_b_sequential_xai/data/imdb.csv",
+      "selector": "count split=test",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "BAFone": {
+      "value": 0.8784299284799634,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: mean test_macro_f1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "BALatency": {
+      "value": 174.63333333333333,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: mean test_latency_us",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "BALogloss": {
+      "value": 0.28793775504458297,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: mean test_logloss",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "BAFoneSd": {
+      "value": 0.0010437456047895381,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: sample SD test_macro_f1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "BAHv": {
+      "value": 162.80915307769,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "static_doe: hypervolume_mean",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "BAHvSd": {
+      "value": 2.761312816905702,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "static_doe: hypervolume_sd",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "BARmse": {
+      "value": 0.003428620681928119,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "static_doe: rmse",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "BACoverage": {
+      "value": 93.33333333333333,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "static_doe: pi_coverage",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "BARank": {
+      "value": 0.7999999999999999,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "static_doe:val_loss spearman_rho mean",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "BAInteraction": {
+      "value": 0.989307829849755,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "static_doe:val_loss interaction_correlation mean",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "BBFone": {
+      "value": 0.878849845898305,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: mean test_macro_f1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "BBLatency": {
+      "value": 176.11666666666667,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: mean test_latency_us",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "BBLogloss": {
+      "value": 0.28592741303571073,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: mean test_logloss",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "BBFoneSd": {
+      "value": 0.0007194908995874739,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: sample SD test_macro_f1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "BBHv": {
+      "value": 162.27785137722,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "doe: hypervolume_mean",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "BBHvSd": {
+      "value": 2.3357933028608664,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "doe: hypervolume_sd",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "BBRmse": {
+      "value": 0.0033464310324188866,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "doe: rmse",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "BBCoverage": {
+      "value": 93.33333333333333,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "doe: pi_coverage",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "BBRank": {
+      "value": 0.6,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "doe:val_loss spearman_rho mean",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "BBInteraction": {
+      "value": 0.9743254923395167,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "doe:val_loss interaction_correlation mean",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "BCFone": {
+      "value": 0.8784267801920037,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: mean test_macro_f1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "BCLatency": {
+      "value": 173.78333333333333,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: mean test_latency_us",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "BCLogloss": {
+      "value": 0.28639993827799276,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: mean test_logloss",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "BCFoneSd": {
+      "value": 0.0015255881957139702,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: sample SD test_macro_f1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "BCHv": {
+      "value": 161.80658113018512,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "tpe: hypervolume_mean",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "BCHvSd": {
+      "value": 3.095527957085694,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "tpe: hypervolume_sd",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "BCRmse": {
+      "value": 0.006433743875833061,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "tpe: rmse",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "BCCoverage": {
+      "value": 81.11111111111111,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "tpe: pi_coverage",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "BCRank": {
+      "value": 0.39999999999999997,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "tpe:val_loss spearman_rho mean",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "BCInteraction": {
+      "value": 0.22436641482815434,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "tpe:val_loss interaction_correlation mean",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "BSelectedDepth": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "common natural_params.max_depth across frozen selections",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeARepeat": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeARate": {
+      "value": 0.3,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 0 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeADepth": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 0 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeASample": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 0 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeALambda": {
+      "value": 0.1,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 0 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeBRepeat": {
+      "value": 2.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeBRate": {
+      "value": 0.175,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 1 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeBDepth": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 1 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeBSample": {
+      "value": 0.75,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 1 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeBLambda": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 1 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeCRepeat": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeCRate": {
+      "value": 0.175,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 2 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeCDepth": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 2 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeCSample": {
+      "value": 0.75,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 2 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectionstaticdoeCLambda": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: repeat 2 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeARepeat": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeARate": {
+      "value": 0.3,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 0 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeADepth": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 0 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeASample": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 0 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeALambda": {
+      "value": 10.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 0 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeBRepeat": {
+      "value": 2.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeBRate": {
+      "value": 0.3,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 1 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeBDepth": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 1 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeBSample": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 1 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeBLambda": {
+      "value": 0.1,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 1 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeCRepeat": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeCRate": {
+      "value": 0.3,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 2 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeCDepth": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 2 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiondoeCSample": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 2 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiondoeCLambda": {
+      "value": 0.1,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: repeat 2 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeARepeat": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeARate": {
+      "value": 0.18487563700075,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 0 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeADepth": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 0 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeASample": {
+      "value": 0.867392735168,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 0 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeALambda": {
+      "value": 2.6231809096697547,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 0 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeBRepeat": {
+      "value": 2.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeBRate": {
+      "value": 0.239214109376,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 1 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeBDepth": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 1 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeBSample": {
+      "value": 0.62316472883775,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 1 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeBLambda": {
+      "value": 0.1604917840307475,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 1 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeCRepeat": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat label (one-based)",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeCRate": {
+      "value": 0.298938796851125,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 2 natural_params.learning_rate",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeCDepth": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 2 natural_params.max_depth",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "SelectiontpeCSample": {
+      "value": 0.92635139154575,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 2 natural_params.subsample",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "SelectiontpeCLambda": {
+      "value": 0.35249440287928535,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: repeat 2 natural_params.reg_lambda",
+      "format": ".4f",
+      "kind": "protocol"
+    },
+    "BWordDocs": {
+      "value": 10.0,
+      "source": "results/phase_b/imdb_words/observations.json",
+      "selector": "documents count",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "BWordMaxError": {
+      "value": 0.022371769665804755,
+      "source": "results/phase_b/imdb_words/observations.json",
+      "selector": "max document confirmation RMSE",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "CalSmall": {
+      "value": 0.804874335154937,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "100 trees, low eta, val_macro_f1",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "CalLarge": {
+      "value": 0.865189973930656,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "600 trees, low eta, val_macro_f1",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "CalibrationATrees": {
+      "value": 100.0,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[0].n_trees",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "CalibrationARate": {
+      "value": 0.175,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[0].natural_params.learning_rate",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "CalibrationAFone": {
+      "value": 0.8439857668636703,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[0].val_macro_f1",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "CalibrationALatency": {
+      "value": 149.1,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[0].latency.predict_median_us",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "CalibrationBTrees": {
+      "value": 100.0,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[1].n_trees",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "CalibrationBRate": {
+      "value": 0.05,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[1].natural_params.learning_rate",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "CalibrationBFone": {
+      "value": 0.804874335154937,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[1].val_macro_f1",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "CalibrationBLatency": {
+      "value": 147.55,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[1].latency.predict_median_us",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "CalibrationCTrees": {
+      "value": 300.0,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[2].n_trees",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "CalibrationCRate": {
+      "value": 0.175,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[2].natural_params.learning_rate",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "CalibrationCFone": {
+      "value": 0.8641894722072165,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[2].val_macro_f1",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "CalibrationCLatency": {
+      "value": 161.2,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[2].latency.predict_median_us",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "CalibrationDTrees": {
+      "value": 300.0,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[3].n_trees",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "CalibrationDRate": {
+      "value": 0.05,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[3].natural_params.learning_rate",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "CalibrationDFone": {
+      "value": 0.8475715212478524,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[3].val_macro_f1",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "CalibrationDLatency": {
+      "value": 164.4,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[3].latency.predict_median_us",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "CalibrationETrees": {
+      "value": 600.0,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[4].n_trees",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "CalibrationERate": {
+      "value": 0.175,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[4].natural_params.learning_rate",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "CalibrationEFone": {
+      "value": 0.8698466617929705,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[4].val_macro_f1",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "CalibrationELatency": {
+      "value": 179.14999999999998,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[4].latency.predict_median_us",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "CalibrationFTrees": {
+      "value": 600.0,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[5].n_trees",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "CalibrationFRate": {
+      "value": 0.05,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[5].natural_params.learning_rate",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "CalibrationFFone": {
+      "value": 0.865189973930656,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[5].val_macro_f1",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "CalibrationFLatency": {
+      "value": 179.1,
+      "source": "results/phase_b_calibration/imdb_pilot.json",
+      "selector": "observations[5].latency.predict_median_us",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "AFactorALow": {
+      "value": 0.01,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "factors.x1.min",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "AFactorAHigh": {
+      "value": 0.3,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "factors.x1.max",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "BFactorALow": {
+      "value": 0.05,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "factors.x1.low",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "BFactorAHigh": {
+      "value": 0.3,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "factors.x1.high",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "AFactorBLow": {
+      "value": 3.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "factors.x2.min",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "AFactorBHigh": {
+      "value": 9.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "factors.x2.max",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BFactorBLow": {
+      "value": 3.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "factors.x2.low",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BFactorBHigh": {
+      "value": 9.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "factors.x2.high",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "AFactorCLow": {
+      "value": 0.5,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "factors.x3.min",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "AFactorCHigh": {
+      "value": 1.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "factors.x3.max",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "BFactorCLow": {
+      "value": 0.5,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "factors.x3.low",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "BFactorCHigh": {
+      "value": 1.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "factors.x3.high",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "AFactorDLow": {
+      "value": 0.1,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "factors.x4.min",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "AFactorDHigh": {
+      "value": 10.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "factors.x4.max",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "BFactorDLow": {
+      "value": 0.1,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "factors.x4.low",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "BFactorDHigh": {
+      "value": 10.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "factors.x4.high",
+      "format": ".2f",
+      "kind": "protocol"
+    },
+    "BudgetstaticdoeInitial": {
+      "value": 140.0,
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "static_doe: repeat zero Initial fits",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BudgetstaticdoeInfill": {
+      "value": 0.0,
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "static_doe: repeat zero Infill fits",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BudgetstaticdoeTotal": {
+      "value": 140.0,
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "static_doe: repeat zero Total fits",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BudgetdoeInitial": {
+      "value": 130.0,
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "doe: repeat zero Initial fits",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BudgetdoeInfill": {
+      "value": 10.0,
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "doe: repeat zero Infill fits",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BudgetdoeTotal": {
+      "value": 140.0,
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "doe: repeat zero Total fits",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BudgettpeInitial": {
+      "value": 140.0,
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "tpe: repeat zero Initial fits",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BudgettpeInfill": {
+      "value": 0.0,
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "tpe: repeat zero Infill fits",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "BudgettpeTotal": {
+      "value": 140.0,
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "tpe: repeat zero Total fits",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "Anovavalloss1F": {
+      "value": 69.25851683542092,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Main Effects F",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "Anovavalloss1P": {
+      "value": 2.227930272430459e-30,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Main Effects p",
+      "format": ".2g",
+      "kind": "empirical"
+    },
+    "Anovavalloss2F": {
+      "value": 60.84752207544789,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   2-Factor Interactions F",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "Anovavalloss2P": {
+      "value": 3.178246994240286e-34,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   2-Factor Interactions p",
+      "format": ".2g",
+      "kind": "empirical"
+    },
+    "Anovavalloss3F": {
+      "value": 86.00427454898923,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Curvature (Quadratic) F",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "Anovavalloss3P": {
+      "value": 1.9369038998195305e-34,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Curvature (Quadratic) p",
+      "format": ".2g",
+      "kind": "empirical"
+    },
+    "Anovavalloss4F": {
+      "value": 18.959467569356146,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Blocks F",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "Anovavalloss4P": {
+      "value": 3.987650125431826e-12,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Blocks p",
+      "format": ".2g",
+      "kind": "empirical"
+    },
+    "Anovalatencyus1F": {
+      "value": 434.5496190508382,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Main Effects F",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "Anovalatencyus1P": {
+      "value": 9.428590412836545e-71,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Main Effects p",
+      "format": ".2g",
+      "kind": "empirical"
+    },
+    "Anovalatencyus2F": {
+      "value": 7.214897826288944,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   2-Factor Interactions F",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "Anovalatencyus2P": {
+      "value": 1.3452670214220043e-06,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   2-Factor Interactions p",
+      "format": ".2g",
+      "kind": "empirical"
+    },
+    "Anovalatencyus3F": {
+      "value": 0.22439942808068644,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Curvature (Quadratic) F",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "Anovalatencyus3P": {
+      "value": 0.9243253075196745,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Curvature (Quadratic) p",
+      "format": ".2g",
+      "kind": "empirical"
+    },
+    "Anovalatencyus4F": {
+      "value": 2.3974897161926156,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Blocks F",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "Anovalatencyus4P": {
+      "value": 0.0539262015225269,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Blocks p",
+      "format": ".2g",
+      "kind": "empirical"
+    },
+    "ConfirmAvallossError": {
+      "value": 0.003428620681928119,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "static_doe:val_loss rmse",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ConfirmAvallossBias": {
+      "value": -0.00045843367824869577,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "static_doe:val_loss observed_minus_predicted_bias",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ConfirmAvallossCoverage": {
+      "value": 93.33333333333333,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "static_doe:val_loss pi_coverage",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "ConfirmAvallossBoundary": {
+      "value": -0.0005135480840850542,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "static_doe:val_loss boundary_bias",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ConfirmAlatencyusError": {
+      "value": 5.628041713112786,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "static_doe:latency_us rmse",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ConfirmAlatencyusBias": {
+      "value": -0.751883948684105,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "static_doe:latency_us observed_minus_predicted_bias",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ConfirmAlatencyusCoverage": {
+      "value": 98.33333333333333,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "static_doe:latency_us pi_coverage",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "ConfirmAlatencyusBoundary": {
+      "value": -1.5229653895800708,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "static_doe:latency_us boundary_bias",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ConfirmBvallossError": {
+      "value": 0.0033464310324188866,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "doe:val_loss rmse",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ConfirmBvallossBias": {
+      "value": -0.00014446453062125968,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "doe:val_loss observed_minus_predicted_bias",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ConfirmBvallossCoverage": {
+      "value": 93.33333333333333,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "doe:val_loss pi_coverage",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "ConfirmBvallossBoundary": {
+      "value": -0.00014501094862833005,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "doe:val_loss boundary_bias",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ConfirmBlatencyusError": {
+      "value": 4.779334741024945,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "doe:latency_us rmse",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ConfirmBlatencyusBias": {
+      "value": -0.5324855309199001,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "doe:latency_us observed_minus_predicted_bias",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ConfirmBlatencyusCoverage": {
+      "value": 97.77777777777777,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "doe:latency_us pi_coverage",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "ConfirmBlatencyusBoundary": {
+      "value": -0.6553045313765092,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "doe:latency_us boundary_bias",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ConfirmCvallossError": {
+      "value": 0.006433743875833061,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "tpe:val_loss rmse",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ConfirmCvallossBias": {
+      "value": 0.0013285378139278074,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "tpe:val_loss observed_minus_predicted_bias",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ConfirmCvallossCoverage": {
+      "value": 81.11111111111111,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "tpe:val_loss pi_coverage",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "ConfirmCvallossBoundary": {
+      "value": 0.0018420266367961495,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "tpe:val_loss boundary_bias",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "ConfirmClatencyusError": {
+      "value": 22.635152216737644,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "tpe:latency_us rmse",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ConfirmClatencyusBias": {
+      "value": -3.2541916361158725,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "tpe:latency_us observed_minus_predicted_bias",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "ConfirmClatencyusCoverage": {
+      "value": 88.88888888888889,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "tpe:latency_us pi_coverage",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "ConfirmClatencyusBoundary": {
+      "value": -0.5965225995450164,
+      "source": "results/phase_b/imdb/confirmation.json",
+      "selector": "tpe:latency_us boundary_bias",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "WordExampleIndex": {
+      "value": 6.0,
+      "source": "results/phase_b/imdb_words/observations.json",
+      "selector": "document with largest reserved-perturbation RMSE, one-based index",
+      "format": ".0f",
+      "kind": "empirical"
+    }
+  },
+  "source_sha256": {
+    "phase_a_rsm_blocking/results/runs.csv": "b90bf1cfb29d239f604515cd6b3549ce80395e5bb1f00faadc61427c5cf8d76e",
+    "phase_a_rsm_blocking/results/lof.json": "191bf66f8cfc9b44ae9d2927040a7e966c2de0a9e200048d057f8fd825f61c88",
+    "phase_a_rsm_blocking/results/icc.json": "fc5f8558f4eee7e52f2edead3f4fb9843832fe26b2246e3f2697b4d3b6b51786",
+    "phase_a_rsm_blocking/results/phase1.json": "ea643cc3704f1a9facb4909b7cf140cf515c3a227e1fcbfc4040e709c2a19180",
+    "phase_a_rsm_blocking/results/confirmation.json": "11f99f9e527dd971dfbfd8a5814bdfbb7d491d1618c77b97d6ffff73afbd7c92",
+    "phase_a_rsm_blocking/results/confirmation_runs.csv": "9d9ddb2f470a3f9f50821389fc6f432cb718a2a557bc4664fc8b64938d8a7c4a",
+    "phase_a_rsm_blocking/results/confirmation_runs_single_obj.csv": "1babfcb3fd0aa98f6bad5943facf6eed1de99845cb28d4195aa7d92720ffeb59",
+    "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv": "db5cfe8b23c149d437fe0ba628460603613473b27fbddd6a91e9d4ecb8b903a8",
+    "phase_a_rsm_blocking/config.yaml": "87366c92f71c8803594d3ea057bc4bc675e93eab79a81c239980449caeffb21d",
+    "results/phase_b/imdb/measurement_contract.json": "e0e08809086e02a5bcb95758d063e60cac861e4a4496143563e823adbadedde8",
+    "results/phase_b/imdb/confirmation.json": "45655f57b32e3c3a3bfa17283549745d1fc655a9a4dd00bbf2abe2b8a0413a8e",
+    "phase_b_sequential_xai/xgb_doe_xai/surrogates.py": "d1e1f0800ab586f6e90c7a08e7bafb80d6378cf4cc31185c0fc91a0e9e4621e5",
+    "phase_b_sequential_xai/xgb_doe_xai/study.py": "a98769f765509d2676f1f3d125634cb9247489c0ee9b1dc4054af9c1c0adf9ad",
+    "results/phase_b/imdb_words/observations.json": "b169751d314d0120724043f4489e8f163702b24105fd07285fa498a1a9665224",
+    "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_evaluations.csv": "bae360166c588599499852878c3374a033918d3a62d6abc3ce67fc0a6966de2e",
+    "results/phase_b_calibration/calibration_contract.json": "c0733b437e3208f20d5737dcaa84c889e2b4cd9d79e5894b7bd7426080ff1ff6",
+    "results/phase_b/imdb/summary.json": "c8f7a33284ddb1017216db7df373150bbc7fd521898de589a0e742208275d12f",
+    "results/phase_b_calibration/imdb_pilot.json": "353a41b4735ddf2f546981dee2cc2b02eac87ab4d095102239ce09bcc0674ce1",
+    "results/phase_b/experiment_summary.json": "56e42f401b59a5c5e61307d08b0b3bdeec591d553aa5792b80c6bd94490a69f2",
+    "phase_b_sequential_xai/data/imdb.csv": "201fdc0b1765174afe6fde3feb39d0bdfced2762e6dac6f7811936e842d3abdf",
+    "results/phase_b/imdb/final_results.json": "9ce2cc94563da2f5d5cb5d97162e7a762fdb69233444091e8edd2c77839db05e",
+    "results/phase_b/imdb/evaluations.jsonl": "7d1466f568bd7dacc696d4d1f760c05642dc141d50fa5a8fef734d4ae1c91ca6",
+    "results/phase_b/imdb/snapshot_0_doe_2.json": "a75dd72582ff7c5dc34b085f0e5a37c67064fb9cb4af35a2fa5d184de0069d3a",
+    "findings/phase_a/figures/explainer_research_pipeline.pdf": "402bf27dd9699582a04520284d7b81be3ce9667ed6d70d7174c2fa9b33fdb11e",
+    "findings/phase_a/figures/explainer_design_projection.pdf": "7ffee6253ef190d76b20b1d0ced3fedbc986571737177120aad2aa6c089b76bc",
+    "findings/phase_a/figures/explainer_blocking.pdf": "6b578abae32d5bee940dd08853ff0dc002d9fb0577ac59cce2ffec48ff1d4fd0",
+    "findings/phase_a/figures/response_surface_rmse_2d_3d.png": "fc961f7e09239e89fa1b311bec3276204ad384ba30b18b01dc10d3ef4bbfc109",
+    "phase_a_rsm_blocking/results/phase3.json": "9303df52e1dc0b031d16db0000f51cd91d0b4d9a3537e6181dc51cec407b1b61",
+    "findings/phase_a/figures/response_surface_latency_2d_3d.png": "221e3f6cda01b3ee98c1fc76e55cd7c6e7fcc4a4a46acab86b064a2da472162f",
+    "phase_a_rsm_blocking/results/latency_modeling.json": "15eea8fa0710d41bd779b9e398c57f36d15299aa7b02ae725e4595804e8a86ee",
+    "phase_a_rsm_blocking/results/latency_models_comparison.csv": "b6edb172da839e17f68b64df7e024c98fcd85c8c78d476d3d1c4dcf53ce107f4",
+    "findings/phase_a/figures/desirability_pareto_front.png": "33014abb8721672d4013fbc9fa2f0eedb68f51687b7d1863ff206024d842a952",
+    "phase_a_rsm_blocking/results/desirability_sensitivity.csv": "bda4cb4e0c49a729858899ce5fdcec78f5171c7fad7ac447b3b9a7a3f561e357",
+    "findings/phase_a/figures/explainer_efficiency_comparison.pdf": "462ded98e280e34903354905406a7bab1e31256adbb394ea8c75e91323d79c22",
+    "phase_a_rsm_blocking/results/benchmark_evals_trajectories.csv": "70798e72e61e264dbf0bd072624be8b1c31658207e0dcd8363bef80a035b9aab",
+    "phase_a_rsm_blocking/results/revision_v2/full_run_001/optimizer_trials.csv": "137f8fff826174cb647455b3360eb9c340ed4d992310dd072e29d6df89a76d19",
+    "phase_a_rsm_blocking/results/revision_v2/full_run_001/doe_selection_runs.csv": "83c1e9f604b081c51c7271e3b15c68d4a29d0a18ce8fdf854ac1eaa8bd1de54b",
+    "findings/phase_a/figures/revision_v2_pareto_front.png": "761844a94ab6373fe17dea5a2b095b92a85849cbb5e475f73e966548e9596742",
+    "phase_a_rsm_blocking/results/revision_v2/full_run_001/doe_matched_candidate_front.csv": "44ca6a903b17181590223fb09ab7144dc822e815c03b5e084ffb8005f99c0aaa",
+    "phase_a_rsm_blocking/results/revision_v2/full_run_001/hypervolume.json": "aab8964d433eed91a3d5e68b29b74e49ca1dcb5ebd793544105a63ca9d1f5f98",
+    "findings/phase_a/figures/explainer_sequential_extension.pdf": "4e00a3e14bf01cd660d8e3d1c787d46ee14f2d228990175ee8b7dc7032bcfaa1",
+    "results/phase_b/imdb_analysis.json": "93b1f789fb1c1193a979f4b2e02f8b4b216a7dabe8689299991713f303d11518",
+    "results/phase_b/imdb/snapshot_0_static_doe_final.json": "11fcdd558e578806b60f46084eb4c6d1e936e9daeaf5b4c450d9e3180a73950c",
+    "results/phase_b/imdb/snapshot_0_tpe_final.json": "99c8c399049c1033c7bd662ab2c1b63bb54604b596bc3faf112d54d70b9cd932",
+    "results/phase_b/imdb/snapshot_1_doe_2.json": "cf91312b31977d33ae1da0fee2fc3ae1aa6c507b8b4ad484b198d20c45058c2d",
+    "results/phase_b/imdb/snapshot_1_static_doe_final.json": "24859ad85ce6bce51c51028945eb62d8115dc4a6b4091a984d968a057bfe800c",
+    "results/phase_b/imdb/snapshot_1_tpe_final.json": "29cf0b08328a626f945965133c5d8f90c1ad34e0279fb44a39bfb833cb1f9536",
+    "results/phase_b/imdb/snapshot_2_doe_2.json": "0a3d52508321bc8cef4f54416de3e2288af8d1b661fc56bccc3789c45e6133d2",
+    "results/phase_b/imdb/snapshot_2_static_doe_final.json": "c57dbd872c94e031946a5659fe3061807afa6ad71c410a1e99d094245b910640",
+    "results/phase_b/imdb/snapshot_2_tpe_final.json": "6b320495eb1fd5d72fe43d230f8e5cf176673c9c339d91caf39be2aff35a0738",
+    "results/phase_b/imdb/snapshot_0_doe_0.json": "1021f990f2079c83aac56583637d5698ab7eb28c9efb8732741efe3eab036272",
+    "results/phase_b/imdb/snapshot_1_doe_0.json": "7117dde3fb0b950703ef2f299a180e575357aea5ddd8b574e7b18f211a5165ab",
+    "results/phase_b/imdb/snapshot_2_doe_0.json": "3cba855f5af439107d3bf4e285b34f990ed30ba7dff4fc992a07ffeb1f22d933"
+  },
+  "text_metrics": {
+    "AcceleratorName": {
+      "value": "NVIDIA GeForce RTX 5080",
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "accelerator name"
+    },
+    "InferenceProcessor": {
+      "value": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+      "source": "results/phase_b/imdb/evaluations.jsonl",
+      "selector": "latency.environment.processor"
+    },
+    "XGBoostVersion": {
+      "value": "3.2.0",
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "dependencies.xgboost"
+    },
+    "PythonVersion": {
+      "value": "3.11.9",
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "python version"
+    }
+  },
+  "figures": {
+    "phase_a_workflow.pdf": [
+      "findings/phase_a/figures/explainer_research_pipeline.pdf",
+      "phase_a_rsm_blocking/results/runs.csv"
+    ],
+    "phase_a_design.pdf": [
+      "findings/phase_a/figures/explainer_design_projection.pdf",
+      "phase_a_rsm_blocking/results/runs.csv"
+    ],
+    "phase_a_blocking.pdf": [
+      "findings/phase_a/figures/explainer_blocking.pdf",
+      "phase_a_rsm_blocking/results/runs.csv"
+    ],
+    "phase_a_error_surface.png": [
+      "findings/phase_a/figures/response_surface_rmse_2d_3d.png",
+      "phase_a_rsm_blocking/results/runs.csv",
+      "phase_a_rsm_blocking/results/phase3.json",
+      "phase_a_rsm_blocking/results/confirmation.json"
+    ],
+    "phase_a_latency.png": [
+      "findings/phase_a/figures/response_surface_latency_2d_3d.png",
+      "phase_a_rsm_blocking/results/runs.csv",
+      "phase_a_rsm_blocking/results/latency_modeling.json",
+      "phase_a_rsm_blocking/results/latency_models_comparison.csv"
+    ],
+    "phase_a_tradeoff.png": [
+      "findings/phase_a/figures/desirability_pareto_front.png",
+      "phase_a_rsm_blocking/results/runs.csv",
+      "phase_a_rsm_blocking/results/confirmation.json",
+      "phase_a_rsm_blocking/results/desirability_sensitivity.csv"
+    ],
+    "phase_a_efficiency.pdf": [
+      "findings/phase_a/figures/explainer_efficiency_comparison.pdf",
+      "phase_a_rsm_blocking/results/runs.csv",
+      "phase_a_rsm_blocking/results/benchmark_evals_trajectories.csv",
+      "phase_a_rsm_blocking/results/revision_v2/full_run_001/optimizer_trials.csv",
+      "phase_a_rsm_blocking/results/revision_v2/full_run_001/doe_selection_runs.csv"
+    ],
+    "phase_a_pareto.png": [
+      "findings/phase_a/figures/revision_v2_pareto_front.png",
+      "phase_a_rsm_blocking/results/runs.csv",
+      "phase_a_rsm_blocking/results/revision_v2/full_run_001/doe_matched_candidate_front.csv",
+      "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
+      "phase_a_rsm_blocking/results/revision_v2/full_run_001/hypervolume.json"
+    ],
+    "sequential_design.pdf": [
+      "findings/phase_a/figures/explainer_sequential_extension.pdf",
+      "phase_a_rsm_blocking/results/runs.csv"
+    ],
+    "phase_b_pareto.pdf": [
+      "results/phase_b/imdb/evaluations.jsonl",
+      "results/phase_b/imdb/final_results.json"
+    ],
+    "phase_b_progress.pdf": [
+      "results/phase_b/imdb_analysis.json",
+      "results/phase_b/imdb/evaluations.jsonl"
+    ],
+    "phase_b_importance.pdf": [
+      "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "results/phase_b/imdb/snapshot_0_static_doe_final.json",
+      "results/phase_b/imdb/snapshot_0_tpe_final.json",
+      "results/phase_b/imdb/snapshot_1_doe_2.json",
+      "results/phase_b/imdb/snapshot_1_static_doe_final.json",
+      "results/phase_b/imdb/snapshot_1_tpe_final.json",
+      "results/phase_b/imdb/snapshot_2_doe_2.json",
+      "results/phase_b/imdb/snapshot_2_static_doe_final.json",
+      "results/phase_b/imdb/snapshot_2_tpe_final.json"
+    ],
+    "phase_b_interactions.pdf": [
+      "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "results/phase_b/imdb/snapshot_1_doe_2.json",
+      "results/phase_b/imdb/snapshot_2_doe_2.json"
+    ],
+    "phase_b_curvature.pdf": [
+      "results/phase_b/imdb/snapshot_0_doe_0.json",
+      "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "results/phase_b/imdb/snapshot_1_doe_0.json",
+      "results/phase_b/imdb/snapshot_1_doe_2.json",
+      "results/phase_b/imdb/snapshot_2_doe_0.json",
+      "results/phase_b/imdb/snapshot_2_doe_2.json"
+    ],
+    "phase_b_confirmation.pdf": [
+      "results/phase_b/imdb/confirmation.json"
+    ],
+    "phase_b_words.pdf": [
+      "results/phase_b/imdb_words/observations.json"
+    ]
+  }
+}
