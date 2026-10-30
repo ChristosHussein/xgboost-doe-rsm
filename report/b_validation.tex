@@ -1,12 +1,18 @@
-\begin{tabular}{lrrrrr}
+\begin{tabular}{lrrrrrr}
 \toprule
-Method & Response & Pred. RMSE & Mean bias & Coverage & Boundary bias \\
+Sampling & Response & Model & Pred. RMSE & Bias & Coverage (\%) & Boundary bias \\
 \midrule
-Static CCD & Loss & \m{ConfirmAvallossError} & \m{ConfirmAvallossBias} & \m{ConfirmAvallossCoverage}\% & \m{ConfirmAvallossBoundary} \\
-Static CCD & Latency & \m{ConfirmAlatencyusError} & \m{ConfirmAlatencyusBias} & \m{ConfirmAlatencyusCoverage}\% & \m{ConfirmAlatencyusBoundary} \\
-Sequential CCD & Loss & \m{ConfirmBvallossError} & \m{ConfirmBvallossBias} & \m{ConfirmBvallossCoverage}\% & \m{ConfirmBvallossBoundary} \\
-Sequential CCD & Latency & \m{ConfirmBlatencyusError} & \m{ConfirmBlatencyusBias} & \m{ConfirmBlatencyusCoverage}\% & \m{ConfirmBlatencyusBoundary} \\
-MO-TPE & Loss & \m{ConfirmCvallossError} & \m{ConfirmCvallossBias} & \m{ConfirmCvallossCoverage}\% & \m{ConfirmCvallossBoundary} \\
-MO-TPE & Latency & \m{ConfirmClatencyusError} & \m{ConfirmClatencyusBias} & \m{ConfirmClatencyusCoverage}\% & \m{ConfirmClatencyusBoundary} \\
+Static CCD & Loss & RSM & \m{PostConfirmA0RSMError} & \m{PostConfirmA0RSMBias} & \m{PostConfirmA0RSMCoverage} & \m{PostConfirmA0RSMBoundary} \\
+Static CCD & Loss & GP & \m{PostConfirmA0GPError} & \m{PostConfirmA0GPBias} & \m{PostConfirmA0GPCoverage} & \m{PostConfirmA0GPBoundary} \\
+Static CCD & Latency & RSM & \m{PostConfirmA1RSMError} & \m{PostConfirmA1RSMBias} & \m{PostConfirmA1RSMCoverage} & \m{PostConfirmA1RSMBoundary} \\
+Static CCD & Latency & GP & \m{PostConfirmA1GPError} & \m{PostConfirmA1GPBias} & \m{PostConfirmA1GPCoverage} & \m{PostConfirmA1GPBoundary} \\
+Sequential CCD & Loss & RSM & \m{PostConfirmB0RSMError} & \m{PostConfirmB0RSMBias} & \m{PostConfirmB0RSMCoverage} & \m{PostConfirmB0RSMBoundary} \\
+Sequential CCD & Loss & GP & \m{PostConfirmB0GPError} & \m{PostConfirmB0GPBias} & \m{PostConfirmB0GPCoverage} & \m{PostConfirmB0GPBoundary} \\
+Sequential CCD & Latency & RSM & \m{PostConfirmB1RSMError} & \m{PostConfirmB1RSMBias} & \m{PostConfirmB1RSMCoverage} & \m{PostConfirmB1RSMBoundary} \\
+Sequential CCD & Latency & GP & \m{PostConfirmB1GPError} & \m{PostConfirmB1GPBias} & \m{PostConfirmB1GPCoverage} & \m{PostConfirmB1GPBoundary} \\
+MO-TPE & Loss & RSM & \m{PostConfirmC0RSMError} & \m{PostConfirmC0RSMBias} & \m{PostConfirmC0RSMCoverage} & \m{PostConfirmC0RSMBoundary} \\
+MO-TPE & Loss & GP & \m{PostConfirmC0GPError} & \m{PostConfirmC0GPBias} & \m{PostConfirmC0GPCoverage} & \m{PostConfirmC0GPBoundary} \\
+MO-TPE & Latency & RSM & \m{PostConfirmC1RSMError} & \m{PostConfirmC1RSMBias} & \m{PostConfirmC1RSMCoverage} & \m{PostConfirmC1RSMBoundary} \\
+MO-TPE & Latency & GP & \m{PostConfirmC1GPError} & \m{PostConfirmC1GPBias} & \m{PostConfirmC1GPCoverage} & \m{PostConfirmC1GPBoundary} \\
 \bottomrule
 \end{tabular}

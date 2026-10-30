@@ -1,0 +1,6288 @@
+{
+  "status": "POST_HOC",
+  "protocol": "Saved-evidence diagnostics; no retraining, no new test selection.",
+  "paired_document_bootstrap": {
+    "status": "POST_HOC",
+    "seed": 20261030,
+    "repetitions": 2000,
+    "test_documents": 24799,
+    "fixed_search_repeats": 3,
+    "frozen_models": 9,
+    "sampling": "Ordinary paired document resampling; identical sampled documents across all nine classifiers.",
+    "estimand": "Difference in mean macro F1 across each method's three frozen classifiers.",
+    "limitation": "Intervals condition on trained models and observed document population. They do not estimate optimizer-run uncertainty or repair prior test exposure; no equivalence margin is tested.",
+    "per_search_f1": {
+      "static_doe": [
+        0.8784344476337487,
+        0.8773839306358532,
+        0.8794714071702883
+      ],
+      "doe": [
+        0.8796806424274176,
+        0.8784344476337487,
+        0.8784344476337487
+      ],
+      "tpe": [
+        0.8793214890953698,
+        0.8766652562966872,
+        0.8792935951839542
+      ]
+    },
+    "comparisons": [
+      {
+        "first": "static_doe",
+        "second": "doe",
+        "difference": -0.0004199174183415755,
+        "interval_95": [
+          -0.0018068553654907449,
+          0.0009897979409347136
+        ],
+        "bootstrap_sd": 0.0007118381818337104,
+        "per_search_differences": [
+          -0.0012461947936689421,
+          -0.0010505169978954898,
+          0.0010369595365395945
+        ]
+      },
+      {
+        "first": "static_doe",
+        "second": "tpe",
+        "difference": 3.1482879596644864e-06,
+        "interval_95": [
+          -0.0018081214462973643,
+          0.0017835740705033352
+        ],
+        "bootstrap_sd": 0.0008956951520555505,
+        "per_search_differences": [
+          -0.0008870414616211075,
+          0.0007186743391659478,
+          0.00017781198633404216
+        ]
+      },
+      {
+        "first": "doe",
+        "second": "tpe",
+        "difference": 0.00042306570630123996,
+        "interval_95": [
+          -0.0016431026249384083,
+          0.002556642744240136
+        ],
+        "bootstrap_sd": 0.0010752345910827316,
+        "per_search_differences": [
+          0.0003591533320478346,
+          0.0017691913370614376,
+          -0.0008591475502055523
+        ]
+      }
+    ]
+  },
+  "symmetric_confirmation": {
+    "target": "Mean response across the same five existing development folds.",
+    "nominal_level": 0.95,
+    "unique_coordinates": 12,
+    "repeats": 3,
+    "interval_interpretation": {
+      "RSM": "Working-model PI for an average of five new independent residuals in known fixed blocks: t * sqrt(MSE*(1/5+leverage)).",
+      "GP": "Saved GP model-based predictive interval for the block-averaged response; includes fitted GP white-noise variance."
+    },
+    "limitation": "Intervals have the same response target but different variance models. Overlapping training folds and repeated use of the same coordinates preclude treating these records as independent datasets.",
+    "summaries": {
+      "static_doe:RSM:val_loss": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 0.0026877561772136916,
+        "mean_bias": -0.00045843367824869213,
+        "coverage": 0.75,
+        "boundary_n": 27,
+        "boundary_bias": -0.0005135480840850491,
+        "interior_bias": -0.00029309046073962134
+      },
+      "static_doe:GP:val_loss": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 0.0024817972313766015,
+        "mean_bias": -0.0010088845851638618,
+        "coverage": 0.8055555555555556,
+        "boundary_n": 27,
+        "boundary_bias": -0.0008585590263247567,
+        "interior_bias": -0.0014598612616811774
+      },
+      "static_doe:RSM:latency_us": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 3.7556342003395096,
+        "mean_bias": -0.7518839486841126,
+        "coverage": 0.9444444444444444,
+        "boundary_n": 27,
+        "boundary_bias": -1.5229653895800799,
+        "interior_bias": 1.5613603740037894
+      },
+      "static_doe:GP:latency_us": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 5.661178956353545,
+        "mean_bias": -0.27876764946939797,
+        "coverage": 0.8333333333333334,
+        "boundary_n": 27,
+        "boundary_bias": -1.4182789410766088,
+        "interior_bias": 3.1397662253522345
+      },
+      "doe:RSM:val_loss": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 0.0025861569712903824,
+        "mean_bias": -0.00014446453062126683,
+        "coverage": 0.6944444444444444,
+        "boundary_n": 27,
+        "boundary_bias": -0.00014501094862833633,
+        "interior_bias": -0.0001428252766000584
+      },
+      "doe:GP:val_loss": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 0.0024584349934197785,
+        "mean_bias": -0.0011273840238087889,
+        "coverage": 0.8611111111111112,
+        "boundary_n": 27,
+        "boundary_bias": -0.0008701421771583452,
+        "interior_bias": -0.0018991095637601195
+      },
+      "doe:RSM:latency_us": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 3.172452127278599,
+        "mean_bias": -0.5324855309198971,
+        "coverage": 0.9722222222222222,
+        "boundary_n": 27,
+        "boundary_bias": -0.6553045313765059,
+        "interior_bias": -0.16402852955007083
+      },
+      "doe:GP:latency_us": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 3.267978130766205,
+        "mean_bias": -0.9086967634140185,
+        "coverage": 0.9444444444444444,
+        "boundary_n": 27,
+        "boundary_bias": -0.8108081377437686,
+        "interior_bias": -1.202362640424768
+      },
+      "tpe:RSM:val_loss": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 0.0060357418899093605,
+        "mean_bias": 0.0013285378139278113,
+        "coverage": 0.8333333333333334,
+        "boundary_n": 27,
+        "boundary_bias": 0.0018420266367961545,
+        "interior_bias": -0.00021192865467721842
+      },
+      "tpe:GP:val_loss": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 0.006882702355948831,
+        "mean_bias": 0.002670099018578619,
+        "coverage": 0.75,
+        "boundary_n": 27,
+        "boundary_bias": 0.0033453346961631724,
+        "interior_bias": 0.000644391985824959
+      },
+      "tpe:RSM:latency_us": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 21.827759286179194,
+        "mean_bias": -3.254191636115885,
+        "coverage": 0.7777777777777778,
+        "boundary_n": 27,
+        "boundary_bias": -0.5965225995450285,
+        "interior_bias": -11.227198745828453
+      },
+      "tpe:GP:latency_us": {
+        "n": 36,
+        "unique_coordinates": 12,
+        "rmse": 10.897291729217038,
+        "mean_bias": -3.9822500454758085,
+        "coverage": 0.7777777777777778,
+        "boundary_n": 27,
+        "boundary_bias": -4.262809478152564,
+        "interior_bias": -3.1405717474455437
+      }
+    },
+    "records": {
+      "static_doe:RSM:val_loss": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13662953372886452,
+          "predicted": 0.14053567198968547,
+          "lower": 0.1370589407696935,
+          "upper": 0.14401240320967745
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.13208051548896999,
+          "predicted": 0.13251731560343225,
+          "lower": 0.12908792827408963,
+          "upper": 0.13594670293277486
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13844717255995426,
+          "predicted": 0.13683806711053226,
+          "lower": 0.1332697068943811,
+          "upper": 0.1404064273266834
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12727367320988342,
+          "predicted": 0.12539753855442826,
+          "lower": 0.12227889614750836,
+          "upper": 0.12851618096134815
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15075043802519686,
+          "predicted": 0.14910340303851202,
+          "lower": 0.14547283397117572,
+          "upper": 0.15273397210584833
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.13026063162835952,
+          "predicted": 0.12807296438423524,
+          "lower": 0.12469241331406758,
+          "upper": 0.1314535154544029
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.1268701547506363,
+          "predicted": 0.12794365597671925,
+          "lower": 0.12437387667623173,
+          "upper": 0.13151343527720677
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1328931473545426,
+          "predicted": 0.13609912354633394,
+          "lower": 0.1327604844300678,
+          "upper": 0.13943776266260008
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13605103926801926,
+          "predicted": 0.13858660526640526,
+          "lower": 0.13512707340848037,
+          "upper": 0.14204613712433015
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12954641638744918,
+          "predicted": 0.13449668986165272,
+          "lower": 0.13133649564123911,
+          "upper": 0.13765688408206633
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.1298133712723017,
+          "predicted": 0.12866753822428417,
+          "lower": 0.12524174051405879,
+          "upper": 0.13209333593450956
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.1290011622914311,
+          "predicted": 0.12848534713395773,
+          "lower": 0.1253457087322513,
+          "upper": 0.13162498553566418
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13623959702161476,
+          "predicted": 0.1407175769345914,
+          "lower": 0.1378494884732401,
+          "upper": 0.14358566539594267
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1312315782676148,
+          "predicted": 0.13203115743913413,
+          "lower": 0.12920212476262644,
+          "upper": 0.13486019011564182
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13803925745288276,
+          "predicted": 0.13736233220739366,
+          "lower": 0.1344186554851213,
+          "upper": 0.14030600892966602
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.1278796848463915,
+          "predicted": 0.1255708643345849,
+          "lower": 0.12299817702101444,
+          "upper": 0.12814355164815536
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15147347594578187,
+          "predicted": 0.14906813843058234,
+          "lower": 0.1460731432493931,
+          "upper": 0.15206313361177157
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.12889009383273062,
+          "predicted": 0.12834748692749032,
+          "lower": 0.1255587411476601,
+          "upper": 0.13113623270732053
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12937417135956544,
+          "predicted": 0.12895172075596326,
+          "lower": 0.12600687337678548,
+          "upper": 0.13189656813514103
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1311527722975737,
+          "predicted": 0.13639904927285182,
+          "lower": 0.13364487826563745,
+          "upper": 0.1391532202800662
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13757509822625305,
+          "predicted": 0.13936244781129623,
+          "lower": 0.13650854776106042,
+          "upper": 0.14221634786153203
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12848505330691007,
+          "predicted": 0.13446536947221951,
+          "lower": 0.13185840447961988,
+          "upper": 0.13707233446481915
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12796082096923245,
+          "predicted": 0.12888732028342356,
+          "lower": 0.12606124882091813,
+          "upper": 0.131713391745929
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.13098676813371096,
+          "predicted": 0.128530146213954,
+          "lower": 0.12594013850183342,
+          "upper": 0.1311201539260746
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13631206682252028,
+          "predicted": 0.14019339723316593,
+          "lower": 0.1372792496685196,
+          "upper": 0.14310754479781226
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1297799613596035,
+          "predicted": 0.13127118505291221,
+          "lower": 0.12839672047636785,
+          "upper": 0.13414564962945658
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13990115287606408,
+          "predicted": 0.1351121472431845,
+          "lower": 0.1321211975333298,
+          "upper": 0.13810309695303918
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12651522981238889,
+          "predicted": 0.12419400175917888,
+          "lower": 0.12157999923782511,
+          "upper": 0.12680800428053265
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15054637004977636,
+          "predicted": 0.14821924990491403,
+          "lower": 0.14517615760458863,
+          "upper": 0.15126234220523943
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.1276414415752841,
+          "predicted": 0.1288284322876835,
+          "lower": 0.12599490158170204,
+          "upper": 0.13166196299366498
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12847975239335047,
+          "predicted": 0.12672396403653513,
+          "lower": 0.12373182487000368,
+          "upper": 0.1297161032030666
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1337788339118275,
+          "predicted": 0.13561343901567294,
+          "lower": 0.13281503832425495,
+          "upper": 0.13841183970709092
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13753054473269447,
+          "predicted": 0.13746428609649794,
+          "lower": 0.13456455479698967,
+          "upper": 0.1403640173960062
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.13067752933767068,
+          "predicted": 0.13450576594022587,
+          "lower": 0.13185693526896994,
+          "upper": 0.1371545966114818
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12630009548642515,
+          "predicted": 0.12695121085450392,
+          "lower": 0.12407975504658346,
+          "upper": 0.12982266666242437
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.12950303749166958,
+          "predicted": 0.1268606456939601,
+          "lower": 0.12422904462293335,
+          "upper": 0.12949224676498686
+        }
+      ],
+      "static_doe:GP:val_loss": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13662953372886452,
+          "predicted": 0.14005936190534046,
+          "lower": 0.13778947329359814,
+          "upper": 0.14232925051708278
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.13208051548896999,
+          "predicted": 0.13252193214859329,
+          "lower": 0.1293615760705796,
+          "upper": 0.13568228822660697
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13844717255995426,
+          "predicted": 0.1384467858841148,
+          "lower": 0.1357616711004965,
+          "upper": 0.1411319006677331
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12727367320988342,
+          "predicted": 0.12771087019499971,
+          "lower": 0.12464685579649776,
+          "upper": 0.13077488459350167
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15075043802519686,
+          "predicted": 0.15101543519761296,
+          "lower": 0.1482886058699796,
+          "upper": 0.1537422645252463
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.13026063162835952,
+          "predicted": 0.12714488583690106,
+          "lower": 0.12297958643824983,
+          "upper": 0.1313101852355523
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.1268701547506363,
+          "predicted": 0.1299684468882961,
+          "lower": 0.12748021832080067,
+          "upper": 0.1324566754557915
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1328931473545426,
+          "predicted": 0.13622103384210482,
+          "lower": 0.13240552746959522,
+          "upper": 0.14003654021461442
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13605103926801926,
+          "predicted": 0.13787204701482952,
+          "lower": 0.13581442508598926,
+          "upper": 0.1399296689436698
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12954641638744918,
+          "predicted": 0.1334272168699201,
+          "lower": 0.13020854046076655,
+          "upper": 0.13664589327907364
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.1298133712723017,
+          "predicted": 0.12922682120034917,
+          "lower": 0.1270716453040341,
+          "upper": 0.13138199709666426
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.1290011622914311,
+          "predicted": 0.1306295896865649,
+          "lower": 0.1269322837922137,
+          "upper": 0.13432689558091612
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13623959702161476,
+          "predicted": 0.1395283276451037,
+          "lower": 0.13693734842371688,
+          "upper": 0.14211930686649052
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1312315782676148,
+          "predicted": 0.1306526426378183,
+          "lower": 0.12471327347498122,
+          "upper": 0.13659201180065542
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13803925745288276,
+          "predicted": 0.1401759086604927,
+          "lower": 0.13755714286216614,
+          "upper": 0.14279467445881927
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.1278796848463915,
+          "predicted": 0.1276732830535423,
+          "lower": 0.12053620297533224,
+          "upper": 0.13481036313175238
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15147347594578187,
+          "predicted": 0.14831997996435245,
+          "lower": 0.14464548093477267,
+          "upper": 0.15199447899393223
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.12889009383273062,
+          "predicted": 0.12707275502519236,
+          "lower": 0.1179297934578447,
+          "upper": 0.13621571659254003
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12937417135956544,
+          "predicted": 0.13128926233925137,
+          "lower": 0.129128221239187,
+          "upper": 0.13345030343931574
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1311527722975737,
+          "predicted": 0.1383505919683589,
+          "lower": 0.13050207930310836,
+          "upper": 0.1461991046336094
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13757509822625305,
+          "predicted": 0.13939421527415302,
+          "lower": 0.1368621985491247,
+          "upper": 0.14192623199918133
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12848505330691007,
+          "predicted": 0.13349263186684118,
+          "lower": 0.12645182597082053,
+          "upper": 0.14053343776286184
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12796082096923245,
+          "predicted": 0.1293025656522365,
+          "lower": 0.1266256875833148,
+          "upper": 0.1319794437211582
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.13098676813371096,
+          "predicted": 0.13065609026077096,
+          "lower": 0.12248709249942734,
+          "upper": 0.1388250880221146
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13631206682252028,
+          "predicted": 0.1402731415024456,
+          "lower": 0.1377325350589377,
+          "upper": 0.1428137479459535
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1297799613596035,
+          "predicted": 0.13061987433792127,
+          "lower": 0.1275651299073437,
+          "upper": 0.13367461876849884
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13990115287606408,
+          "predicted": 0.13683419414568265,
+          "lower": 0.13404789061281527,
+          "upper": 0.13962049767855003
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12651522981238889,
+          "predicted": 0.12637560364881872,
+          "lower": 0.12380613895093653,
+          "upper": 0.12894506834670091
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15054637004977636,
+          "predicted": 0.14990189662518882,
+          "lower": 0.14720136881232596,
+          "upper": 0.1526024244380517
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.1276414415752841,
+          "predicted": 0.12735308504955045,
+          "lower": 0.12363767268173041,
+          "upper": 0.1310684974173705
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12847975239335047,
+          "predicted": 0.12843529575744167,
+          "lower": 0.12525723526186885,
+          "upper": 0.13161335625301449
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1337788339118275,
+          "predicted": 0.13508858663080964,
+          "lower": 0.13166242498507463,
+          "upper": 0.13851474827654464
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13753054473269447,
+          "predicted": 0.13619641697082138,
+          "lower": 0.13395473976263553,
+          "upper": 0.13843809417900724
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.13067752933767068,
+          "predicted": 0.13390451041712778,
+          "lower": 0.13090755664416612,
+          "upper": 0.13690146419008944
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12630009548642515,
+          "predicted": 0.1279186922634458,
+          "lower": 0.12555519662722503,
+          "upper": 0.13028218789966656
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.12950303749166958,
+          "predicted": 0.1291375101740503,
+          "lower": 0.12589650525779378,
+          "upper": 0.13237851509030685
+        }
+      ],
+      "static_doe:RSM:latency_us": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 185.15,
+          "predicted": 186.71072979974628,
+          "lower": 180.63942237905272,
+          "upper": 192.78203722043983
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 197.45999999999998,
+          "predicted": 198.51989234703655,
+          "lower": 192.53126008770465,
+          "upper": 204.50852460636844
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 186.81,
+          "predicted": 187.6573132742397,
+          "lower": 181.4259969920233,
+          "upper": 193.8886295564561
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 193.22,
+          "predicted": 190.79808153442244,
+          "lower": 185.35209345264425,
+          "upper": 196.24406961620062
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 169.9,
+          "predicted": 172.49948766321725,
+          "lower": 166.15953800213578,
+          "upper": 178.83943732429873
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 178.45999999999998,
+          "predicted": 178.81619836803256,
+          "lower": 172.9128473467276,
+          "upper": 184.71954938933752
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 173.01,
+          "predicted": 176.47944838414293,
+          "lower": 170.24565399915787,
+          "upper": 182.713242769128
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 189.63,
+          "predicted": 191.14915831169873,
+          "lower": 185.31899682983092,
+          "upper": 196.97931979356653
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 181.48,
+          "predicted": 183.3474083956569,
+          "lower": 177.3061356851384,
+          "upper": 189.38868110617543
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 182.31,
+          "predicted": 186.85063198674627,
+          "lower": 181.33208326750577,
+          "upper": 192.36918070598676
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 187.26,
+          "predicted": 191.38015249458732,
+          "lower": 185.3977886752943,
+          "upper": 197.36251631388035
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 188.33,
+          "predicted": 190.9847043857715,
+          "lower": 185.50205165237472,
+          "upper": 196.46735711916827
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 189.51999999999998,
+          "predicted": 191.39461937489392,
+          "lower": 183.56927498617915,
+          "upper": 199.2199637636087
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 202.64000000000001,
+          "predicted": 203.7806317387942,
+          "lower": 196.0618478592446,
+          "upper": 211.4994156183438
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 187.92,
+          "predicted": 186.36397417563967,
+          "lower": 178.33239340983178,
+          "upper": 194.39555494144756
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 193.17,
+          "predicted": 191.30418012836824,
+          "lower": 184.28481356961112,
+          "upper": 198.32354668712537
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 174.53999999999996,
+          "predicted": 178.8661073819468,
+          "lower": 170.69450840542675,
+          "upper": 187.03770635846683
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 184.86999999999998,
+          "predicted": 185.04679178555782,
+          "lower": 177.4379274029492,
+          "upper": 192.65565616816642
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 178.95999999999998,
+          "predicted": 176.06957341135242,
+          "lower": 168.03479860408828,
+          "upper": 184.10434821861656
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 193.57,
+          "predicted": 196.74293830368134,
+          "lower": 189.22840835549707,
+          "upper": 204.25746825186562
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 184.35,
+          "predicted": 183.5400032377363,
+          "lower": 175.7533707663153,
+          "upper": 191.3266357091573
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 188.01,
+          "predicted": 187.2240354456966,
+          "lower": 180.11114504802595,
+          "upper": 194.33692584336723
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 193.52,
+          "predicted": 191.04682021557753,
+          "lower": 183.3361157658254,
+          "upper": 198.75752466532964
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 193.18,
+          "predicted": 191.02386058901942,
+          "lower": 183.9572367418519,
+          "upper": 198.09048443618696
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 192.69,
+          "predicted": 199.02171926739473,
+          "lower": 190.40460013199072,
+          "upper": 207.63883840279874
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 209.9,
+          "predicted": 215.48361580366017,
+          "lower": 206.98383905690937,
+          "upper": 223.98339255041097
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 192.07,
+          "predicted": 190.679296073108,
+          "lower": 181.8350733952671,
+          "upper": 199.52351875094888
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 199.05,
+          "predicted": 192.85291665297623,
+          "lower": 185.1233248436865,
+          "upper": 200.58250846226596
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 177.10000000000002,
+          "predicted": 176.44509666254143,
+          "lower": 167.44668861688814,
+          "upper": 185.44350470819472
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 188.07,
+          "predicted": 186.88338190762423,
+          "lower": 178.50464640243337,
+          "upper": 195.2621174128151
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 180.39000000000001,
+          "predicted": 182.09394296131,
+          "lower": 173.2462030662855,
+          "upper": 190.94168285633452
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 196.95999999999998,
+          "predicted": 207.64934480147318,
+          "lower": 199.37448856595097,
+          "upper": 215.92420103699538
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 184.09,
+          "predicted": 187.5647450839013,
+          "lower": 178.99025476925073,
+          "upper": 196.13923539855188
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 189.67000000000002,
+          "predicted": 192.11192854261444,
+          "lower": 184.27935007588374,
+          "upper": 199.94450700934513
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 195.31,
+          "predicted": 191.51767429411078,
+          "lower": 183.02679446047364,
+          "upper": 200.0085541277479
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 201.87,
+          "predicted": 191.6074173683508,
+          "lower": 183.825786739551,
+          "upper": 199.3890479971506
+        }
+      ],
+      "static_doe:GP:latency_us": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 185.15,
+          "predicted": 184.11829329054422,
+          "lower": 179.25273576967274,
+          "upper": 188.9838508114157
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 197.45999999999998,
+          "predicted": 197.54205631849004,
+          "lower": 193.1292383176918,
+          "upper": 201.95487431928828
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 186.81,
+          "predicted": 187.86749803238536,
+          "lower": 182.7521172550989,
+          "upper": 192.9828788096718
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 193.22,
+          "predicted": 183.80184475697848,
+          "lower": 162.38216190584663,
+          "upper": 205.22152760811034
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 169.9,
+          "predicted": 172.1204858789402,
+          "lower": 167.69010107444944,
+          "upper": 176.55087068343096
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 178.45999999999998,
+          "predicted": 183.67228271382476,
+          "lower": 162.25253511999117,
+          "upper": 205.09203030765835
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 173.01,
+          "predicted": 183.38875485460937,
+          "lower": 161.96905028284266,
+          "upper": 204.8084594263761
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 189.63,
+          "predicted": 183.66424977917802,
+          "lower": 162.24449488009844,
+          "upper": 205.0840046782576
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 181.48,
+          "predicted": 183.65005950264285,
+          "lower": 162.23030181829614,
+          "upper": 205.06981718698955
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 182.31,
+          "predicted": 184.39989449366692,
+          "lower": 179.7912809522568,
+          "upper": 189.00850803507703
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 187.26,
+          "predicted": 183.79517329709566,
+          "lower": 162.37547719195362,
+          "upper": 205.2148694022377
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 188.33,
+          "predicted": 183.79872373599648,
+          "lower": 162.37903639942354,
+          "upper": 205.2184110725694
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 189.51999999999998,
+          "predicted": 187.16591682417774,
+          "lower": 183.59086253073008,
+          "upper": 190.7409711176254
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 202.64000000000001,
+          "predicted": 203.97832782664142,
+          "lower": 201.42793439273876,
+          "upper": 206.52872126054407
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 187.92,
+          "predicted": 187.1463117190875,
+          "lower": 183.11656506113604,
+          "upper": 191.17605837703894
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 193.17,
+          "predicted": 192.86627912634992,
+          "lower": 186.2719500194966,
+          "upper": 199.46060823320326
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 174.53999999999996,
+          "predicted": 181.61775412182337,
+          "lower": 178.23587972011137,
+          "upper": 184.99962852353536
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 184.86999999999998,
+          "predicted": 181.50360558642308,
+          "lower": 174.485946257593,
+          "upper": 188.52126491525314
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 178.95999999999998,
+          "predicted": 174.92065896343826,
+          "lower": 168.0585231133031,
+          "upper": 181.78279481357342
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 193.57,
+          "predicted": 194.85791767360908,
+          "lower": 187.98991997711218,
+          "upper": 201.72591537010598
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 184.35,
+          "predicted": 180.71628373368537,
+          "lower": 174.04248152410176,
+          "upper": 187.39008594326899
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 188.01,
+          "predicted": 186.09417346663741,
+          "lower": 183.668258215576,
+          "upper": 188.52008871769883
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 193.52,
+          "predicted": 192.61711142436803,
+          "lower": 185.78828021424647,
+          "upper": 199.4459426344896
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 193.18,
+          "predicted": 192.3211312377955,
+          "lower": 185.6779850181051,
+          "upper": 198.9642774574859
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 192.69,
+          "predicted": 200.55767284409836,
+          "lower": 194.5739076665071,
+          "upper": 206.54143802168963
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 209.9,
+          "predicted": 222.96681226411567,
+          "lower": 218.00746891396926,
+          "upper": 227.9261556142621
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 192.07,
+          "predicted": 193.39733417822626,
+          "lower": 185.92238689432781,
+          "upper": 200.8722814621247
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 199.05,
+          "predicted": 191.92289307145012,
+          "lower": 185.81405742224857,
+          "upper": 198.03172872065167
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 177.10000000000002,
+          "predicted": 174.87817362317196,
+          "lower": 168.05708673914293,
+          "upper": 181.699260507201
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 188.07,
+          "predicted": 187.5658583118571,
+          "lower": 180.3573762920446,
+          "upper": 194.77434033166963
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 180.39000000000001,
+          "predicted": 178.22322561844402,
+          "lower": 171.56972403223708,
+          "upper": 184.87672720465096
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 196.95999999999998,
+          "predicted": 214.36272046178814,
+          "lower": 207.25207755840657,
+          "upper": 221.47336336516972
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 184.09,
+          "predicted": 186.01041499163372,
+          "lower": 179.21875174382419,
+          "upper": 192.80207823944326
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 189.67000000000002,
+          "predicted": 193.83879648709907,
+          "lower": 189.4924409197779,
+          "upper": 198.18515205442026
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 195.31,
+          "predicted": 191.61857757476872,
+          "lower": 184.5853663925862,
+          "upper": 198.65178875695125
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 201.87,
+          "predicted": 191.50836759585601,
+          "lower": 185.15990107392759,
+          "upper": 197.85683411778444
+        }
+      ],
+      "doe:RSM:val_loss": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13662953372886452,
+          "predicted": 0.14047850382890592,
+          "lower": 0.1369575955480568,
+          "upper": 0.14399941210975503
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.13208051548896999,
+          "predicted": 0.132184433657581,
+          "lower": 0.1287262431259386,
+          "upper": 0.1356426241892234
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13844717255995426,
+          "predicted": 0.13674614667714124,
+          "lower": 0.13311929798982447,
+          "upper": 0.14037299536445802
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12727367320988342,
+          "predicted": 0.12547184699043762,
+          "lower": 0.12228297424523984,
+          "upper": 0.1286607197356354
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15075043802519686,
+          "predicted": 0.14859558925097857,
+          "lower": 0.14499824246744938,
+          "upper": 0.15219293603450776
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.13026063162835952,
+          "predicted": 0.12848581514927632,
+          "lower": 0.1250949787151002,
+          "upper": 0.13187665158345244
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.1268701547506363,
+          "predicted": 0.12781327954733177,
+          "lower": 0.12418629065150591,
+          "upper": 0.13144026844315762
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1328931473545426,
+          "predicted": 0.13625491476503532,
+          "lower": 0.1328627939816311,
+          "upper": 0.13964703554843955
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13605103926801926,
+          "predicted": 0.13838066442630043,
+          "lower": 0.13486331635646373,
+          "upper": 0.14189801249613712
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12954641638744918,
+          "predicted": 0.1344567308051634,
+          "lower": 0.13122159952003562,
+          "upper": 0.1376918620902912
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.1298133712723017,
+          "predicted": 0.12852601318113838,
+          "lower": 0.12507426771338684,
+          "upper": 0.13197775864888991
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.1290011622914311,
+          "predicted": 0.12838312551044748,
+          "lower": 0.12517298256237844,
+          "upper": 0.13159326845851652
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13623959702161476,
+          "predicted": 0.13990199934739442,
+          "lower": 0.1369231409964233,
+          "upper": 0.14288085769836553
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1312315782676148,
+          "predicted": 0.131662705325129,
+          "lower": 0.12872878559855067,
+          "upper": 0.13459662505170733
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13803925745288276,
+          "predicted": 0.1361207220511446,
+          "lower": 0.13309873532472177,
+          "upper": 0.1391427087775674
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.1278796848463915,
+          "predicted": 0.12514282058476564,
+          "lower": 0.12246144414252505,
+          "upper": 0.12782419702700623
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15147347594578187,
+          "predicted": 0.14824131674412935,
+          "lower": 0.14513829490363903,
+          "upper": 0.15134433858461968
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.12889009383273062,
+          "predicted": 0.12832289115572398,
+          "lower": 0.12541614405177878,
+          "upper": 0.13122963825966918
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12937417135956544,
+          "predicted": 0.12780541038574159,
+          "lower": 0.12478483435015511,
+          "upper": 0.13082598642132806
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1311527722975737,
+          "predicted": 0.13486626103030344,
+          "lower": 0.13206000918417643,
+          "upper": 0.13767251287643045
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13757509822625305,
+          "predicted": 0.13819162681706842,
+          "lower": 0.13528331686388284,
+          "upper": 0.141099936770254
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12848505330691007,
+          "predicted": 0.1337450473117331,
+          "lower": 0.13102470733613772,
+          "upper": 0.13646538728732846
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12796082096923245,
+          "predicted": 0.12840895461849017,
+          "lower": 0.1254690384066214,
+          "upper": 0.13134887083035893
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.13098676813371096,
+          "predicted": 0.12809456371276892,
+          "lower": 0.12539391003289949,
+          "upper": 0.13079521739263836
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13631206682252028,
+          "predicted": 0.13968713774005934,
+          "lower": 0.13654775698103458,
+          "upper": 0.1428265184990841
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1297799613596035,
+          "predicted": 0.13168832390378274,
+          "lower": 0.128610763603837,
+          "upper": 0.13476588420372848
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13990115287606408,
+          "predicted": 0.13507289133828,
+          "lower": 0.13184517463475628,
+          "upper": 0.1383006080418037
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12651522981238889,
+          "predicted": 0.12429725665813907,
+          "lower": 0.12146363627406617,
+          "upper": 0.12713087704221196
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15054637004977636,
+          "predicted": 0.1481902621661321,
+          "lower": 0.14497989714210902,
+          "upper": 0.15140062719015518
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.1276414415752841,
+          "predicted": 0.12858411981558743,
+          "lower": 0.12556975551291072,
+          "upper": 0.13159848411826414
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12847975239335047,
+          "predicted": 0.1264207067252261,
+          "lower": 0.1232087933972427,
+          "upper": 0.1296326200532095
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1337788339118275,
+          "predicted": 0.13566269902663744,
+          "lower": 0.13265337416261658,
+          "upper": 0.1386720238906583
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13753054473269447,
+          "predicted": 0.13698450991094555,
+          "lower": 0.133867541141109,
+          "upper": 0.1401014786807821
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.13067752933767068,
+          "predicted": 0.1346075989591078,
+          "lower": 0.13173437167918012,
+          "upper": 0.13748082623903546
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12630009548642515,
+          "predicted": 0.12664048568514083,
+          "lower": 0.12356983697932453,
+          "upper": 0.12971113439095713
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.12950303749166958,
+          "predicted": 0.1269549917743429,
+          "lower": 0.12410602498154012,
+          "upper": 0.12980395856714572
+        }
+      ],
+      "doe:GP:val_loss": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13662953372886452,
+          "predicted": 0.14053866802168669,
+          "lower": 0.1374991362706515,
+          "upper": 0.14357819977272188
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.13208051548896999,
+          "predicted": 0.13262761944479598,
+          "lower": 0.12925698630139842,
+          "upper": 0.13599825258819354
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13844717255995426,
+          "predicted": 0.1387237896774491,
+          "lower": 0.13539138640448234,
+          "upper": 0.14205619295041588
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12727367320988342,
+          "predicted": 0.12800171809549166,
+          "lower": 0.1249981427953651,
+          "upper": 0.13100529339561823
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15075043802519686,
+          "predicted": 0.1506926300863476,
+          "lower": 0.147345822037086,
+          "upper": 0.1540394381356092
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.13026063162835952,
+          "predicted": 0.12767079205473902,
+          "lower": 0.12366089323800468,
+          "upper": 0.13168069087147338
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.1268701547506363,
+          "predicted": 0.1295642036336655,
+          "lower": 0.1263170155026242,
+          "upper": 0.1328113917647068
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1328931473545426,
+          "predicted": 0.13638954344318485,
+          "lower": 0.13265866877811067,
+          "upper": 0.14012041810825904
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13605103926801926,
+          "predicted": 0.1377307183870451,
+          "lower": 0.13487907326760945,
+          "upper": 0.14058236350648073
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12954641638744918,
+          "predicted": 0.13360042952994874,
+          "lower": 0.1303225035135532,
+          "upper": 0.13687835554634428
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.1298133712723017,
+          "predicted": 0.12935572771785137,
+          "lower": 0.1264361495659572,
+          "upper": 0.13227530586974554
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.1290011622914311,
+          "predicted": 0.13112839540569293,
+          "lower": 0.1276136433817549,
+          "upper": 0.13464314742963096
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13623959702161476,
+          "predicted": 0.14341336367675236,
+          "lower": 0.13838194834727258,
+          "upper": 0.14844477900623215
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1312315782676148,
+          "predicted": 0.13115860256182227,
+          "lower": 0.12433422505931299,
+          "upper": 0.13798298006433155
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13803925745288276,
+          "predicted": 0.1388230000981186,
+          "lower": 0.13317235486185863,
+          "upper": 0.14447364533437856
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.1278796848463915,
+          "predicted": 0.12817005138327323,
+          "lower": 0.12185642863340763,
+          "upper": 0.1344836741331388
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15147347594578187,
+          "predicted": 0.15067341422866323,
+          "lower": 0.1457685892174045,
+          "upper": 0.15557823923992198
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.12889009383273062,
+          "predicted": 0.12779062628413956,
+          "lower": 0.11920627867957743,
+          "upper": 0.13637497388870168
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12937417135956544,
+          "predicted": 0.12885082019941657,
+          "lower": 0.12205616944978319,
+          "upper": 0.13564547094904997
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1311527722975737,
+          "predicted": 0.1341901070365335,
+          "lower": 0.12698573052195755,
+          "upper": 0.14139448355110945
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13757509822625305,
+          "predicted": 0.1368324214838055,
+          "lower": 0.13248397058408945,
+          "upper": 0.14118087238352156
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12848505330691007,
+          "predicted": 0.13474280878110365,
+          "lower": 0.12824041058500524,
+          "upper": 0.14124520697720205
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12796082096923245,
+          "predicted": 0.12916785133312397,
+          "lower": 0.12354269531309729,
+          "upper": 0.13479300735315064
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.13098676813371096,
+          "predicted": 0.1315524315438428,
+          "lower": 0.12360731648081075,
+          "upper": 0.13949754660687486
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13631206682252028,
+          "predicted": 0.1404104794059504,
+          "lower": 0.13739718211802499,
+          "upper": 0.1434237766938758
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1297799613596035,
+          "predicted": 0.13074886649663062,
+          "lower": 0.12727947430218614,
+          "upper": 0.1342182586910751
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13990115287606408,
+          "predicted": 0.13652903479924622,
+          "lower": 0.1332784780127249,
+          "upper": 0.13977959158576753
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12651522981238889,
+          "predicted": 0.12637583285806922,
+          "lower": 0.12355774440967038,
+          "upper": 0.12919392130646806
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15054637004977636,
+          "predicted": 0.1505269366262882,
+          "lower": 0.14734787527747117,
+          "upper": 0.1537059979751052
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.1276414415752841,
+          "predicted": 0.12812923143394964,
+          "lower": 0.1242666979411313,
+          "upper": 0.13199176492676798
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12847975239335047,
+          "predicted": 0.12903091554419363,
+          "lower": 0.125352143826245,
+          "upper": 0.13270968726214227
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1337788339118275,
+          "predicted": 0.13502398683658015,
+          "lower": 0.131196924639911,
+          "upper": 0.1388510490332493
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13753054473269447,
+          "predicted": 0.13663779024036687,
+          "lower": 0.13398868879374046,
+          "upper": 0.1392868916869933
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.13067752933767068,
+          "predicted": 0.13389097047198595,
+          "lower": 0.1306164195488121,
+          "upper": 0.1371655213951598
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12630009548642515,
+          "predicted": 0.12826578668856917,
+          "lower": 0.12548642413968575,
+          "upper": 0.13104514923745259
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.12950303749166958,
+          "predicted": 0.1294979028219383,
+          "lower": 0.12594074546230585,
+          "upper": 0.13305506018157073
+        }
+      ],
+      "doe:RSM:latency_us": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 183.89999999999998,
+          "predicted": 185.3821648624331,
+          "lower": 182.34231823544013,
+          "upper": 188.42201148942604
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 197.9,
+          "predicted": 198.8140691950027,
+          "lower": 195.82837119193604,
+          "upper": 201.79976719806936
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 184.42999999999998,
+          "predicted": 183.59043010921943,
+          "lower": 180.45911771215384,
+          "upper": 186.721742506285
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 187.64000000000001,
+          "predicted": 189.70504005054372,
+          "lower": 186.9518629481679,
+          "upper": 192.45821715291953
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 170.24,
+          "predicted": 170.69264974535074,
+          "lower": 167.58680840733157,
+          "upper": 173.7984910833699
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 179.41,
+          "predicted": 179.09240722966982,
+          "lower": 176.16486073458495,
+          "upper": 182.01995372475469
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 174.27000000000004,
+          "predicted": 174.40662788407062,
+          "lower": 171.27519443518275,
+          "upper": 177.53806133295848
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 188.82999999999998,
+          "predicted": 189.5628751028132,
+          "lower": 186.634219739119,
+          "upper": 192.49153046650738
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 179.46999999999997,
+          "predicted": 181.1308817409643,
+          "lower": 178.0941088933982,
+          "upper": 184.1676545885304
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 184.07999999999998,
+          "predicted": 184.65771883579401,
+          "lower": 181.8646034972134,
+          "upper": 187.45083417437462
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 188.71999999999997,
+          "predicted": 188.44223529205888,
+          "lower": 185.46210176388522,
+          "upper": 191.42236882023255
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 188.31,
+          "predicted": 188.84807827119994,
+          "lower": 186.07653711350198,
+          "upper": 191.6196194288979
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 188.22,
+          "predicted": 190.8714930017096,
+          "lower": 184.07885486296948,
+          "upper": 197.66413114044974
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 203.35,
+          "predicted": 209.95380128272492,
+          "lower": 203.2636358962905,
+          "upper": 216.64396666915934
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 189.13999999999996,
+          "predicted": 186.58082675975632,
+          "lower": 179.68984374743073,
+          "upper": 193.4718097720819
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 195.75,
+          "predicted": 193.5580918401551,
+          "lower": 187.44379644912212,
+          "upper": 199.67238723118808
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 178.73000000000002,
+          "predicted": 173.23969653985714,
+          "lower": 166.163930586707,
+          "upper": 180.31546249300726
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 188.2,
+          "predicted": 182.22261671989267,
+          "lower": 175.5944125854148,
+          "upper": 188.85082085437054
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 179.84,
+          "predicted": 178.10592408133323,
+          "lower": 171.2181578424315,
+          "upper": 184.99369032023495
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 195.12000000000003,
+          "predicted": 199.08568411088334,
+          "lower": 192.68663753966987,
+          "upper": 205.4847306820968
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 183.51999999999998,
+          "predicted": 183.93454823905097,
+          "lower": 177.30278036702515,
+          "upper": 190.5663161110768
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 197.94,
+          "predicted": 191.66235286978218,
+          "lower": 185.4592096211129,
+          "upper": 197.86549611845146
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 196.25,
+          "predicted": 191.4019414118692,
+          "lower": 184.69810234582903,
+          "upper": 198.10578047790935
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 193.87,
+          "predicted": 192.3028907635141,
+          "lower": 186.14463782764363,
+          "upper": 198.4611436993846
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 191.76,
+          "predicted": 197.28888449307485,
+          "lower": 188.99498400091028,
+          "upper": 205.5827849852394
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 211.18,
+          "predicted": 209.06621908218276,
+          "lower": 200.9356414792559,
+          "upper": 217.1967966851096
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 190.33999999999997,
+          "predicted": 189.62302608645876,
+          "lower": 181.09575169358155,
+          "upper": 198.15030047933598
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 194.25,
+          "predicted": 196.7287132953224,
+          "lower": 189.24259826116815,
+          "upper": 204.21482832947663
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 175.41,
+          "predicted": 178.9403354775144,
+          "lower": 170.45890232346633,
+          "upper": 187.42176863156246
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 184.81,
+          "predicted": 190.15368304970443,
+          "lower": 182.19006235741855,
+          "upper": 198.1173037419903
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 179.37,
+          "predicted": 178.45543021815337,
+          "lower": 169.96990661443888,
+          "upper": 186.94095382186785
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 194.5,
+          "predicted": 198.87302787050223,
+          "lower": 190.92272082379046,
+          "upper": 206.823334917214
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 183.67,
+          "predicted": 185.9046280819799,
+          "lower": 177.66993761320094,
+          "upper": 194.13931855075884
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 190.03000000000003,
+          "predicted": 193.70113840756443,
+          "lower": 186.1103862878707,
+          "upper": 201.29189052725815
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 193.75,
+          "predicted": 197.20711467893472,
+          "lower": 189.09479675151456,
+          "upper": 205.31943260635487
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 194.67,
+          "predicted": 196.85223243207477,
+          "lower": 189.32557386507506,
+          "upper": 204.37889099907449
+        }
+      ],
+      "doe:GP:latency_us": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 183.89999999999998,
+          "predicted": 185.3674759329094,
+          "lower": 182.31847611919372,
+          "upper": 188.41647574662508
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 197.9,
+          "predicted": 198.5499695059034,
+          "lower": 195.75732057747135,
+          "upper": 201.34261843433544
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 184.42999999999998,
+          "predicted": 183.11209528366467,
+          "lower": 179.95402441443125,
+          "upper": 186.2701661528981
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 187.64000000000001,
+          "predicted": 189.9902686288588,
+          "lower": 187.08957741708883,
+          "upper": 192.89095984062874
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 170.24,
+          "predicted": 171.0362225318806,
+          "lower": 168.23707067224032,
+          "upper": 173.8353743915209
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 179.41,
+          "predicted": 179.42777729805232,
+          "lower": 176.39300636226358,
+          "upper": 182.46254823384106
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 174.27000000000004,
+          "predicted": 174.23598275070842,
+          "lower": 171.18443427287795,
+          "upper": 177.28753122853888
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 188.82999999999998,
+          "predicted": 190.04282235677525,
+          "lower": 186.93382136794148,
+          "upper": 193.15182334560902
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 179.46999999999997,
+          "predicted": 180.05288391161145,
+          "lower": 176.92389896663852,
+          "upper": 183.18186885658437
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 184.07999999999998,
+          "predicted": 184.86834134581113,
+          "lower": 181.99642261930836,
+          "upper": 187.7402600723139
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 188.71999999999997,
+          "predicted": 188.30608607998104,
+          "lower": 185.32612523877128,
+          "upper": 191.2860469211908
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 188.31,
+          "predicted": 189.0716727839135,
+          "lower": 186.16017528631022,
+          "upper": 191.98317028151678
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 188.22,
+          "predicted": 188.93692800009822,
+          "lower": 182.13239560220777,
+          "upper": 195.74146039798867
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 203.35,
+          "predicted": 211.22212234229295,
+          "lower": 205.14238204584228,
+          "upper": 217.30186263874361
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 189.13999999999996,
+          "predicted": 187.30501708091566,
+          "lower": 179.83294498319617,
+          "upper": 194.77708917863515
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 195.75,
+          "predicted": 196.99673424565694,
+          "lower": 188.92825255586965,
+          "upper": 205.06521593544423
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 178.73000000000002,
+          "predicted": 174.29646377084302,
+          "lower": 168.12725355678555,
+          "upper": 180.4656739849005
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 188.2,
+          "predicted": 184.51514520461194,
+          "lower": 175.286626002012,
+          "upper": 193.74366440721187
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 179.84,
+          "predicted": 177.94737690250585,
+          "lower": 167.61306121254344,
+          "upper": 188.28169259246826
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 195.12000000000003,
+          "predicted": 198.5252581208504,
+          "lower": 188.82011658597256,
+          "upper": 208.23039965572823
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 183.51999999999998,
+          "predicted": 183.67361672692073,
+          "lower": 174.06618332633593,
+          "upper": 193.28105012750552
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 197.94,
+          "predicted": 188.4870280186548,
+          "lower": 182.15543768225535,
+          "upper": 194.81861835505424
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 196.25,
+          "predicted": 194.52667499853257,
+          "lower": 185.24551798540767,
+          "upper": 203.80783201165747
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 193.87,
+          "predicted": 195.81572765237536,
+          "lower": 187.12023574978528,
+          "upper": 204.51121955496544
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 191.76,
+          "predicted": 193.6003117834858,
+          "lower": 185.54337178711904,
+          "upper": 201.65725177985257
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 211.18,
+          "predicted": 207.51109152819365,
+          "lower": 199.5437356459748,
+          "upper": 215.47844741041249
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 190.33999999999997,
+          "predicted": 192.21184135837188,
+          "lower": 184.00856434829302,
+          "upper": 200.41511836845075
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 194.25,
+          "predicted": 199.62650141713834,
+          "lower": 191.72825822955846,
+          "upper": 207.52474460471822
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 175.41,
+          "predicted": 178.1004319428111,
+          "lower": 170.09095935527108,
+          "upper": 186.10990453035112
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 184.81,
+          "predicted": 187.52771338040566,
+          "lower": 179.34953645035864,
+          "upper": 195.70589031045267
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 179.37,
+          "predicted": 180.91459237438275,
+          "lower": 172.62874993435412,
+          "upper": 189.20043481441138
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 194.5,
+          "predicted": 199.12486270347807,
+          "lower": 190.97563507563484,
+          "upper": 207.2740903313213
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 183.67,
+          "predicted": 187.16865783838378,
+          "lower": 178.93805491619645,
+          "upper": 195.3992607605711
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 190.03000000000003,
+          "predicted": 193.1836202498613,
+          "lower": 185.2312862193245,
+          "upper": 201.1359542803981
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 193.75,
+          "predicted": 198.98239801051105,
+          "lower": 190.9288509224548,
+          "upper": 207.03594509856728
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 194.67,
+          "predicted": 199.3213694215528,
+          "lower": 191.37187447064215,
+          "upper": 207.27086437246342
+        }
+      ],
+      "tpe:RSM:val_loss": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13662953372886452,
+          "predicted": 0.1364425265600522,
+          "lower": 0.13267915992678456,
+          "upper": 0.14020589319331986
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.13208051548896999,
+          "predicted": 0.13342716297101784,
+          "lower": 0.130067231831966,
+          "upper": 0.13678709411006967
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13844717255995426,
+          "predicted": 0.14923321394651018,
+          "lower": 0.14445695518451343,
+          "upper": 0.15400947270850693
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12727367320988342,
+          "predicted": 0.12441167851407116,
+          "lower": 0.12099868425093553,
+          "upper": 0.12782467277720677
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15075043802519686,
+          "predicted": 0.14227924688844618,
+          "lower": 0.13809466217223348,
+          "upper": 0.14646383160465887
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.13026063162835952,
+          "predicted": 0.12924922314252166,
+          "lower": 0.12445596945918011,
+          "upper": 0.1340424768258632
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.1268701547506363,
+          "predicted": 0.12849411672195854,
+          "lower": 0.12523112175815476,
+          "upper": 0.13175711168576232
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1328931473545426,
+          "predicted": 0.13694532742752108,
+          "lower": 0.13165922382756973,
+          "upper": 0.14223143102747243
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13605103926801926,
+          "predicted": 0.13532779325335764,
+          "lower": 0.13209883323870725,
+          "upper": 0.13855675326800804
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12954641638744918,
+          "predicted": 0.13236354397797948,
+          "lower": 0.1287625861803525,
+          "upper": 0.13596450177560646
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.1298133712723017,
+          "predicted": 0.13368305701450625,
+          "lower": 0.12919621573846554,
+          "upper": 0.13816989829054696
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.1290011622914311,
+          "predicted": 0.1311302527066565,
+          "lower": 0.1276104413569071,
+          "upper": 0.13465006405640592
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13623959702161476,
+          "predicted": 0.13297564528461983,
+          "lower": 0.12945720076361256,
+          "upper": 0.1364940898056271
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1312315782676148,
+          "predicted": 0.1345367725972064,
+          "lower": 0.13103975601348122,
+          "upper": 0.13803378918093157
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13803925745288276,
+          "predicted": 0.13452596285155335,
+          "lower": 0.13055204062978532,
+          "upper": 0.1384998850733214
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.1278796848463915,
+          "predicted": 0.12723689726035123,
+          "lower": 0.12428601386771881,
+          "upper": 0.13018778065298364
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15147347594578187,
+          "predicted": 0.13606132815200833,
+          "lower": 0.1300354811571383,
+          "upper": 0.14208717514687835
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.12889009383273062,
+          "predicted": 0.12838663897815297,
+          "lower": 0.12456421723872321,
+          "upper": 0.13220906071758273
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12937417135956544,
+          "predicted": 0.12770701024562214,
+          "lower": 0.12442709428228003,
+          "upper": 0.13098692620896424
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1311527722975737,
+          "predicted": 0.1326154501198194,
+          "lower": 0.12910892376287214,
+          "upper": 0.13612197647676666
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13757509822625305,
+          "predicted": 0.1264034340650897,
+          "lower": 0.1222157785004053,
+          "upper": 0.1305910896297741
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12848505330691007,
+          "predicted": 0.13028756690603344,
+          "lower": 0.12747457091613737,
+          "upper": 0.1331005628959295
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12796082096923245,
+          "predicted": 0.12856286280006116,
+          "lower": 0.12327408993269748,
+          "upper": 0.13385163566742483
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.13098676813371096,
+          "predicted": 0.13059956074946882,
+          "lower": 0.127481036200608,
+          "upper": 0.13371808529832965
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13631206682252028,
+          "predicted": 0.1312751133146901,
+          "lower": 0.12592732476083165,
+          "upper": 0.13662290186854856
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1297799613596035,
+          "predicted": 0.13231374762428166,
+          "lower": 0.12820051205591843,
+          "upper": 0.1364269831926449
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13990115287606408,
+          "predicted": 0.13795970346200023,
+          "lower": 0.13070659839954393,
+          "upper": 0.14521280852445653
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12651522981238889,
+          "predicted": 0.12658251195734394,
+          "lower": 0.12319176566800825,
+          "upper": 0.1299732582466796
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15054637004977636,
+          "predicted": 0.12778993538604227,
+          "lower": 0.11868531344828048,
+          "upper": 0.13689455732380407
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.1276414415752841,
+          "predicted": 0.12971085576438374,
+          "lower": 0.1263292217856256,
+          "upper": 0.13309248974314186
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12847975239335047,
+          "predicted": 0.13033787795300322,
+          "lower": 0.1273344937404633,
+          "upper": 0.13334126216554315
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1337788339118275,
+          "predicted": 0.13370287934307531,
+          "lower": 0.13084876970237316,
+          "upper": 0.13655698898377747
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13753054473269447,
+          "predicted": 0.12788675325019616,
+          "lower": 0.11940621600263669,
+          "upper": 0.13636729049775564
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.13067752933767068,
+          "predicted": 0.13064604799326635,
+          "lower": 0.12667078394407894,
+          "upper": 0.13462131204245376
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12630009548642515,
+          "predicted": 0.1284347303464466,
+          "lower": 0.12535553375869793,
+          "upper": 0.13151392693419525
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.12950303749166958,
+          "predicted": 0.12851785264442944,
+          "lower": 0.12525123356377776,
+          "upper": 0.13178447172508112
+        }
+      ],
+      "tpe:GP:val_loss": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13662953372886452,
+          "predicted": 0.1329365542287941,
+          "lower": 0.12542156287935805,
+          "upper": 0.14045154557823017
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.13208051548896999,
+          "predicted": 0.13444490711427542,
+          "lower": 0.13138833313087064,
+          "upper": 0.1375014810976802
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13844717255995426,
+          "predicted": 0.1391853733086873,
+          "lower": 0.13065844166823534,
+          "upper": 0.14771230494913926
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12727367320988342,
+          "predicted": 0.1254702405377874,
+          "lower": 0.1190995014805609,
+          "upper": 0.13184097959501392
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15075043802519686,
+          "predicted": 0.137733501620663,
+          "lower": 0.13105160888808862,
+          "upper": 0.1444153943532374
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.13026063162835952,
+          "predicted": 0.13339575534996415,
+          "lower": 0.12781894893911797,
+          "upper": 0.13897256176081033
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.1268701547506363,
+          "predicted": 0.12775406154505628,
+          "lower": 0.12290766477062234,
+          "upper": 0.13260045831949022
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1328931473545426,
+          "predicted": 0.14027912014309527,
+          "lower": 0.1331726476186113,
+          "upper": 0.14738559266757922
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13605103926801926,
+          "predicted": 0.13399869495787586,
+          "lower": 0.12951401175563557,
+          "upper": 0.13848337816011616
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12954641638744918,
+          "predicted": 0.13290578249803597,
+          "lower": 0.12717014561141807,
+          "upper": 0.13864141938465388
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.1298133712723017,
+          "predicted": 0.1265160025719831,
+          "lower": 0.11799366786526239,
+          "upper": 0.1350383372787038
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.1290011622914311,
+          "predicted": 0.12675731389752867,
+          "lower": 0.11990304532152489,
+          "upper": 0.13361158247353244
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13623959702161476,
+          "predicted": 0.13167987082833227,
+          "lower": 0.12624886811687686,
+          "upper": 0.13711087353978768
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1312315782676148,
+          "predicted": 0.1306891205359784,
+          "lower": 0.124337097936642,
+          "upper": 0.1370411431353148
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13803925745288276,
+          "predicted": 0.12936408510445957,
+          "lower": 0.12351786199397584,
+          "upper": 0.13521030821494331
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.1278796848463915,
+          "predicted": 0.12591201755098996,
+          "lower": 0.12243412646674197,
+          "upper": 0.12938990863523797
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15147347594578187,
+          "predicted": 0.13132498222446992,
+          "lower": 0.1253250412020578,
+          "upper": 0.13732492324688203
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.12889009383273062,
+          "predicted": 0.13136062118730404,
+          "lower": 0.12470747502387575,
+          "upper": 0.13801376735073234
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12937417135956544,
+          "predicted": 0.1303620393689654,
+          "lower": 0.12355153331338095,
+          "upper": 0.13717254542454985
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1311527722975737,
+          "predicted": 0.1299905408578957,
+          "lower": 0.12311871226062246,
+          "upper": 0.13686236945516891
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13757509822625305,
+          "predicted": 0.12998102139255177,
+          "lower": 0.12310246999356671,
+          "upper": 0.13685957279153685
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.12848505330691007,
+          "predicted": 0.12941519937289045,
+          "lower": 0.12356434265315888,
+          "upper": 0.13526605609262202
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12796082096923245,
+          "predicted": 0.13046766527808423,
+          "lower": 0.12371543691021289,
+          "upper": 0.13721989364595558
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.13098676813371096,
+          "predicted": 0.12886943875540507,
+          "lower": 0.12289480368327062,
+          "upper": 0.13484407382753952
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 0.13631206682252028,
+          "predicted": 0.12937451581644446,
+          "lower": 0.12622736520849237,
+          "upper": 0.13252166642439656
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 0.1297799613596035,
+          "predicted": 0.13058096894153712,
+          "lower": 0.1258585889321326,
+          "upper": 0.13530334895094165
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 0.13990115287606408,
+          "predicted": 0.13233529319629955,
+          "lower": 0.12891294326116953,
+          "upper": 0.13575764313142957
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 0.12651522981238889,
+          "predicted": 0.12641151049057292,
+          "lower": 0.1232413556664335,
+          "upper": 0.12958166531471232
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 0.15054637004977636,
+          "predicted": 0.12562306270090462,
+          "lower": 0.12298356986951986,
+          "upper": 0.12826255553228938
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 0.1276414415752841,
+          "predicted": 0.12982859534312127,
+          "lower": 0.12625941029500412,
+          "upper": 0.13339778039123842
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 0.12847975239335047,
+          "predicted": 0.12849653520190427,
+          "lower": 0.12567192234259864,
+          "upper": 0.1313211480612099
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 0.1337788339118275,
+          "predicted": 0.1326426960543889,
+          "lower": 0.12945571407867212,
+          "upper": 0.13582967803010565
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 0.13753054473269447,
+          "predicted": 0.12812628800696158,
+          "lower": 0.12521830192611758,
+          "upper": 0.13103427408780557
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 0.13067752933767068,
+          "predicted": 0.13177374801195632,
+          "lower": 0.12852252335933118,
+          "upper": 0.13502497266458147
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 0.12630009548642515,
+          "predicted": 0.12720717898123715,
+          "lower": 0.12438499790585851,
+          "upper": 0.1300293600566158
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 0.12950303749166958,
+          "predicted": 0.12655377582991398,
+          "lower": 0.1233787180175464,
+          "upper": 0.12972883364228155
+        }
+      ],
+      "tpe:RSM:latency_us": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 185.16,
+          "predicted": 183.35327916872896,
+          "lower": 181.21678942930666,
+          "upper": 185.48976890815126
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 196.54999999999998,
+          "predicted": 195.70571741458758,
+          "lower": 193.79826084623383,
+          "upper": 197.61317398294133
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 183.1,
+          "predicted": 186.20461616535297,
+          "lower": 183.49310043164098,
+          "upper": 188.91613189906496
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 189.28000000000003,
+          "predicted": 189.77387693862846,
+          "lower": 187.83629606106058,
+          "upper": 191.71145781619634
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 171.51,
+          "predicted": 170.05000821380924,
+          "lower": 167.6743900024714,
+          "upper": 172.42562642514707
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 179.1,
+          "predicted": 179.75004032260975,
+          "lower": 177.0288764523717,
+          "upper": 182.4712041928478
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 174.72999999999996,
+          "predicted": 174.3499146755846,
+          "lower": 172.497489456546,
+          "upper": 176.20233989462324
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 188.22,
+          "predicted": 187.78604568236003,
+          "lower": 184.78508744380187,
+          "upper": 190.78700392091818
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 179.63000000000002,
+          "predicted": 180.28417820123863,
+          "lower": 178.4510748625093,
+          "upper": 182.11728153996796
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 184.35,
+          "predicted": 182.25279419201112,
+          "lower": 180.20850509226887,
+          "upper": 184.29708329175338
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 187.7,
+          "predicted": 189.28253090647328,
+          "lower": 186.73531951762328,
+          "upper": 191.82974229532329
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 186.74,
+          "predicted": 189.70624131800852,
+          "lower": 187.70801962816157,
+          "upper": 191.70446300785548
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 186.98000000000002,
+          "predicted": 206.82118491898567,
+          "lower": 186.76587967897854,
+          "upper": 226.8764901589928
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 200.92000000000002,
+          "predicted": 216.48395354476972,
+          "lower": 196.55078859155418,
+          "upper": 236.41711849798526
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 186.64000000000001,
+          "predicted": 190.88080909700562,
+          "lower": 168.22925876510246,
+          "upper": 213.5323594289088
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 193.22000000000003,
+          "predicted": 195.6173063789171,
+          "lower": 178.7971272305563,
+          "upper": 212.43748552727791
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 175.37,
+          "predicted": 212.24387996336614,
+          "lower": 177.89625842488567,
+          "upper": 246.5915015018466
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 184.59,
+          "predicted": 222.59983534391338,
+          "lower": 200.81184514466577,
+          "upper": 244.387825543161
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 176.27999999999997,
+          "predicted": 187.0127743374936,
+          "lower": 168.3170935007907,
+          "upper": 205.7084551741965
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 193.13,
+          "predicted": 211.97178409640534,
+          "lower": 191.98441297236823,
+          "upper": 231.95915522044245
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 183.62,
+          "predicted": 199.15872018112168,
+          "lower": 175.28887937836924,
+          "upper": 223.02856098387412
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 187.17000000000002,
+          "predicted": 220.02774189235336,
+          "lower": 203.99352765948805,
+          "upper": 236.06195612521867
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 191.07999999999998,
+          "predicted": 211.81343812849425,
+          "lower": 181.6671750378712,
+          "upper": 241.9597012191173
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 190.58999999999997,
+          "predicted": 203.6657068775617,
+          "lower": 185.8899649687609,
+          "upper": 221.44144878636249
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 192.70999999999998,
+          "predicted": 196.29904951327757,
+          "lower": 162.49020418174058,
+          "upper": 230.10789484481455
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 225.51,
+          "predicted": 209.0043296861937,
+          "lower": 183.00035743814465,
+          "upper": 235.00830193424275
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 192.84,
+          "predicted": 116.47052382126408,
+          "lower": 70.61622259743456,
+          "upper": 162.3248250450936
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 201.26999999999998,
+          "predicted": 222.9324838889591,
+          "lower": 201.4961058982994,
+          "upper": 244.3688618796188
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 178.69,
+          "predicted": 148.0970902685568,
+          "lower": 90.53745570263581,
+          "upper": 205.65672483447779
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 187.0,
+          "predicted": 180.51850040343066,
+          "lower": 159.139730655099,
+          "upper": 201.89727015176234
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 181.56,
+          "predicted": 194.09692293010696,
+          "lower": 175.10945712245453,
+          "upper": 213.08438873775938
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 193.14000000000001,
+          "predicted": 206.31682309808465,
+          "lower": 188.27307465329483,
+          "upper": 224.36057154287448
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 186.44,
+          "predicted": 133.75884710927195,
+          "lower": 80.14469066993227,
+          "upper": 187.37300354861162
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 191.2,
+          "predicted": 207.95691940241667,
+          "lower": 182.82520635178983,
+          "upper": 233.08863245304352
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 197.73,
+          "predicted": 185.72131299522886,
+          "lower": 166.25455956394742,
+          "upper": 205.1880664265103
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 196.45,
+          "predicted": 209.38171782360004,
+          "lower": 188.73007497300205,
+          "upper": 230.03336067419804
+        }
+      ],
+      "tpe:GP:latency_us": [
+        {
+          "repeat": 0,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 185.16,
+          "predicted": 182.97513100261514,
+          "lower": 181.04116212475037,
+          "upper": 184.9090998804799
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 196.54999999999998,
+          "predicted": 195.12374985298578,
+          "lower": 193.11613071011035,
+          "upper": 197.1313689958612
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 183.1,
+          "predicted": 182.43526540521623,
+          "lower": 180.530323756441,
+          "upper": 184.34020705399146
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 189.28000000000003,
+          "predicted": 191.00778711672527,
+          "lower": 189.1048149990074,
+          "upper": 192.91075923444313
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 171.51,
+          "predicted": 170.4119378422355,
+          "lower": 168.53080807137104,
+          "upper": 172.29306761309994
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 179.1,
+          "predicted": 178.18478316824354,
+          "lower": 176.30466184037957,
+          "upper": 180.06490449610752
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 174.72999999999996,
+          "predicted": 173.95301153450652,
+          "lower": 172.12106973062768,
+          "upper": 175.78495333838535
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 188.22,
+          "predicted": 187.17700167544675,
+          "lower": 185.24061548270618,
+          "upper": 189.11338786818732
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 179.63000000000002,
+          "predicted": 178.73265152206517,
+          "lower": 176.86912018113136,
+          "upper": 180.59618286299897
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 184.35,
+          "predicted": 182.97633696358048,
+          "lower": 181.10597945800922,
+          "upper": 184.84669446915174
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 187.7,
+          "predicted": 190.76946415682258,
+          "lower": 188.79213467296293,
+          "upper": 192.74679364068223
+        },
+        {
+          "repeat": 0,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 186.74,
+          "predicted": 190.9016496192792,
+          "lower": 188.96935671822203,
+          "upper": 192.83394252033636
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 186.98000000000002,
+          "predicted": 201.15610771122707,
+          "lower": 182.04420792667528,
+          "upper": 220.26800749577885
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 200.92000000000002,
+          "predicted": 207.80140723554723,
+          "lower": 187.36132994413302,
+          "upper": 228.24148452696144
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 186.64000000000001,
+          "predicted": 191.9866517054016,
+          "lower": 176.14241605452173,
+          "upper": 207.8308873562815
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 193.22000000000003,
+          "predicted": 196.0869726909362,
+          "lower": 188.81221610770342,
+          "upper": 203.36172927416897
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 175.37,
+          "predicted": 193.63472587809954,
+          "lower": 177.67735380810453,
+          "upper": 209.59209794809456
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 184.59,
+          "predicted": 208.62062486694754,
+          "lower": 184.9376664180776,
+          "upper": 232.30358331581746
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 176.27999999999997,
+          "predicted": 183.4151137224069,
+          "lower": 164.72516046733648,
+          "upper": 202.1050669774773
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 193.13,
+          "predicted": 201.36399741909622,
+          "lower": 177.52474264813844,
+          "upper": 225.203252190054
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 183.62,
+          "predicted": 183.51470409281416,
+          "lower": 165.17414358925066,
+          "upper": 201.85526459637765
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 187.17000000000002,
+          "predicted": 204.90767212277336,
+          "lower": 192.08831659899204,
+          "upper": 217.7270276465547
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 191.07999999999998,
+          "predicted": 197.2959985329929,
+          "lower": 175.43342179096916,
+          "upper": 219.15857527501666
+        },
+        {
+          "repeat": 1,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 190.58999999999997,
+          "predicted": 200.67096303545452,
+          "lower": 186.61410942063796,
+          "upper": 214.72781665027108
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_0",
+          "boundary": true,
+          "observed": 192.70999999999998,
+          "predicted": 189.64096672392483,
+          "lower": 165.3517370761954,
+          "upper": 213.93019637165426
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_1",
+          "boundary": true,
+          "observed": 225.51,
+          "predicted": 194.822594970586,
+          "lower": 165.66577363906765,
+          "upper": 223.97941630210437
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_2",
+          "boundary": true,
+          "observed": 192.84,
+          "predicted": 196.4756643461015,
+          "lower": 169.06124086048024,
+          "upper": 223.89008783172275
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_3",
+          "boundary": false,
+          "observed": 201.26999999999998,
+          "predicted": 198.39800298058836,
+          "lower": 178.57567755168054,
+          "upper": 218.22032840949618
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_4",
+          "boundary": true,
+          "observed": 178.69,
+          "predicted": 211.97694943414058,
+          "lower": 205.98056953746556,
+          "upper": 217.9733293308156
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_5",
+          "boundary": true,
+          "observed": 187.0,
+          "predicted": 188.91227883723795,
+          "lower": 162.01964552797776,
+          "upper": 215.80491214649814
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_6",
+          "boundary": true,
+          "observed": 181.56,
+          "predicted": 197.30565909773898,
+          "lower": 177.61731314472016,
+          "upper": 216.9940050507578
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_7",
+          "boundary": true,
+          "observed": 193.14000000000001,
+          "predicted": 203.91598070003766,
+          "lower": 182.34020403724807,
+          "upper": 225.49175736282726
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_8",
+          "boundary": true,
+          "observed": 186.44,
+          "predicted": 187.49432195585405,
+          "lower": 159.86748318452024,
+          "upper": 215.12116072718786
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_9",
+          "boundary": false,
+          "observed": 191.2,
+          "predicted": 188.50148627576525,
+          "lower": 166.84658673952234,
+          "upper": 210.15638581200815
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_10",
+          "boundary": true,
+          "observed": 197.73,
+          "predicted": 195.9291125198272,
+          "lower": 167.2554658683041,
+          "upper": 224.60275917135033
+        },
+        {
+          "repeat": 2,
+          "config_id": "CONF_11",
+          "boundary": false,
+          "observed": 196.45,
+          "predicted": 195.08427492190728,
+          "lower": 166.88306409933867,
+          "upper": 223.2854857444759
+        }
+      ]
+    }
+  },
+  "capacity_matching": {
+    "original_pooled_threshold_us": 162.8,
+    "selected_tree_budget": 600,
+    "calibration_latencies_us": [
+      179.14999999999998,
+      179.1
+    ],
+    "capacity_matched_median_us": 179.125,
+    "calibration_learning_rates": [
+      0.175,
+      0.05
+    ],
+    "interpretation": "Post-hoc descriptive comparison across different fixed input documents and configurations, not a new deployment requirement or a proof that any threshold is structurally unreachable.",
+    "methods": {
+      "static_doe": {
+        "selected_latencies_us": [
+          173.64999999999998,
+          174.2,
+          176.05
+        ],
+        "selected_count": 3,
+        "selected_under_pooled": 0,
+        "selected_under_capacity_matched": 3,
+        "searched_under_pooled": [
+          0,
+          0,
+          0
+        ],
+        "searched_under_capacity_matched": [
+          9,
+          8,
+          8
+        ]
+      },
+      "doe": {
+        "selected_latencies_us": [
+          176.05,
+          177.35000000000002,
+          174.95
+        ],
+        "selected_count": 3,
+        "selected_under_pooled": 0,
+        "selected_under_capacity_matched": 3,
+        "searched_under_pooled": [
+          0,
+          0,
+          0
+        ],
+        "searched_under_capacity_matched": [
+          10,
+          9,
+          9
+        ]
+      },
+      "tpe": {
+        "selected_latencies_us": [
+          174.55,
+          173.5,
+          173.3
+        ],
+        "selected_count": 3,
+        "selected_under_pooled": 0,
+        "selected_under_capacity_matched": 3,
+        "searched_under_pooled": [
+          0,
+          0,
+          0
+        ],
+        "searched_under_capacity_matched": [
+          19,
+          2,
+          8
+        ]
+      }
+    }
+  },
+  "reference_sensitivity": {
+    "status": "POST_HOC",
+    "grid_rule": "Fixed diagnostic loss references 0.15, 0.20, 0.30 and original 1.0; latency references 200, 250, original 358.3 and 500 microseconds. No application requirement is inferred.",
+    "target": "Selection and hypervolume recomputed on observed development configurations; no test-set evaluation of newly selected points.",
+    "grid": [
+      {
+        "loss_reference": 0.15,
+        "latency_reference_us": 200.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 0.6489905105584561,
+            "sd_hypervolume": 0.0813334309525568,
+            "mean_selected_validation_f1": 0.8722418815790883,
+            "mean_selected_latency_us": 172.83333333333334,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 1
+          },
+          "doe": {
+            "mean_hypervolume": 0.6272411497562773,
+            "sd_hypervolume": 0.07328845514354844,
+            "mean_selected_validation_f1": 0.8724662392593595,
+            "mean_selected_latency_us": 173.86999999999998,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 2
+          },
+          "tpe": {
+            "mean_hypervolume": 0.6521529762724559,
+            "sd_hypervolume": 0.10323330352078434,
+            "mean_selected_validation_f1": 0.873221741301324,
+            "mean_selected_latency_us": 173.40666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.079005096006,
+                -1.0,
+                0.469570940672,
+                0.418828243073
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 0
+          }
+        }
+      },
+      {
+        "loss_reference": 0.15,
+        "latency_reference_us": 250.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 1.851768748229004,
+            "sd_hypervolume": 0.10563453593974306,
+            "mean_selected_validation_f1": 0.8727745515176041,
+            "mean_selected_latency_us": 174.49333333333334,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 1
+          },
+          "doe": {
+            "mean_hypervolume": 1.8300193874268251,
+            "sd_hypervolume": 0.0843765945137248,
+            "mean_selected_validation_f1": 0.8727745515176041,
+            "mean_selected_latency_us": 174.48333333333335,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 3
+          },
+          "tpe": {
+            "mean_hypervolume": 1.8952340945855888,
+            "sd_hypervolume": 0.12226543555979291,
+            "mean_selected_validation_f1": 0.87390217340028,
+            "mean_selected_latency_us": 174.40333333333334,
+            "selected_depths": [
+              4,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.021268938594,
+                -0.666666666667,
+                0.57325574354,
+                -0.057297117794
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 1
+          }
+        }
+      },
+      {
+        "loss_reference": 0.15,
+        "latency_reference_us": 358.29999999999995,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 4.456986411023409,
+            "sd_hypervolume": 0.18749903752538918,
+            "mean_selected_validation_f1": 0.8737252082221273,
+            "mean_selected_latency_us": 181.05999999999997,
+            "selected_depths": [
+              6,
+              3,
+              6
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 2
+          },
+          "doe": {
+            "mean_hypervolume": 4.435237050221231,
+            "sd_hypervolume": 0.15830978748735314,
+            "mean_selected_validation_f1": 0.8733424304543886,
+            "mean_selected_latency_us": 178.10000000000002,
+            "selected_depths": [
+              3,
+              3,
+              6
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 3
+          },
+          "tpe": {
+            "mean_hypervolume": 4.587747796851834,
+            "sd_hypervolume": 0.1679634843803865,
+            "mean_selected_validation_f1": 0.8748616223662626,
+            "mean_selected_latency_us": 178.14,
+            "selected_depths": [
+              4,
+              6,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.021268938594,
+                -0.666666666667,
+                0.57325574354,
+                -0.057297117794
+              ],
+              [
+                0.55576489029,
+                0.0,
+                -0.500294367288,
+                -0.754722036932
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 2
+          }
+        }
+      },
+      {
+        "loss_reference": 0.15,
+        "latency_reference_us": 500.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 7.865659936581743,
+            "sd_hypervolume": 0.30952359228769016,
+            "mean_selected_validation_f1": 0.8737252082221273,
+            "mean_selected_latency_us": 181.05999999999997,
+            "selected_depths": [
+              6,
+              3,
+              6
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 2
+          },
+          "doe": {
+            "mean_hypervolume": 7.843910575779564,
+            "sd_hypervolume": 0.27890684459112886,
+            "mean_selected_validation_f1": 0.8737252082221273,
+            "mean_selected_latency_us": 181.42,
+            "selected_depths": [
+              6,
+              3,
+              6
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 3
+          },
+          "tpe": {
+            "mean_hypervolume": 8.110639686151254,
+            "sd_hypervolume": 0.23186663985237152,
+            "mean_selected_validation_f1": 0.8748616223662626,
+            "mean_selected_latency_us": 178.14,
+            "selected_depths": [
+              4,
+              6,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.021268938594,
+                -0.666666666667,
+                0.57325574354,
+                -0.057297117794
+              ],
+              [
+                0.55576489029,
+                0.0,
+                -0.500294367288,
+                -0.754722036932
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 2
+          }
+        }
+      },
+      {
+        "loss_reference": 0.2,
+        "latency_reference_us": 200.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 2.0488238438917894,
+            "sd_hypervolume": 0.23629754657805227,
+            "mean_selected_validation_f1": 0.8720220245211815,
+            "mean_selected_latency_us": 172.56000000000003,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 0
+          },
+          "doe": {
+            "mean_hypervolume": 1.9948554767550803,
+            "sd_hypervolume": 0.20834558902460526,
+            "mean_selected_validation_f1": 0.8718467107688096,
+            "mean_selected_latency_us": 173.4433333333333,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 1
+          },
+          "tpe": {
+            "mean_hypervolume": 1.985319642939123,
+            "sd_hypervolume": 0.2750960262904724,
+            "mean_selected_validation_f1": 0.873221741301324,
+            "mean_selected_latency_us": 173.40666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.079005096006,
+                -1.0,
+                0.469570940672,
+                0.418828243073
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 0
+          }
+        }
+      },
+      {
+        "loss_reference": 0.2,
+        "latency_reference_us": 250.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 5.751602081562338,
+            "sd_hypervolume": 0.24777024204723117,
+            "mean_selected_validation_f1": 0.8720220245211815,
+            "mean_selected_latency_us": 172.56000000000003,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 0
+          },
+          "doe": {
+            "mean_hypervolume": 5.697633714425629,
+            "sd_hypervolume": 0.20512883337245585,
+            "mean_selected_validation_f1": 0.8724662392593595,
+            "mean_selected_latency_us": 173.86999999999998,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 2
+          },
+          "tpe": {
+            "mean_hypervolume": 5.7284007612522565,
+            "sd_hypervolume": 0.29123126062230265,
+            "mean_selected_validation_f1": 0.873221741301324,
+            "mean_selected_latency_us": 173.40666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.079005096006,
+                -1.0,
+                0.469570940672,
+                0.418828243073
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 0
+          }
+        }
+      },
+      {
+        "loss_reference": 0.2,
+        "latency_reference_us": 358.29999999999995,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 13.771819744356742,
+            "sd_hypervolume": 0.29593083763811706,
+            "mean_selected_validation_f1": 0.8722418815790883,
+            "mean_selected_latency_us": 172.83333333333334,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 1
+          },
+          "doe": {
+            "mean_hypervolume": 13.717851377220034,
+            "sd_hypervolume": 0.23098248866058144,
+            "mean_selected_validation_f1": 0.8727745515176041,
+            "mean_selected_latency_us": 174.48333333333335,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 3
+          },
+          "tpe": {
+            "mean_hypervolume": 13.8359144635185,
+            "sd_hypervolume": 0.3295075094918214,
+            "mean_selected_validation_f1": 0.87390217340028,
+            "mean_selected_latency_us": 174.40333333333334,
+            "selected_depths": [
+              4,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.021268938594,
+                -0.666666666667,
+                0.57325574354,
+                -0.057297117794
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 1
+          }
+        }
+      },
+      {
+        "loss_reference": 0.2,
+        "latency_reference_us": 500.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 24.265493269915083,
+            "sd_hypervolume": 0.38869842102438223,
+            "mean_selected_validation_f1": 0.8727745515176041,
+            "mean_selected_latency_us": 174.49333333333334,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 1
+          },
+          "doe": {
+            "mean_hypervolume": 24.211524902778375,
+            "sd_hypervolume": 0.312019495208935,
+            "mean_selected_validation_f1": 0.8727745515176041,
+            "mean_selected_latency_us": 174.48333333333335,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 3
+          },
+          "tpe": {
+            "mean_hypervolume": 24.443806352817926,
+            "sd_hypervolume": 0.38452497661093,
+            "mean_selected_validation_f1": 0.8748616223662626,
+            "mean_selected_latency_us": 178.14,
+            "selected_depths": [
+              4,
+              6,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.021268938594,
+                -0.666666666667,
+                0.57325574354,
+                -0.057297117794
+              ],
+              [
+                0.55576489029,
+                0.0,
+                -0.500294367288,
+                -0.754722036932
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 2
+          }
+        }
+      },
+      {
+        "loss_reference": 0.3,
+        "latency_reference_us": 200.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 4.848490510558455,
+            "sd_hypervolume": 0.5495833308747541,
+            "mean_selected_validation_f1": 0.8720220245211815,
+            "mean_selected_latency_us": 172.56000000000003,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 0
+          },
+          "doe": {
+            "mean_hypervolume": 4.734855476755081,
+            "sd_hypervolume": 0.4777423570694514,
+            "mean_selected_validation_f1": 0.8713140408302938,
+            "mean_selected_latency_us": 173.25,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 0
+          },
+          "tpe": {
+            "mean_hypervolume": 4.651652976272456,
+            "sd_hypervolume": 0.6215583167578063,
+            "mean_selected_validation_f1": 0.873221741301324,
+            "mean_selected_latency_us": 173.40666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.079005096006,
+                -1.0,
+                0.469570940672,
+                0.418828243073
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 0
+          }
+        }
+      },
+      {
+        "loss_reference": 0.3,
+        "latency_reference_us": 250.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 13.551268748229,
+            "sd_hypervolume": 0.5564310093497834,
+            "mean_selected_validation_f1": 0.8720220245211815,
+            "mean_selected_latency_us": 172.56000000000003,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 0
+          },
+          "doe": {
+            "mean_hypervolume": 13.43763371442563,
+            "sd_hypervolume": 0.47025521164979445,
+            "mean_selected_validation_f1": 0.8718467107688096,
+            "mean_selected_latency_us": 173.4433333333333,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 1
+          },
+          "tpe": {
+            "mean_hypervolume": 13.394734094585587,
+            "sd_hypervolume": 0.6365255438909857,
+            "mean_selected_validation_f1": 0.873221741301324,
+            "mean_selected_latency_us": 173.40666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.079005096006,
+                -1.0,
+                0.469570940672,
+                0.418828243073
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 0
+          }
+        }
+      },
+      {
+        "loss_reference": 0.3,
+        "latency_reference_us": 358.29999999999995,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 32.4014864110234,
+            "sd_hypervolume": 0.5832460062869687,
+            "mean_selected_validation_f1": 0.8720220245211815,
+            "mean_selected_latency_us": 172.56000000000003,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 0
+          },
+          "doe": {
+            "mean_hypervolume": 32.28785137722003,
+            "sd_hypervolume": 0.46895851684404016,
+            "mean_selected_validation_f1": 0.8724662392593595,
+            "mean_selected_latency_us": 173.86999999999998,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 2
+          },
+          "tpe": {
+            "mean_hypervolume": 32.332247796851824,
+            "sd_hypervolume": 0.6707589971548007,
+            "mean_selected_validation_f1": 0.873221741301324,
+            "mean_selected_latency_us": 173.40666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.079005096006,
+                -1.0,
+                0.469570940672,
+                0.418828243073
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 0
+          }
+        }
+      },
+      {
+        "loss_reference": 0.3,
+        "latency_reference_us": 500.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 57.06515993658174,
+            "sd_hypervolume": 0.6398532481399096,
+            "mean_selected_validation_f1": 0.8722418815790883,
+            "mean_selected_latency_us": 172.83333333333334,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 1
+          },
+          "doe": {
+            "mean_hypervolume": 56.95152490277837,
+            "sd_hypervolume": 0.497573656705627,
+            "mean_selected_validation_f1": 0.8724662392593595,
+            "mean_selected_latency_us": 173.86999999999998,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 2
+          },
+          "tpe": {
+            "mean_hypervolume": 57.11013968615125,
+            "sd_hypervolume": 0.7187973257880466,
+            "mean_selected_validation_f1": 0.87390217340028,
+            "mean_selected_latency_us": 174.40333333333334,
+            "selected_depths": [
+              4,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.021268938594,
+                -0.666666666667,
+                0.57325574354,
+                -0.057297117794
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 1
+          }
+        }
+      },
+      {
+        "loss_reference": 1.0,
+        "latency_reference_us": 200.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 24.446157177225118,
+            "sd_hypervolume": 2.746260303328519,
+            "mean_selected_validation_f1": 0.8667804348608433,
+            "mean_selected_latency_us": 172.00333333333333,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                -1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                -1.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 2
+          },
+          "doe": {
+            "mean_hypervolume": 23.914855476755093,
+            "sd_hypervolume": 2.364755988816639,
+            "mean_selected_validation_f1": 0.860320582534861,
+            "mean_selected_latency_us": 172.74666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                -1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                -1.0,
+                -1.0,
+                -1.0,
+                1.0
+              ]
+            ],
+            "changed_selections": 2
+          },
+          "tpe": {
+            "mean_hypervolume": 23.315986309605794,
+            "sd_hypervolume": 3.0502314387513976,
+            "mean_selected_validation_f1": 0.8726106025922924,
+            "mean_selected_latency_us": 173.33666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.184829137724,
+                -1.0,
+                0.215089703803,
+                -0.658951752625
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 1
+          }
+        }
+      },
+      {
+        "loss_reference": 1.0,
+        "latency_reference_us": 250.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 68.14893541489566,
+            "sd_hypervolume": 2.75021085774996,
+            "mean_selected_validation_f1": 0.8697980063764149,
+            "mean_selected_latency_us": 172.23333333333335,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                -1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 1
+          },
+          "doe": {
+            "mean_hypervolume": 67.61763371442564,
+            "sd_hypervolume": 2.3546971874755287,
+            "mean_selected_validation_f1": 0.8713140408302938,
+            "mean_selected_latency_us": 173.25,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 0
+          },
+          "tpe": {
+            "mean_hypervolume": 67.05906742791892,
+            "sd_hypervolume": 3.0644065136216567,
+            "mean_selected_validation_f1": 0.8726106025922924,
+            "mean_selected_latency_us": 173.33666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.184829137724,
+                -1.0,
+                0.215089703803,
+                -0.658951752625
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 1
+          }
+        }
+      },
+      {
+        "loss_reference": 1.0,
+        "latency_reference_us": 358.29999999999995,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 162.80915307769004,
+            "sd_hypervolume": 2.7613128169057104,
+            "mean_selected_validation_f1": 0.8720220245211815,
+            "mean_selected_latency_us": 172.56000000000003,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 0
+          },
+          "doe": {
+            "mean_hypervolume": 162.27785137722,
+            "sd_hypervolume": 2.3357933028608664,
+            "mean_selected_validation_f1": 0.8713140408302938,
+            "mean_selected_latency_us": 173.25,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 0
+          },
+          "tpe": {
+            "mean_hypervolume": 161.80658113018512,
+            "sd_hypervolume": 3.095527957085694,
+            "mean_selected_validation_f1": 0.873221741301324,
+            "mean_selected_latency_us": 173.40666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.079005096006,
+                -1.0,
+                0.469570940672,
+                0.418828243073
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 0
+          }
+        }
+      },
+      {
+        "loss_reference": 1.0,
+        "latency_reference_us": 500.0,
+        "methods": {
+          "static_doe": {
+            "mean_hypervolume": 286.66282660324845,
+            "sd_hypervolume": 2.7810355737315295,
+            "mean_selected_validation_f1": 0.8720220245211815,
+            "mean_selected_latency_us": 172.56000000000003,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "changed_selections": 0
+          },
+          "doe": {
+            "mean_hypervolume": 286.1315249027784,
+            "sd_hypervolume": 2.317146346920283,
+            "mean_selected_validation_f1": 0.8718467107688096,
+            "mean_selected_latency_us": 173.4433333333333,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.0,
+                -1.0,
+                0.0,
+                0.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ],
+              [
+                1.0,
+                -1.0,
+                1.0,
+                -1.0
+              ]
+            ],
+            "changed_selections": 1
+          },
+          "tpe": {
+            "mean_hypervolume": 285.77447301948456,
+            "sd_hypervolume": 3.137087698436833,
+            "mean_selected_validation_f1": 0.873221741301324,
+            "mean_selected_latency_us": 173.40666666666667,
+            "selected_depths": [
+              3,
+              3,
+              3
+            ],
+            "selected_coded": [
+              [
+                0.079005096006,
+                -1.0,
+                0.469570940672,
+                0.418828243073
+              ],
+              [
+                0.513712875008,
+                -1.0,
+                -0.507341084649,
+                -0.794547195293
+              ],
+              [
+                0.991510374809,
+                -1.0,
+                0.705405566183,
+                -0.45284777461
+              ]
+            ],
+            "changed_selections": 0
+          }
+        }
+      }
+    ]
+  },
+  "search_cost": {
+    "per_repeat": {
+      "static_doe": [
+        {
+          "repeat": 0,
+          "search_fits": 140,
+          "evaluation_seconds": 2190.7318996000104,
+          "training_seconds": 2144.262487999971,
+          "profiling_seconds": 34.863582800040604,
+          "overhead_seconds": 1.9969674999883864,
+          "total_seconds": 2192.7288670999988
+        },
+        {
+          "repeat": 1,
+          "search_fits": 140,
+          "evaluation_seconds": 2264.562501999979,
+          "training_seconds": 2216.740865499989,
+          "profiling_seconds": 36.08728540001903,
+          "overhead_seconds": 1.9808970000231056,
+          "total_seconds": 2266.543399000002
+        },
+        {
+          "repeat": 2,
+          "search_fits": 140,
+          "evaluation_seconds": 2251.463591600048,
+          "training_seconds": 2203.188341900015,
+          "profiling_seconds": 36.55177689996344,
+          "overhead_seconds": 1.9419645999514614,
+          "total_seconds": 2253.4055561999994
+        }
+      ],
+      "doe": [
+        {
+          "repeat": 0,
+          "search_fits": 140,
+          "evaluation_seconds": 2143.99080699998,
+          "training_seconds": 2098.5598095999885,
+          "profiling_seconds": 33.87331879999692,
+          "overhead_seconds": 4.789395000014338,
+          "total_seconds": 2148.7802019999945
+        },
+        {
+          "repeat": 1,
+          "search_fits": 140,
+          "evaluation_seconds": 2296.507496199978,
+          "training_seconds": 2248.1682401,
+          "profiling_seconds": 36.594754300036584,
+          "overhead_seconds": 5.251286000020627,
+          "total_seconds": 2301.7587821999987
+        },
+        {
+          "repeat": 2,
+          "search_fits": 140,
+          "evaluation_seconds": 2391.586740600047,
+          "training_seconds": 2341.536752999993,
+          "profiling_seconds": 38.19560040003125,
+          "overhead_seconds": 5.1886104999503,
+          "total_seconds": 2396.7753510999974
+        }
+      ],
+      "tpe": [
+        {
+          "repeat": 0,
+          "search_fits": 140,
+          "evaluation_seconds": 1325.9005209000097,
+          "training_seconds": 1284.2414678999703,
+          "profiling_seconds": 30.150845299984212,
+          "overhead_seconds": 1.8891949999888311,
+          "total_seconds": 1327.7897158999986
+        },
+        {
+          "repeat": 1,
+          "search_fits": 140,
+          "evaluation_seconds": 1717.637689799958,
+          "training_seconds": 1669.1290541000344,
+          "profiling_seconds": 36.69648460002645,
+          "overhead_seconds": 2.0209393000404816,
+          "total_seconds": 1719.6586290999985
+        },
+        {
+          "repeat": 2,
+          "search_fits": 140,
+          "evaluation_seconds": 1234.0643356999863,
+          "training_seconds": 1187.7373261000103,
+          "profiling_seconds": 34.452433499922336,
+          "overhead_seconds": 1.9239899000094738,
+          "total_seconds": 1235.9883255999957
+        }
+      ]
+    },
+    "summaries": {
+      "static_doe": {
+        "mean_total_seconds": 2237.5592741,
+        "sd_total_seconds": 39.37606852135848
+      },
+      "doe": {
+        "mean_total_seconds": 2282.4381117666635,
+        "sd_total_seconds": 125.12139994332836
+      },
+      "tpe": {
+        "mean_total_seconds": 1427.812223533331,
+        "sd_total_seconds": 256.88055034761044
+      }
+    },
+    "scope": "Search evaluation elapsed time plus recorded design/surrogate/explanation overhead; excludes confirmation, final refits and local word study. First-use GPU initialization and randomized serial method order affect these descriptive costs."
+  },
+  "interaction_leverage": {
+    "pair_order": [
+      [
+        "x1",
+        "x2"
+      ],
+      [
+        "x1",
+        "x3"
+      ],
+      [
+        "x1",
+        "x4"
+      ],
+      [
+        "x2",
+        "x3"
+      ],
+      [
+        "x2",
+        "x4"
+      ],
+      [
+        "x3",
+        "x4"
+      ]
+    ],
+    "per_repeat": {
+      "static_doe": [
+        {
+          "repeat": 0,
+          "pair_count": 6,
+          "pearson": 0.998258460394856,
+          "spearman": 0.8285714285714287,
+          "largest_anova_pair_index": 0,
+          "largest_anova_share": 0.5356859242451987,
+          "pearson_without_largest_anova_pair": 0.998775563215294,
+          "two_largest_anova_share": 0.9100882154569713,
+          "pearson_without_two_largest_anova_pairs": 0.9217604812388731
+        },
+        {
+          "repeat": 1,
+          "pair_count": 6,
+          "pearson": 0.9723912880203972,
+          "spearman": 0.6571428571428573,
+          "largest_anova_pair_index": 0,
+          "largest_anova_share": 0.5411212794413609,
+          "pearson_without_largest_anova_pair": 0.9264591994877868,
+          "two_largest_anova_share": 0.9201393170235851,
+          "pearson_without_two_largest_anova_pairs": -0.028039657216927912
+        },
+        {
+          "repeat": 2,
+          "pair_count": 6,
+          "pearson": 0.9972737411340119,
+          "spearman": 0.942857142857143,
+          "largest_anova_pair_index": 0,
+          "largest_anova_share": 0.5588370201398615,
+          "pearson_without_largest_anova_pair": 0.9993359520385999,
+          "two_largest_anova_share": 0.9202529413930569,
+          "pearson_without_two_largest_anova_pairs": 0.9983102582716912
+        }
+      ],
+      "doe": [
+        {
+          "repeat": 0,
+          "pair_count": 6,
+          "pearson": 0.998142921929102,
+          "spearman": 0.7714285714285715,
+          "largest_anova_pair_index": 0,
+          "largest_anova_share": 0.532604529732324,
+          "pearson_without_largest_anova_pair": 0.9974695835799591,
+          "two_largest_anova_share": 0.8999754857233548,
+          "pearson_without_two_largest_anova_pairs": 0.9180325193690895
+        },
+        {
+          "repeat": 1,
+          "pair_count": 6,
+          "pearson": 0.925896818385353,
+          "spearman": 0.6571428571428573,
+          "largest_anova_pair_index": 0,
+          "largest_anova_share": 0.523917357847737,
+          "pearson_without_largest_anova_pair": 0.983524795026968,
+          "two_largest_anova_share": 0.9032909565764271,
+          "pearson_without_two_largest_anova_pairs": 0.21786492699036195
+        },
+        {
+          "repeat": 2,
+          "pair_count": 6,
+          "pearson": 0.998936736704095,
+          "spearman": 1.0,
+          "largest_anova_pair_index": 0,
+          "largest_anova_share": 0.5536411831789069,
+          "pearson_without_largest_anova_pair": 0.998550964736574,
+          "two_largest_anova_share": 0.9047318732375643,
+          "pearson_without_two_largest_anova_pairs": 0.9773832720267125
+        }
+      ],
+      "tpe": [
+        {
+          "repeat": 0,
+          "pair_count": 6,
+          "pearson": 0.8475092554572176,
+          "spearman": 0.942857142857143,
+          "largest_anova_pair_index": 0,
+          "largest_anova_share": 0.4882434073162996,
+          "pearson_without_largest_anova_pair": 0.7995647979759752,
+          "two_largest_anova_share": 0.7448436597465173,
+          "pearson_without_two_largest_anova_pairs": 0.21562233161985753
+        },
+        {
+          "repeat": 1,
+          "pair_count": 6,
+          "pearson": -0.30800649627584625,
+          "spearman": -0.14285714285714288,
+          "largest_anova_pair_index": 1,
+          "largest_anova_share": 0.5775281545545837,
+          "pearson_without_largest_anova_pair": -0.5830944580052072,
+          "two_largest_anova_share": 0.7412722891708028,
+          "pearson_without_two_largest_anova_pairs": -0.5592690408622124
+        },
+        {
+          "repeat": 2,
+          "pair_count": 6,
+          "pearson": 0.13359648530309182,
+          "spearman": 0.2571428571428572,
+          "largest_anova_pair_index": 1,
+          "largest_anova_share": 0.45668171990670164,
+          "pearson_without_largest_anova_pair": 0.6715757756131215,
+          "two_largest_anova_share": 0.8403736016888436,
+          "pearson_without_two_largest_anova_pairs": 0.45633944173137697
+        }
+      ]
+    },
+    "summaries": {
+      "static_doe": {
+        "pearson": 0.989307829849755,
+        "spearman": 0.8095238095238096,
+        "largest_anova_share": 0.5452147412754736,
+        "pearson_without_largest_anova_pair": 0.9748569049138935,
+        "two_largest_anova_share": 0.9168268246245378,
+        "pearson_without_two_largest_anova_pairs": 0.6306770274312121
+      },
+      "doe": {
+        "pearson": 0.9743254923395167,
+        "spearman": 0.8095238095238096,
+        "largest_anova_share": 0.5367210235863227,
+        "pearson_without_largest_anova_pair": 0.9931817811145004,
+        "two_largest_anova_share": 0.9026661051791155,
+        "pearson_without_two_largest_anova_pairs": 0.7044269061287213
+      },
+      "tpe": {
+        "pearson": 0.22436641482815434,
+        "spearman": 0.3523809523809524,
+        "largest_anova_share": 0.5074844272591951,
+        "pearson_without_largest_anova_pair": 0.2960153718612965,
+        "two_largest_anova_share": 0.7754965168687212,
+        "pearson_without_two_largest_anova_pairs": 0.037564244163007375
+      }
+    },
+    "limitation": "Descriptive correlations of six strengths fitted to shared observations, not independent validation of explanation correctness."
+  },
+  "phase_a_diagnostics": {
+    "raw": {
+      "n": 140,
+      "quadratic_columns": 19,
+      "quadratic_rank": 19,
+      "additive_rank": 29,
+      "rank_deficient": false,
+      "r_squared": 0.9951021740673103,
+      "lack_of_fit_f": 62.21391640773501,
+      "lack_of_fit_p": 7.78150224488423e-41,
+      "df_lack_of_fit": 10,
+      "df_pooled_additive": 111,
+      "ss_lack_of_fit": 0.008850002547054911,
+      "ss_pooled_additive": 0.0015789880133650616
+    },
+    "log_response": {
+      "n": 140,
+      "quadratic_columns": 19,
+      "quadratic_rank": 19,
+      "additive_rank": 29,
+      "rank_deficient": false,
+      "r_squared": 0.9913789257386647,
+      "lack_of_fit_f": 83.66506125575098,
+      "lack_of_fit_p": 5.91966678461428e-47,
+      "df_lack_of_fit": 10,
+      "df_pooled_additive": 111,
+      "ss_lack_of_fit": 0.04065204791865155,
+      "ss_pooled_additive": 0.0053933831533054056
+    },
+    "restricted_domain": {
+      "n": 95,
+      "quadratic_columns": 19,
+      "quadratic_rank": 18,
+      "additive_rank": 20,
+      "rank_deficient": true,
+      "r_squared": 0.9686561793410232,
+      "lack_of_fit_f": 10.106165053428457,
+      "lack_of_fit_p": 0.00012995787900951894,
+      "df_lack_of_fit": 2,
+      "df_pooled_additive": 75,
+      "ss_lack_of_fit": 0.0003243223155582511,
+      "ss_pooled_additive": 0.0012034324364520942
+    },
+    "excluded_runs": 45,
+    "retained_learning_rates": [
+      0.0547722557505166,
+      0.3
+    ],
+    "interpretation": "Post-hoc sensitivity analyses. The restricted learning-rate design aliases the linear and squared learning-rate columns; rank-aware fits do not identify these effects separately. A changed lack-of-fit statistic is not a causal attribution to the excluded boundary.",
+    "denominator": "Structural lack of fit versus pooled additive treatment-plus-block residual, matching the historical decomposition; the denominator is not center pure error."
+  },
+  "phase_a_retraining": {
+    "constrained_tpe": {
+      "selections": 20,
+      "evaluations_per_selection": [
+        20
+      ],
+      "mean_test_rmse": 0.4703616673631309,
+      "between_selection_sd": 0.0032363123650535805,
+      "mean_within_selection_sd": 0.0034107200753693543,
+      "root_mean_within_selection_variance": 0.003457134119472484
+    },
+    "historical_preplanned_doe_desirability": {
+      "selections": 1,
+      "evaluations_per_selection": [
+        20
+      ],
+      "mean_test_rmse": 0.48840887717733417,
+      "between_selection_sd": null,
+      "mean_within_selection_sd": 0.003191257134360295,
+      "root_mean_within_selection_variance": 0.003191257134360295
+    },
+    "historical_preplanned_doe_single_objective": {
+      "selections": 1,
+      "evaluations_per_selection": [
+        20
+      ],
+      "mean_test_rmse": 0.46903251547481517,
+      "between_selection_sd": null,
+      "mean_within_selection_sd": 0.0025852097137717433,
+      "root_mean_within_selection_variance": 0.0025852097137717433
+    },
+    "multi_objective_tpe": {
+      "selections": 20,
+      "evaluations_per_selection": [
+        20
+      ],
+      "mean_test_rmse": 0.49255060443348164,
+      "between_selection_sd": 0.010804071753102983,
+      "mean_within_selection_sd": 0.0035780987837668596,
+      "root_mean_within_selection_variance": 0.0037239596135524434
+    },
+    "random_search": {
+      "selections": 20,
+      "evaluations_per_selection": [
+        20
+      ],
+      "mean_test_rmse": 0.4695321039992114,
+      "between_selection_sd": 0.002071015976695638,
+      "mean_within_selection_sd": 0.002974997714634983,
+      "root_mean_within_selection_variance": 0.002994699455145657
+    },
+    "repeated_preplanned_doe_multi_objective": {
+      "selections": 20,
+      "evaluations_per_selection": [
+        20
+      ],
+      "mean_test_rmse": 0.48996858702042634,
+      "between_selection_sd": 0.007318923547786334,
+      "mean_within_selection_sd": 0.003301416860841374,
+      "root_mean_within_selection_variance": 0.0033570071177039555
+    },
+    "repeated_preplanned_doe_single_objective": {
+      "selections": 20,
+      "evaluations_per_selection": [
+        20
+      ],
+      "mean_test_rmse": 0.4685906357355905,
+      "between_selection_sd": 1.1390647892519134e-16,
+      "mean_within_selection_sd": 0.0030365297366135324,
+      "root_mean_within_selection_variance": 0.0030365297366135324
+    },
+    "single_objective_tpe": {
+      "selections": 20,
+      "evaluations_per_selection": [
+        20
+      ],
+      "mean_test_rmse": 0.46691342801161284,
+      "between_selection_sd": 0.0011602240530571271,
+      "mean_within_selection_sd": 0.003141386291420879,
+      "root_mean_within_selection_variance": 0.0031817854728720877
+    }
+  },
+  "source_sha256": {
+    "results/phase_b/imdb/measurement_contract.json": "e0e08809086e02a5bcb95758d063e60cac861e4a4496143563e823adbadedde8",
+    "results/phase_b/imdb/final_results.json": "9ce2cc94563da2f5d5cb5d97162e7a762fdb69233444091e8edd2c77839db05e",
+    "results/phase_b_calibration/imdb_pilot.json": "353a41b4735ddf2f546981dee2cc2b02eac87ab4d095102239ce09bcc0674ce1",
+    "results/phase_b/imdb/evaluations.jsonl": "7d1466f568bd7dacc696d4d1f760c05642dc141d50fa5a8fef734d4ae1c91ca6",
+    "results/phase_b/imdb/overhead_0_static_doe.json": "7fe593bdbb55dd9d05708df909fc6d2c8bfea987c11f79e3fa04d29d677dc23d",
+    "results/phase_b/imdb/gp_confirmation_0_static_doe_val_loss.json": "7a7836d8447ef5335360f21526a35a384b1264c8617e17a39b9684d796402a15",
+    "results/phase_b/imdb/gp_confirmation_0_static_doe_latency_us.json": "8ae78d4530ca918cbb17b77613237e7fac847291cf79ad575f8766eaa2a0c7c9",
+    "results/phase_b/imdb/snapshot_0_static_doe_final.json": "11fcdd558e578806b60f46084eb4c6d1e936e9daeaf5b4c450d9e3180a73950c",
+    "results/phase_b/imdb/overhead_1_static_doe.json": "74c69a61f0cb1e1495c11e462072ee435111da0652b88321b7f61000b55175bd",
+    "results/phase_b/imdb/gp_confirmation_1_static_doe_val_loss.json": "7b6381bda7e3ab4c95596d413bfc16a406ae0e99093bbd74083153d26396c039",
+    "results/phase_b/imdb/gp_confirmation_1_static_doe_latency_us.json": "146e03c222c2030c1b8c028856f85c1f2e6f43236e84d7c01db4d702278cd2ee",
+    "results/phase_b/imdb/snapshot_1_static_doe_final.json": "24859ad85ce6bce51c51028945eb62d8115dc4a6b4091a984d968a057bfe800c",
+    "results/phase_b/imdb/overhead_2_static_doe.json": "737b2e2107560db1b1dfd57db3b1cd1596c789616dc9214a7c6468fe3eb1013c",
+    "results/phase_b/imdb/gp_confirmation_2_static_doe_val_loss.json": "11f42f7ac96b9af9fb7e9f381ca3f327454f3e4de2ed04667fefe1a9a2e7c076",
+    "results/phase_b/imdb/gp_confirmation_2_static_doe_latency_us.json": "1e64a5650ffacdd186e31c9f9cb07543977875f2bc09156e6b22f8995190f6b8",
+    "results/phase_b/imdb/snapshot_2_static_doe_final.json": "c57dbd872c94e031946a5659fe3061807afa6ad71c410a1e99d094245b910640",
+    "results/phase_b/imdb/overhead_0_doe.json": "857863b4a8b93dcef7376707a2ef7fd6efa9a34526a926bbcfb677b68574bbb2",
+    "results/phase_b/imdb/gp_confirmation_0_doe_val_loss.json": "5614e8be505bbf1398200cb9534f1db5c7e035d210c38c50a5984d0769951f26",
+    "results/phase_b/imdb/gp_confirmation_0_doe_latency_us.json": "b9854be8f0c6b708b6c31e945f408ed75debe03bace21e84005425def2a958c5",
+    "results/phase_b/imdb/snapshot_0_doe_2.json": "a75dd72582ff7c5dc34b085f0e5a37c67064fb9cb4af35a2fa5d184de0069d3a",
+    "results/phase_b/imdb/overhead_1_doe.json": "78ac868a840123e264028b585e090b8b6127cade9c0f942df726e757bfb64644",
+    "results/phase_b/imdb/gp_confirmation_1_doe_val_loss.json": "1316d003fe47321c4f802f79114b01524b4f1c21432e18fc672e24149e8588eb",
+    "results/phase_b/imdb/gp_confirmation_1_doe_latency_us.json": "a979dc476be6cbe91a4a38f5c52ec44f13b895505c7e9ca5ea860cc9ff8759af",
+    "results/phase_b/imdb/snapshot_1_doe_2.json": "cf91312b31977d33ae1da0fee2fc3ae1aa6c507b8b4ad484b198d20c45058c2d",
+    "results/phase_b/imdb/overhead_2_doe.json": "2ca6838e1e9a7989d741580cf2a1140435422773c5b185236840913b7ff0f72e",
+    "results/phase_b/imdb/gp_confirmation_2_doe_val_loss.json": "40e0d069c5f3dbc609400af86399e42216e43906bf56ca15338b234c8f466398",
+    "results/phase_b/imdb/gp_confirmation_2_doe_latency_us.json": "fb4c139aa1fb3cb68cf4cd325fcb71818af1658bdbfdf5513203d6a5007f6b93",
+    "results/phase_b/imdb/snapshot_2_doe_2.json": "0a3d52508321bc8cef4f54416de3e2288af8d1b661fc56bccc3789c45e6133d2",
+    "results/phase_b/imdb/overhead_0_tpe.json": "fb67ba16bcb592ecc48366d952929caaa9f260a7269e1fe9c82533c980fc2baa",
+    "results/phase_b/imdb/gp_confirmation_0_tpe_val_loss.json": "b6395da067a332b0a385e58677eebd46f59aa67116c995c96f62408830518876",
+    "results/phase_b/imdb/gp_confirmation_0_tpe_latency_us.json": "f8f26a8eee171dc6f4d49fac4195491396469bc8a92718e9e751ac7e6499a2e7",
+    "results/phase_b/imdb/snapshot_0_tpe_final.json": "99c8c399049c1033c7bd662ab2c1b63bb54604b596bc3faf112d54d70b9cd932",
+    "results/phase_b/imdb/overhead_1_tpe.json": "2208b808d6a05557e901d29a7360185e79dbb9adde584745cdeaf1fd33981914",
+    "results/phase_b/imdb/gp_confirmation_1_tpe_val_loss.json": "3b42bbc1d702a261c0a46cb7291a5dde2b042d8f858dda3b990fd43410513e6d",
+    "results/phase_b/imdb/gp_confirmation_1_tpe_latency_us.json": "c917d0859d7e8ba7e467c3a0cebc2c743961533ab4e7890cfc1c10400a13380a",
+    "results/phase_b/imdb/snapshot_1_tpe_final.json": "29cf0b08328a626f945965133c5d8f90c1ad34e0279fb44a39bfb833cb1f9536",
+    "results/phase_b/imdb/overhead_2_tpe.json": "501926515f20ac3a0a91a1f62f7aef93fd5f3d1ea1ac13e34443cbd01f1e1400",
+    "results/phase_b/imdb/gp_confirmation_2_tpe_val_loss.json": "373ebc9590767f18df6288786e0345ae9f408d0631bcf0f3300e664e8c24b1e0",
+    "results/phase_b/imdb/gp_confirmation_2_tpe_latency_us.json": "b61ccca81659b6a0c357caea583be9620ad6ab5c55b7c8987c75c5c5b81a2e2a",
+    "results/phase_b/imdb/snapshot_2_tpe_final.json": "6b320495eb1fd5d72fe43d230f8e5cf176673c9c339d91caf39be2aff35a0738",
+    "results/phase_b/imdb/selected.json": "99e961ff17389b5be764dfbd12a799ace248a9be8912f0d7f37c00c33e4cd2c6",
+    "phase_a_rsm_blocking/results/runs.csv": "b90bf1cfb29d239f604515cd6b3549ce80395e5bb1f00faadc61427c5cf8d76e",
+    "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_evaluations.csv": "bae360166c588599499852878c3374a033918d3a62d6abc3ce67fc0a6966de2e",
+    "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv": "db5cfe8b23c149d437fe0ba628460603613473b27fbddd6a91e9d4ecb8b903a8"
+  }
+}

@@ -483,6 +483,13 @@
       "format": ".0f",
       "kind": "protocol"
     },
+    "PostProposalBudget": {
+      "value": 28.0,
+      "source": "results/phase_b/imdb/summary.json",
+      "selector": "search_fits.doe / config.search_replicates / config.n_nuisance_blocks",
+      "format": ".0f",
+      "kind": "protocol"
+    },
     "BRateLow": {
       "value": 0.05,
       "source": "results/phase_b/imdb/measurement_contract.json",
@@ -1435,6 +1442,20 @@
       "format": ".2g",
       "kind": "empirical"
     },
+    "Anovavalloss1SS": {
+      "value": 0.00297456684755429,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Main Effects partial sum of squares",
+      "format": ".4g",
+      "kind": "empirical"
+    },
+    "Anovavalloss1Df": {
+      "value": 4.0,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Main Effects degrees of freedom",
+      "format": ".0f",
+      "kind": "protocol"
+    },
     "Anovavalloss2F": {
       "value": 60.84752207544789,
       "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
@@ -1448,6 +1469,20 @@
       "selector": "val_loss:   2-Factor Interactions p",
       "format": ".2g",
       "kind": "empirical"
+    },
+    "Anovavalloss2SS": {
+      "value": 0.003919987682198431,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   2-Factor Interactions partial sum of squares",
+      "format": ".4g",
+      "kind": "empirical"
+    },
+    "Anovavalloss2Df": {
+      "value": 6.0,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   2-Factor Interactions degrees of freedom",
+      "format": ".0f",
+      "kind": "protocol"
     },
     "Anovavalloss3F": {
       "value": 86.00427454898923,
@@ -1463,6 +1498,20 @@
       "format": ".2g",
       "kind": "empirical"
     },
+    "Anovavalloss3SS": {
+      "value": 0.0036937762388024975,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Curvature (Quadratic) partial sum of squares",
+      "format": ".4g",
+      "kind": "empirical"
+    },
+    "Anovavalloss3Df": {
+      "value": 4.0,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Curvature (Quadratic) degrees of freedom",
+      "format": ".0f",
+      "kind": "protocol"
+    },
     "Anovavalloss4F": {
       "value": 18.959467569356146,
       "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
@@ -1476,6 +1525,20 @@
       "selector": "val_loss:   Blocks p",
       "format": ".2g",
       "kind": "empirical"
+    },
+    "Anovavalloss4SS": {
+      "value": 0.0008142854663362466,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Blocks partial sum of squares",
+      "format": ".4g",
+      "kind": "empirical"
+    },
+    "Anovavalloss4Df": {
+      "value": 4.0,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "val_loss:   Blocks degrees of freedom",
+      "format": ".0f",
+      "kind": "protocol"
     },
     "Anovalatencyus1F": {
       "value": 434.5496190508382,
@@ -1491,6 +1554,20 @@
       "format": ".2g",
       "kind": "empirical"
     },
+    "Anovalatencyus1SS": {
+      "value": 13911.816494973418,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Main Effects partial sum of squares",
+      "format": ".4g",
+      "kind": "empirical"
+    },
+    "Anovalatencyus1Df": {
+      "value": 4.0,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Main Effects degrees of freedom",
+      "format": ".0f",
+      "kind": "protocol"
+    },
     "Anovalatencyus2F": {
       "value": 7.214897826288944,
       "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
@@ -1504,6 +1581,20 @@
       "selector": "latency_us:   2-Factor Interactions p",
       "format": ".2g",
       "kind": "empirical"
+    },
+    "Anovalatencyus2SS": {
+      "value": 346.4702194718934,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   2-Factor Interactions partial sum of squares",
+      "format": ".4g",
+      "kind": "empirical"
+    },
+    "Anovalatencyus2Df": {
+      "value": 6.0,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   2-Factor Interactions degrees of freedom",
+      "format": ".0f",
+      "kind": "protocol"
     },
     "Anovalatencyus3F": {
       "value": 0.22439942808068644,
@@ -1519,6 +1610,20 @@
       "format": ".2g",
       "kind": "empirical"
     },
+    "Anovalatencyus3SS": {
+      "value": 7.183998163096476,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Curvature (Quadratic) partial sum of squares",
+      "format": ".4g",
+      "kind": "empirical"
+    },
+    "Anovalatencyus3Df": {
+      "value": 4.0,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Curvature (Quadratic) degrees of freedom",
+      "format": ".0f",
+      "kind": "protocol"
+    },
     "Anovalatencyus4F": {
       "value": 2.3974897161926156,
       "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
@@ -1532,6 +1637,20 @@
       "selector": "latency_us:   Blocks p",
       "format": ".2g",
       "kind": "empirical"
+    },
+    "Anovalatencyus4SS": {
+      "value": 76.75403571428637,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Blocks partial sum of squares",
+      "format": ".4g",
+      "kind": "empirical"
+    },
+    "Anovalatencyus4Df": {
+      "value": 4.0,
+      "source": "results/phase_b/imdb/snapshot_0_doe_2.json",
+      "selector": "latency_us:   Blocks degrees of freedom",
+      "format": ".0f",
+      "kind": "protocol"
     },
     "ConfirmAvallossError": {
       "value": 0.003428620681928119,
@@ -1707,6 +1826,748 @@
       "selector": "document with largest reserved-perturbation RMSE, one-based index",
       "format": ".0f",
       "kind": "empirical"
+    },
+    "PostCapacity": {
+      "value": 179.125,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"capacity_matching\", \"capacity_matched_median_us\"]:scale=1",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "PostLogLof": {
+      "value": 83.66506125575098,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_diagnostics\", \"log_response\", \"lack_of_fit_f\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostRestrictedLof": {
+      "value": 10.106165053428457,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_diagnostics\", \"restricted_domain\", \"lack_of_fit_f\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostRestrictedRtwo": {
+      "value": 0.9686561793410232,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_diagnostics\", \"restricted_domain\", \"r_squared\"]:scale=1",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "PostRestrictedRank": {
+      "value": 18.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_diagnostics\", \"restricted_domain\", \"quadratic_rank\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostRestrictedColumns": {
+      "value": 19.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_diagnostics\", \"restricted_domain\", \"quadratic_columns\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostBootstrapCount": {
+      "value": 2000.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"paired_document_bootstrap\", \"repetitions\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostPairCount": {
+      "value": 6.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"interaction_leverage\", \"per_repeat\", \"static_doe\", 0, \"pair_count\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostMeanConfirmationN": {
+      "value": 36.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:RSM:val_loss\", \"n\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostPairADifference": {
+      "value": -0.0004199174183415755,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"paired_document_bootstrap\", \"comparisons\", 0, \"difference\"]:scale=1",
+      "format": ".6f",
+      "kind": "empirical"
+    },
+    "PostPairALower": {
+      "value": -0.0018068553654907449,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"paired_document_bootstrap\", \"comparisons\", 0, \"interval_95\", 0]:scale=1",
+      "format": ".6f",
+      "kind": "empirical"
+    },
+    "PostPairAUpper": {
+      "value": 0.0009897979409347136,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"paired_document_bootstrap\", \"comparisons\", 0, \"interval_95\", 1]:scale=1",
+      "format": ".6f",
+      "kind": "empirical"
+    },
+    "PostPairBDifference": {
+      "value": 3.1482879596644864e-06,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"paired_document_bootstrap\", \"comparisons\", 1, \"difference\"]:scale=1",
+      "format": ".6f",
+      "kind": "empirical"
+    },
+    "PostPairBLower": {
+      "value": -0.0018081214462973643,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"paired_document_bootstrap\", \"comparisons\", 1, \"interval_95\", 0]:scale=1",
+      "format": ".6f",
+      "kind": "empirical"
+    },
+    "PostPairBUpper": {
+      "value": 0.0017835740705033352,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"paired_document_bootstrap\", \"comparisons\", 1, \"interval_95\", 1]:scale=1",
+      "format": ".6f",
+      "kind": "empirical"
+    },
+    "PostPairCDifference": {
+      "value": 0.00042306570630123996,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"paired_document_bootstrap\", \"comparisons\", 2, \"difference\"]:scale=1",
+      "format": ".6f",
+      "kind": "empirical"
+    },
+    "PostPairCLower": {
+      "value": -0.0016431026249384083,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"paired_document_bootstrap\", \"comparisons\", 2, \"interval_95\", 0]:scale=1",
+      "format": ".6f",
+      "kind": "empirical"
+    },
+    "PostPairCUpper": {
+      "value": 0.002556642744240136,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"paired_document_bootstrap\", \"comparisons\", 2, \"interval_95\", 1]:scale=1",
+      "format": ".6f",
+      "kind": "empirical"
+    },
+    "PostConfirmA0RSMError": {
+      "value": 0.0026877561772136916,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:RSM:val_loss\", \"rmse\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmA0RSMBias": {
+      "value": -0.00045843367824869213,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:RSM:val_loss\", \"mean_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmA0RSMCoverage": {
+      "value": 75.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:RSM:val_loss\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmA0RSMBoundary": {
+      "value": -0.0005135480840850491,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:RSM:val_loss\", \"boundary_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmA0GPError": {
+      "value": 0.0024817972313766015,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:GP:val_loss\", \"rmse\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmA0GPBias": {
+      "value": -0.0010088845851638618,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:GP:val_loss\", \"mean_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmA0GPCoverage": {
+      "value": 80.55555555555556,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:GP:val_loss\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmA0GPBoundary": {
+      "value": -0.0008585590263247567,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:GP:val_loss\", \"boundary_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmA1RSMError": {
+      "value": 3.7556342003395096,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:RSM:latency_us\", \"rmse\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmA1RSMBias": {
+      "value": -0.7518839486841126,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:RSM:latency_us\", \"mean_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmA1RSMCoverage": {
+      "value": 94.44444444444444,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:RSM:latency_us\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmA1RSMBoundary": {
+      "value": -1.5229653895800799,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:RSM:latency_us\", \"boundary_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmA1GPError": {
+      "value": 5.661178956353545,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:GP:latency_us\", \"rmse\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmA1GPBias": {
+      "value": -0.27876764946939797,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:GP:latency_us\", \"mean_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmA1GPCoverage": {
+      "value": 83.33333333333334,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:GP:latency_us\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmA1GPBoundary": {
+      "value": -1.4182789410766088,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"static_doe:GP:latency_us\", \"boundary_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmB0RSMError": {
+      "value": 0.0025861569712903824,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:RSM:val_loss\", \"rmse\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmB0RSMBias": {
+      "value": -0.00014446453062126683,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:RSM:val_loss\", \"mean_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmB0RSMCoverage": {
+      "value": 69.44444444444444,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:RSM:val_loss\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmB0RSMBoundary": {
+      "value": -0.00014501094862833633,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:RSM:val_loss\", \"boundary_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmB0GPError": {
+      "value": 0.0024584349934197785,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:GP:val_loss\", \"rmse\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmB0GPBias": {
+      "value": -0.0011273840238087889,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:GP:val_loss\", \"mean_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmB0GPCoverage": {
+      "value": 86.11111111111111,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:GP:val_loss\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmB0GPBoundary": {
+      "value": -0.0008701421771583452,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:GP:val_loss\", \"boundary_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmB1RSMError": {
+      "value": 3.172452127278599,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:RSM:latency_us\", \"rmse\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmB1RSMBias": {
+      "value": -0.5324855309198971,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:RSM:latency_us\", \"mean_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmB1RSMCoverage": {
+      "value": 97.22222222222221,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:RSM:latency_us\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmB1RSMBoundary": {
+      "value": -0.6553045313765059,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:RSM:latency_us\", \"boundary_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmB1GPError": {
+      "value": 3.267978130766205,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:GP:latency_us\", \"rmse\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmB1GPBias": {
+      "value": -0.9086967634140185,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:GP:latency_us\", \"mean_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmB1GPCoverage": {
+      "value": 94.44444444444444,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:GP:latency_us\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmB1GPBoundary": {
+      "value": -0.8108081377437686,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"doe:GP:latency_us\", \"boundary_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmC0RSMError": {
+      "value": 0.0060357418899093605,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:RSM:val_loss\", \"rmse\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmC0RSMBias": {
+      "value": 0.0013285378139278113,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:RSM:val_loss\", \"mean_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmC0RSMCoverage": {
+      "value": 83.33333333333334,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:RSM:val_loss\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmC0RSMBoundary": {
+      "value": 0.0018420266367961545,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:RSM:val_loss\", \"boundary_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmC0GPError": {
+      "value": 0.006882702355948831,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:GP:val_loss\", \"rmse\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmC0GPBias": {
+      "value": 0.002670099018578619,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:GP:val_loss\", \"mean_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmC0GPCoverage": {
+      "value": 75.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:GP:val_loss\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmC0GPBoundary": {
+      "value": 0.0033453346961631724,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:GP:val_loss\", \"boundary_bias\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostConfirmC1RSMError": {
+      "value": 21.827759286179194,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:RSM:latency_us\", \"rmse\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmC1RSMBias": {
+      "value": -3.254191636115885,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:RSM:latency_us\", \"mean_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmC1RSMCoverage": {
+      "value": 77.77777777777779,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:RSM:latency_us\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmC1RSMBoundary": {
+      "value": -0.5965225995450285,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:RSM:latency_us\", \"boundary_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmC1GPError": {
+      "value": 10.897291729217038,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:GP:latency_us\", \"rmse\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmC1GPBias": {
+      "value": -3.9822500454758085,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:GP:latency_us\", \"mean_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostConfirmC1GPCoverage": {
+      "value": 77.77777777777779,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:GP:latency_us\", \"coverage\"]:scale=100",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostConfirmC1GPBoundary": {
+      "value": -4.262809478152564,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"symmetric_confirmation\", \"summaries\", \"tpe:GP:latency_us\", \"boundary_bias\"]:scale=1",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostOperationalAPooled": {
+      "value": 0.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"capacity_matching\", \"methods\", \"static_doe\", \"selected_under_pooled\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostOperationalAMatched": {
+      "value": 3.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"capacity_matching\", \"methods\", \"static_doe\", \"selected_under_capacity_matched\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostOperationalASeconds": {
+      "value": 2237.5592741,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"search_cost\", \"summaries\", \"static_doe\", \"mean_total_seconds\"]:scale=1",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostOperationalASecondsSd": {
+      "value": 39.37606852135848,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"search_cost\", \"summaries\", \"static_doe\", \"sd_total_seconds\"]:scale=1",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostOperationalBPooled": {
+      "value": 0.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"capacity_matching\", \"methods\", \"doe\", \"selected_under_pooled\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostOperationalBMatched": {
+      "value": 3.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"capacity_matching\", \"methods\", \"doe\", \"selected_under_capacity_matched\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostOperationalBSeconds": {
+      "value": 2282.4381117666635,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"search_cost\", \"summaries\", \"doe\", \"mean_total_seconds\"]:scale=1",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostOperationalBSecondsSd": {
+      "value": 125.12139994332836,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"search_cost\", \"summaries\", \"doe\", \"sd_total_seconds\"]:scale=1",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostOperationalCPooled": {
+      "value": 0.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"capacity_matching\", \"methods\", \"tpe\", \"selected_under_pooled\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostOperationalCMatched": {
+      "value": 3.0,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"capacity_matching\", \"methods\", \"tpe\", \"selected_under_capacity_matched\"]:scale=1",
+      "format": ".0f",
+      "kind": "empirical"
+    },
+    "PostOperationalCSeconds": {
+      "value": 1427.812223533331,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"search_cost\", \"summaries\", \"tpe\", \"mean_total_seconds\"]:scale=1",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostOperationalCSecondsSd": {
+      "value": 256.88055034761044,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"search_cost\", \"summaries\", \"tpe\", \"sd_total_seconds\"]:scale=1",
+      "format": ".1f",
+      "kind": "empirical"
+    },
+    "PostWithinA": {
+      "value": 0.003301416860841374,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_retraining\", \"repeated_preplanned_doe_multi_objective\", \"mean_within_selection_sd\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostWithinB": {
+      "value": 0.0030365297366135324,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_retraining\", \"repeated_preplanned_doe_single_objective\", \"mean_within_selection_sd\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostWithinC": {
+      "value": 0.0035780987837668596,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_retraining\", \"multi_objective_tpe\", \"mean_within_selection_sd\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostWithinD": {
+      "value": 0.0034107200753693543,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_retraining\", \"constrained_tpe\", \"mean_within_selection_sd\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostWithinE": {
+      "value": 0.003141386291420879,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_retraining\", \"single_objective_tpe\", \"mean_within_selection_sd\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostWithinF": {
+      "value": 0.002974997714634983,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"phase_a_retraining\", \"random_search\", \"mean_within_selection_sd\"]:scale=1",
+      "format": ".5f",
+      "kind": "empirical"
+    },
+    "PostLoglossSdA": {
+      "value": 0.0015883363954863612,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: sample SD final test log loss",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "PostLatencySdA": {
+      "value": 1.257311947502837,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "static_doe: sample SD final CPU latency",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostLoglossSdB": {
+      "value": 0.000392762197819014,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: sample SD final test log loss",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "PostLatencySdB": {
+      "value": 1.2013880860626902,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "doe: sample SD final CPU latency",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostLoglossSdC": {
+      "value": 0.0022909690051985346,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: sample SD final test log loss",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "PostLatencySdC": {
+      "value": 0.6714412359494586,
+      "source": "results/phase_b/imdb/final_results.json",
+      "selector": "tpe: sample SD final CPU latency",
+      "format": ".2f",
+      "kind": "empirical"
+    },
+    "PostLeverageARank": {
+      "value": 0.8095238095238096,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"interaction_leverage\", \"summaries\", \"static_doe\", \"spearman\"]:scale=1",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "PostLeverageAOmit": {
+      "value": 0.6306770274312121,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"interaction_leverage\", \"summaries\", \"static_doe\", \"pearson_without_two_largest_anova_pairs\"]:scale=1",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "PostLeverageAShare": {
+      "value": 0.9168268246245378,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"interaction_leverage\", \"summaries\", \"static_doe\", \"two_largest_anova_share\"]:scale=1",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "PostLeverageBRank": {
+      "value": 0.8095238095238096,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"interaction_leverage\", \"summaries\", \"doe\", \"spearman\"]:scale=1",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "PostLeverageBOmit": {
+      "value": 0.7044269061287213,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"interaction_leverage\", \"summaries\", \"doe\", \"pearson_without_two_largest_anova_pairs\"]:scale=1",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "PostLeverageBShare": {
+      "value": 0.9026661051791155,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"interaction_leverage\", \"summaries\", \"doe\", \"two_largest_anova_share\"]:scale=1",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "PostLeverageCRank": {
+      "value": 0.3523809523809524,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"interaction_leverage\", \"summaries\", \"tpe\", \"spearman\"]:scale=1",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "PostLeverageCOmit": {
+      "value": 0.037564244163007375,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"interaction_leverage\", \"summaries\", \"tpe\", \"pearson_without_two_largest_anova_pairs\"]:scale=1",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "PostLeverageCShare": {
+      "value": 0.7754965168687212,
+      "source": "report/posthoc_results.json",
+      "selector": "POST_HOC:[\"interaction_leverage\", \"summaries\", \"tpe\", \"two_largest_anova_share\"]:scale=1",
+      "format": ".3f",
+      "kind": "empirical"
+    },
+    "PostWordInteractionMax": {
+      "value": 0.0,
+      "source": "results/phase_b/imdb_words/observations.json",
+      "selector": "illustrated highest-RMSE document: maximum absolute endpoint-game pair interaction",
+      "format": ".4f",
+      "kind": "empirical"
+    },
+    "PostAdaptiveCoordinates": {
+      "value": 2.0,
+      "source": "results/phase_b/imdb/measurement_contract.json",
+      "selector": "config.adaptive_cycles * config.infill_per_cycle",
+      "format": ".0f",
+      "kind": "protocol"
+    },
+    "DesirabilityErrorLow": {
+      "value": 0.45,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "desirability.Error.L",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "DesirabilityErrorHigh": {
+      "value": 0.7,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "desirability.Error.U",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "DesirabilityLatencyLow": {
+      "value": 100.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "desirability.Latency.L",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "DesirabilityLatencyHigh": {
+      "value": 180.0,
+      "source": "phase_a_rsm_blocking/config.yaml",
+      "selector": "desirability.Latency.U",
+      "format": ".3f",
+      "kind": "protocol"
+    },
+    "DesirabilityExponent": {
+      "value": 1.0,
+      "source": "phase_a_rsm_blocking/analysis.py",
+      "selector": "derringer_suich_desirability: common default s,t,w1,w2",
+      "format": ".0f",
+      "kind": "protocol"
     }
   },
   "source_sha256": {
@@ -1733,6 +2594,45 @@
     "results/phase_b/imdb/final_results.json": "9ce2cc94563da2f5d5cb5d97162e7a762fdb69233444091e8edd2c77839db05e",
     "results/phase_b/imdb/evaluations.jsonl": "7d1466f568bd7dacc696d4d1f760c05642dc141d50fa5a8fef734d4ae1c91ca6",
     "results/phase_b/imdb/snapshot_0_doe_2.json": "a75dd72582ff7c5dc34b085f0e5a37c67064fb9cb4af35a2fa5d184de0069d3a",
+    "report/posthoc_results.json": "8a712ce3a394120cf1f88c246e6043edaa5130158b830fff0002dc0a4e77b5fe",
+    "results/phase_b/imdb/overhead_0_static_doe.json": "7fe593bdbb55dd9d05708df909fc6d2c8bfea987c11f79e3fa04d29d677dc23d",
+    "results/phase_b/imdb/gp_confirmation_0_static_doe_val_loss.json": "7a7836d8447ef5335360f21526a35a384b1264c8617e17a39b9684d796402a15",
+    "results/phase_b/imdb/gp_confirmation_0_static_doe_latency_us.json": "8ae78d4530ca918cbb17b77613237e7fac847291cf79ad575f8766eaa2a0c7c9",
+    "results/phase_b/imdb/snapshot_0_static_doe_final.json": "11fcdd558e578806b60f46084eb4c6d1e936e9daeaf5b4c450d9e3180a73950c",
+    "results/phase_b/imdb/overhead_1_static_doe.json": "74c69a61f0cb1e1495c11e462072ee435111da0652b88321b7f61000b55175bd",
+    "results/phase_b/imdb/gp_confirmation_1_static_doe_val_loss.json": "7b6381bda7e3ab4c95596d413bfc16a406ae0e99093bbd74083153d26396c039",
+    "results/phase_b/imdb/gp_confirmation_1_static_doe_latency_us.json": "146e03c222c2030c1b8c028856f85c1f2e6f43236e84d7c01db4d702278cd2ee",
+    "results/phase_b/imdb/snapshot_1_static_doe_final.json": "24859ad85ce6bce51c51028945eb62d8115dc4a6b4091a984d968a057bfe800c",
+    "results/phase_b/imdb/overhead_2_static_doe.json": "737b2e2107560db1b1dfd57db3b1cd1596c789616dc9214a7c6468fe3eb1013c",
+    "results/phase_b/imdb/gp_confirmation_2_static_doe_val_loss.json": "11f42f7ac96b9af9fb7e9f381ca3f327454f3e4de2ed04667fefe1a9a2e7c076",
+    "results/phase_b/imdb/gp_confirmation_2_static_doe_latency_us.json": "1e64a5650ffacdd186e31c9f9cb07543977875f2bc09156e6b22f8995190f6b8",
+    "results/phase_b/imdb/snapshot_2_static_doe_final.json": "c57dbd872c94e031946a5659fe3061807afa6ad71c410a1e99d094245b910640",
+    "results/phase_b/imdb/overhead_0_doe.json": "857863b4a8b93dcef7376707a2ef7fd6efa9a34526a926bbcfb677b68574bbb2",
+    "results/phase_b/imdb/gp_confirmation_0_doe_val_loss.json": "5614e8be505bbf1398200cb9534f1db5c7e035d210c38c50a5984d0769951f26",
+    "results/phase_b/imdb/gp_confirmation_0_doe_latency_us.json": "b9854be8f0c6b708b6c31e945f408ed75debe03bace21e84005425def2a958c5",
+    "results/phase_b/imdb/overhead_1_doe.json": "78ac868a840123e264028b585e090b8b6127cade9c0f942df726e757bfb64644",
+    "results/phase_b/imdb/gp_confirmation_1_doe_val_loss.json": "1316d003fe47321c4f802f79114b01524b4f1c21432e18fc672e24149e8588eb",
+    "results/phase_b/imdb/gp_confirmation_1_doe_latency_us.json": "a979dc476be6cbe91a4a38f5c52ec44f13b895505c7e9ca5ea860cc9ff8759af",
+    "results/phase_b/imdb/snapshot_1_doe_2.json": "cf91312b31977d33ae1da0fee2fc3ae1aa6c507b8b4ad484b198d20c45058c2d",
+    "results/phase_b/imdb/overhead_2_doe.json": "2ca6838e1e9a7989d741580cf2a1140435422773c5b185236840913b7ff0f72e",
+    "results/phase_b/imdb/gp_confirmation_2_doe_val_loss.json": "40e0d069c5f3dbc609400af86399e42216e43906bf56ca15338b234c8f466398",
+    "results/phase_b/imdb/gp_confirmation_2_doe_latency_us.json": "fb4c139aa1fb3cb68cf4cd325fcb71818af1658bdbfdf5513203d6a5007f6b93",
+    "results/phase_b/imdb/snapshot_2_doe_2.json": "0a3d52508321bc8cef4f54416de3e2288af8d1b661fc56bccc3789c45e6133d2",
+    "results/phase_b/imdb/overhead_0_tpe.json": "fb67ba16bcb592ecc48366d952929caaa9f260a7269e1fe9c82533c980fc2baa",
+    "results/phase_b/imdb/gp_confirmation_0_tpe_val_loss.json": "b6395da067a332b0a385e58677eebd46f59aa67116c995c96f62408830518876",
+    "results/phase_b/imdb/gp_confirmation_0_tpe_latency_us.json": "f8f26a8eee171dc6f4d49fac4195491396469bc8a92718e9e751ac7e6499a2e7",
+    "results/phase_b/imdb/snapshot_0_tpe_final.json": "99c8c399049c1033c7bd662ab2c1b63bb54604b596bc3faf112d54d70b9cd932",
+    "results/phase_b/imdb/overhead_1_tpe.json": "2208b808d6a05557e901d29a7360185e79dbb9adde584745cdeaf1fd33981914",
+    "results/phase_b/imdb/gp_confirmation_1_tpe_val_loss.json": "3b42bbc1d702a261c0a46cb7291a5dde2b042d8f858dda3b990fd43410513e6d",
+    "results/phase_b/imdb/gp_confirmation_1_tpe_latency_us.json": "c917d0859d7e8ba7e467c3a0cebc2c743961533ab4e7890cfc1c10400a13380a",
+    "results/phase_b/imdb/snapshot_1_tpe_final.json": "29cf0b08328a626f945965133c5d8f90c1ad34e0279fb44a39bfb833cb1f9536",
+    "results/phase_b/imdb/overhead_2_tpe.json": "501926515f20ac3a0a91a1f62f7aef93fd5f3d1ea1ac13e34443cbd01f1e1400",
+    "results/phase_b/imdb/gp_confirmation_2_tpe_val_loss.json": "373ebc9590767f18df6288786e0345ae9f408d0631bcf0f3300e664e8c24b1e0",
+    "results/phase_b/imdb/gp_confirmation_2_tpe_latency_us.json": "b61ccca81659b6a0c357caea583be9620ad6ab5c55b7c8987c75c5c5b81a2e2a",
+    "results/phase_b/imdb/snapshot_2_tpe_final.json": "6b320495eb1fd5d72fe43d230f8e5cf176673c9c339d91caf39be2aff35a0738",
+    "results/phase_b/imdb/selected.json": "99e961ff17389b5be764dfbd12a799ace248a9be8912f0d7f37c00c33e4cd2c6",
+    "report/posthoc_analysis.py": "2e5432ad1297e149e0cb3346e6319b6a4444641045ed03943db4a98aa85c3c83",
+    "phase_a_rsm_blocking/analysis.py": "ba9909bc02c235fd204b4f4d2754c6ae4b826c8ca55468ec0cf36c42fe9aa51a",
     "findings/phase_a/figures/explainer_research_pipeline.pdf": "402bf27dd9699582a04520284d7b81be3ce9667ed6d70d7174c2fa9b33fdb11e",
     "findings/phase_a/figures/explainer_design_projection.pdf": "7ffee6253ef190d76b20b1d0ced3fedbc986571737177120aad2aa6c089b76bc",
     "findings/phase_a/figures/explainer_blocking.pdf": "6b578abae32d5bee940dd08853ff0dc002d9fb0577ac59cce2ffec48ff1d4fd0",
@@ -1747,19 +2647,9 @@
     "phase_a_rsm_blocking/results/benchmark_evals_trajectories.csv": "70798e72e61e264dbf0bd072624be8b1c31658207e0dcd8363bef80a035b9aab",
     "phase_a_rsm_blocking/results/revision_v2/full_run_001/optimizer_trials.csv": "137f8fff826174cb647455b3360eb9c340ed4d992310dd072e29d6df89a76d19",
     "phase_a_rsm_blocking/results/revision_v2/full_run_001/doe_selection_runs.csv": "83c1e9f604b081c51c7271e3b15c68d4a29d0a18ce8fdf854ac1eaa8bd1de54b",
-    "findings/phase_a/figures/revision_v2_pareto_front.png": "761844a94ab6373fe17dea5a2b095b92a85849cbb5e475f73e966548e9596742",
     "phase_a_rsm_blocking/results/revision_v2/full_run_001/doe_matched_candidate_front.csv": "44ca6a903b17181590223fb09ab7144dc822e815c03b5e084ffb8005f99c0aaa",
-    "phase_a_rsm_blocking/results/revision_v2/full_run_001/hypervolume.json": "aab8964d433eed91a3d5e68b29b74e49ca1dcb5ebd793544105a63ca9d1f5f98",
-    "findings/phase_a/figures/explainer_sequential_extension.pdf": "4e00a3e14bf01cd660d8e3d1c787d46ee14f2d228990175ee8b7dc7032bcfaa1",
+    "phase_b_sequential_xai/xgb_doe_xai/design.py": "78c89ecbb1b3f68383a2357cc4c3a942394d94cff376f97575fdf6daa652a5b3",
     "results/phase_b/imdb_analysis.json": "93b1f789fb1c1193a979f4b2e02f8b4b216a7dabe8689299991713f303d11518",
-    "results/phase_b/imdb/snapshot_0_static_doe_final.json": "11fcdd558e578806b60f46084eb4c6d1e936e9daeaf5b4c450d9e3180a73950c",
-    "results/phase_b/imdb/snapshot_0_tpe_final.json": "99c8c399049c1033c7bd662ab2c1b63bb54604b596bc3faf112d54d70b9cd932",
-    "results/phase_b/imdb/snapshot_1_doe_2.json": "cf91312b31977d33ae1da0fee2fc3ae1aa6c507b8b4ad484b198d20c45058c2d",
-    "results/phase_b/imdb/snapshot_1_static_doe_final.json": "24859ad85ce6bce51c51028945eb62d8115dc4a6b4091a984d968a057bfe800c",
-    "results/phase_b/imdb/snapshot_1_tpe_final.json": "29cf0b08328a626f945965133c5d8f90c1ad34e0279fb44a39bfb833cb1f9536",
-    "results/phase_b/imdb/snapshot_2_doe_2.json": "0a3d52508321bc8cef4f54416de3e2288af8d1b661fc56bccc3789c45e6133d2",
-    "results/phase_b/imdb/snapshot_2_static_doe_final.json": "c57dbd872c94e031946a5659fe3061807afa6ad71c410a1e99d094245b910640",
-    "results/phase_b/imdb/snapshot_2_tpe_final.json": "6b320495eb1fd5d72fe43d230f8e5cf176673c9c339d91caf39be2aff35a0738",
     "results/phase_b/imdb/snapshot_0_doe_0.json": "1021f990f2079c83aac56583637d5698ab7eb28c9efb8732741efe3eab036272",
     "results/phase_b/imdb/snapshot_1_doe_0.json": "7117dde3fb0b950703ef2f299a180e575357aea5ddd8b574e7b18f211a5165ab",
     "results/phase_b/imdb/snapshot_2_doe_0.json": "3cba855f5af439107d3bf4e285b34f990ed30ba7dff4fc992a07ffeb1f22d933"
@@ -1825,15 +2715,14 @@
       "phase_a_rsm_blocking/results/revision_v2/full_run_001/doe_selection_runs.csv"
     ],
     "phase_a_pareto.png": [
-      "findings/phase_a/figures/revision_v2_pareto_front.png",
-      "phase_a_rsm_blocking/results/runs.csv",
       "phase_a_rsm_blocking/results/revision_v2/full_run_001/doe_matched_candidate_front.csv",
+      "phase_a_rsm_blocking/results/revision_v2/full_run_001/optimizer_trials.csv",
       "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_summary.csv",
-      "phase_a_rsm_blocking/results/revision_v2/full_run_001/hypervolume.json"
+      "phase_a_rsm_blocking/results/revision_v2/full_run_001/final_evaluations.csv"
     ],
     "sequential_design.pdf": [
-      "findings/phase_a/figures/explainer_sequential_extension.pdf",
-      "phase_a_rsm_blocking/results/runs.csv"
+      "phase_b_sequential_xai/xgb_doe_xai/study.py",
+      "phase_b_sequential_xai/xgb_doe_xai/design.py"
     ],
     "phase_b_pareto.pdf": [
       "results/phase_b/imdb/evaluations.jsonl",
@@ -1868,10 +2757,18 @@
       "results/phase_b/imdb/snapshot_2_doe_2.json"
     ],
     "phase_b_confirmation.pdf": [
-      "results/phase_b/imdb/confirmation.json"
+      "report/posthoc_results.json",
+      "results/phase_b/imdb/evaluations.jsonl"
     ],
     "phase_b_words.pdf": [
       "results/phase_b/imdb_words/observations.json"
+    ],
+    "phase_a_diagnostics.pdf": [
+      "phase_a_rsm_blocking/results/runs.csv"
+    ],
+    "phase_b_sensitivity.pdf": [
+      "report/posthoc_results.json",
+      "results/phase_b/imdb/evaluations.jsonl"
     ]
   }
 }

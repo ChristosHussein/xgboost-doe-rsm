@@ -3,7 +3,7 @@
     {
       "document": "report.tex",
       "section": "abstract",
-      "context": "Mean test macro F1 is \\m{BAFone} for static CCD, \\m{BBFone} for sequential CCD and \\m{BCFone} for MO-TPE. These small observed differences do not establish superiority or equivalence. DOE provides more accurate quadratic predictions at reserved configurations, but the small adaptive extension does not demonstrate a clear benefit over the static design. No method meets the predeclared \\m{BCap}\\,$\\mu$s latency threshold. The evidence supports DOE as an interpretable and competitive experimental approach, with conclusions limited by the sampled tasks, shared folds, modest replication and historical test exposure.",
+      "context": "Mean test macro F1 is \\m{BAFone} for static CCD, \\m{BBFone} for sequential CCD and \\m{BCFone} for MO-TPE. The observed differences do not establish a method ranking. Global response prediction depends on both sampling coverage and surrogate choice, so it is evaluated separately from optimizer performance. The original \\m{BCap}\\,$\\mu$s calibration-derived threshold is unmet; capacity-matched and reference-point sensitivity analyses are reported explicitly as post hoc. The study demonstrates a reproducible comparison of selection, response modeling and diagnostic explanations. It does not establish general efficiency gains or the effectiveness of SHAP-driven acquisition.",
       "metrics": [
         "BAFone",
         "BBFone",
@@ -36,6 +36,19 @@
     },
     {
       "document": "report.tex",
+      "section": "Screening, response fitting and selection",
+      "context": "The recorded RMSE limits are \\m{DesirabilityErrorLow} and \\m{DesirabilityErrorHigh}; latency limits are \\m{DesirabilityLatencyLow} and \\m{DesirabilityLatencyHigh}\\,$\\mu$s. The shape exponents and response weights equal \\m{DesirabilityExponent}. These are preference settings, not estimated physical constants. Selected candidates receive separate confirmation evaluations.",
+      "metrics": [
+        "DesirabilityErrorLow",
+        "DesirabilityErrorHigh",
+        "DesirabilityLatencyLow",
+        "DesirabilityLatencyHigh",
+        "DesirabilityExponent"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
       "section": "Useful structure, but not a perfect surface",
       "context": "The factorial-to-center curvature statistic is \\m{ACurvature}. The response clearly departs from a flat plane over the tested range. The block-variance analysis reports an RMSE intraclass correlation of \\m{AIcc}\\%. This supports treating data partition as a meaningful nuisance condition rather than ignoring it.",
       "metrics": [
@@ -56,19 +69,24 @@
     {
       "document": "report.tex",
       "section": "Useful structure, but not a perfect surface",
-      "context": "One reason the global response is difficult is that \\m{ALowCount} of the \\m{ADesign} design runs, or \\m{ALowPct}\\%, use the lowest learning rate, \\m{ALowRate}. Under the fixed tree budget this region learns poorly. A design that spends many evaluations on that region can produce dramatic curvature without giving equally precise guidance near the best-performing settings. Removing a difficult region after observing it is a diagnostic analysis, not a predeclared new experiment.",
+      "context": "The lowest learning rate, \\m{ALowRate}, occurs in \\m{ALowCount} of \\m{ADesign} runs (\\m{ALowPct}\\%); that allocation follows the CCD geometry. The issue is whether the chosen range learns adequately under the fixed tree budget. New post-hoc diagnostics give lack-of-fit $F=\\m{PostLogLof}$ after log-transforming RMSE and $F=\\m{PostRestrictedLof}$ after excluding that low-rate face. The restricted fit has $R^2=\\m{PostRestrictedRtwo}$ but rank \\m{PostRestrictedRank} of \\m{PostRestrictedColumns}: its remaining learning-rate linear and squared terms are aliased. Thus neither transformation nor exclusion establishes an adequate quadratic model or localizes all misspecification to the low-rate face.",
       "metrics": [
+        "ALowRate",
         "ALowCount",
         "ADesign",
         "ALowPct",
-        "ALowRate"
+        "PostLogLof",
+        "PostRestrictedLof",
+        "PostRestrictedRtwo",
+        "PostRestrictedRank",
+        "PostRestrictedColumns"
       ],
       "text_metrics": []
     },
     {
       "document": "report.tex",
       "section": "Confirmation revealed boundary optimism",
-      "context": "Table~\\ref{tab:aconfirm} compares the response surface with independent confirmation. The compromise candidate's observed validation RMSE falls within its prediction interval. The accuracy-focused candidate is more optimistic: observed error exceeds the upper bound. Its observed-minus-predicted difference is \\m{AAccuracyBias} RMSE. The practical lesson is that a mathematically attractive candidate is not yet a verified improvement.",
+      "context": "Table~\\ref{tab:aconfirm} compares the surface with confirmation on new data-split seeds, disjoint from the design's split seeds but using the same housing dataset. The compromise candidate's observed validation RMSE falls within its interval. The accuracy-focused candidate lies above its upper bound; its observed-minus-predicted gap is \\m{AAccuracyBias} RMSE. These are working-model intervals from a demonstrably imperfect surface; the gap combines model inadequacy and split variation rather than identifying either cause alone.",
       "metrics": [
         "AAccuracyBias"
       ],
@@ -109,7 +127,7 @@
     {
       "document": "report.tex",
       "section": "Data, preprocessing and evaluation",
-      "context": "The IMDb movie-review dataset~\\cite{imdb} supplies \\m{BDev} development documents and \\m{BTest} test documents after HTML removal, whitespace normalization and exact-text deduplication. Official test copies are retained when duplicates span the two partitions. TF-IDF converts each document into a sparse vector of word and word-pair weights, using at most \\m{BVocab} features and sublinear term frequency. Vocabulary and weights are fitted within each training fold, so validation text does not determine that fold's representation.",
+      "context": "The IMDb movie-review dataset~\\cite{imdb} supplies \\m{BDev} development documents and \\m{BTest} test documents after HTML removal, whitespace normalization and exact-text deduplication. Official test copies are retained when duplicates span the two partitions. Term frequency--inverse document frequency (TF-IDF) converts each document into a sparse vector of word and word-pair weights, using at most \\m{BVocab} features and sublinear term frequency. Vocabulary and weights are fitted within each training fold, so validation text does not determine that fold's representation.",
       "metrics": [
         "BDev",
         "BTest",
@@ -163,6 +181,24 @@
     {
       "document": "report.tex",
       "section": "A fair comparison with a small adaptive extension",
+      "context": "The budget supplies \\m{PostProposalBudget} complete-fold configuration evaluations per search; CCD center replications reuse coordinates. This is a small optimization budget for assessing an adaptive sampler's startup and subsequent learning.",
+      "metrics": [
+        "PostProposalBudget"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
+      "section": "A fair comparison with a small adaptive extension",
+      "context": "Static CCD retains its center replication. Sequential CCD reallocates center fits to \\m{PostAdaptiveCoordinates} adaptive coordinates per search repeat. Its Gaussian processes (GPs) use scaled Mat\\'ern covariance with fitted factor-specific length scales and white noise, following the computer-experiment surrogate approach~\\cite{sacks,santner}. The executed acquisition is",
+      "metrics": [
+        "PostAdaptiveCoordinates"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
+      "section": "A fair comparison with a small adaptive extension",
       "context": "The complete Phase B experiment contains \\m{BSearch} search fits, \\m{BConfirmationFits} confirmation fits and \\m{BFinalFits} final refits, plus the local explanation model: \\m{BTotal} new model fits in total. Total runtime is \\m{BHours} hours; this excludes the preceding calibration and is not a measured CPU-versus-GPU speedup.",
       "metrics": [
         "BSearch",
@@ -186,9 +222,10 @@
     {
       "document": "report.tex",
       "section": "The timing protocol and what the threshold means",
-      "context": "The latency threshold of \\m{BCap}\\,$\\mu$s is the median of development calibration timings pooled across tree budgets. It serves as a descriptive feasibility threshold rather than an external deployment requirement. Hypervolume uses the common reference (classification loss \\m{BReferenceLoss}, latency \\m{BReference}\\,$\\mu$s); its latency coordinate is twice the largest calibration median.",
+      "context": "The original threshold, \\m{BCap}\\,$\\mu$s, pools calibration timings from different tree budgets. It is low relative to the main study's selected capacity, making failure plausible in advance, but calibration does not prove universal infeasibility. A post-hoc capacity-matched reference is \\m{PostCapacity}\\,$\\mu$s, the median of all calibration timings at the selected tree budget. Both references are descriptive, not deployment requirements. Hypervolume uses loss reference \\m{BReferenceLoss} and latency reference \\m{BReference}\\,$\\mu$s; the latency reference is twice the largest calibration median.",
       "metrics": [
         "BCap",
+        "PostCapacity",
         "BReferenceLoss",
         "BReference"
       ],
@@ -197,7 +234,7 @@
     {
       "document": "report.tex",
       "section": "ANOVA and SHAP explain the same measured response",
-      "context": "The explanation background contains the \\m{BBackground} distinct initial CCD coordinates with equal weights; explanations are evaluated at the reserved confirmation coordinates. Missing factors in a coalition are replaced jointly by background values. ANOVA partial sums of squares and Shapley contributions have different meanings and units. We compare factor orderings and pairwise interaction patterns; total SHAP importance also includes interactions, so it need not rank factors like ANOVA's linear main effects.",
+      "context": "The explanation background contains the \\m{BBackground} distinct initial CCD coordinates with equal weights; every method, including TPE, uses that same background. They are input coordinates queried through a fitted surrogate, not additional measured responses for TPE. Missing factors in a coalition are replaced jointly by background values. We normalize linear-effect partial sums of squares and total Shapley contributions separately:",
       "metrics": [
         "BBackground"
       ],
@@ -205,8 +242,17 @@
     },
     {
       "document": "report.tex",
+      "section": "ANOVA and SHAP explain the same measured response",
+      "context": "\\caption{Post-hoc interaction checks for classification loss, averaged across repeats. Pair-rank correlation is Spearman correlation over \\m{PostPairCount} pairs. The omission column removes the two largest ANOVA interaction pairs within each repeat before recomputing Pearson correlation; the last column gives their combined normalized ANOVA share.}\\label{tab:leverage}\\end{table}",
+      "metrics": [
+        "PostPairCount"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
       "section": "New hyperparameter coordinates test response predictions",
-      "context": "The experiment reserves \\m{BConfirm} coordinates before search, including interior and boundary settings. Their measured responses are excluded from acquisition and surrogate fitting. This tests prediction at new configurations on the existing development folds. Final test documents address a different question: classifier generalization to documents not used for training.",
+      "context": "The experiment reserves \\m{BConfirm} coordinates before search. A fixed seeded generator draws uniformly in coded space, projects depth onto its integer grid and excludes duplicate or initial-design coordinates. Alternating accepted coordinates are additionally assigned to opposite learning-rate faces. Near-boundary values in any factor are tagged using the declared cutoff. Only the coordinates are known during design; their measured responses are excluded from acquisition and surrogate fitting.",
       "metrics": [
         "BConfirm"
       ],
@@ -215,12 +261,12 @@
     {
       "document": "report.tex",
       "section": "New hyperparameter coordinates test response predictions",
-      "context": "\\caption{Phase B quadratic-surrogate confirmation: \\m{BConfirmPerMethod} fold-level observations per method and response at \\m{BConfirm} reserved coordinates. Coverage refers to nominal \\m{BIntervalLevel}\\% fixed-block prediction intervals. Bias is observed minus predicted; boundary means at least one absolute coded coordinate is at least \\m{BBoundaryCutoff}. Loss errors are in classification-loss units; latency errors are in microseconds.}\\label{tab:bconfirm}\\end{table}",
+      "context": "\\caption{Post-hoc symmetric confirmation of RSM and GP predictions against the same block-mean target: \\m{PostMeanConfirmationN} coordinate-by-repeat outcomes from \\m{BConfirm} distinct coordinates. Bias is observed minus predicted; boundary means an absolute coded coordinate reaches \\m{BBoundaryCutoff}. Coverage uses nominal \\m{BIntervalLevel}\\% working intervals. Loss errors are in classification-loss units; latency errors are in microseconds.}\\label{tab:bconfirm}\\end{table}",
       "metrics": [
-        "BConfirmPerMethod",
+        "PostMeanConfirmationN",
         "BConfirm",
-        "BIntervalLevel",
-        "BBoundaryCutoff"
+        "BBoundaryCutoff",
+        "BIntervalLevel"
       ],
       "text_metrics": []
     },
@@ -246,9 +292,36 @@
     {
       "document": "report.tex",
       "section": "Local word explanations answer a separate question",
-      "context": "\\caption{Local word-response results. Left: prediction error for each document on unused feature-weight perturbations. Center: the most difficult local example, document \\m{WordExampleIndex}, compared with the classifier probabilities. Right: that example's pairwise word-feature Shapley interaction strengths. Word-feature effects are conditional model explanations, not causal language effects.}\\end{figure}",
+      "context": "The original perturbations attenuate selected unigram weights while fixing other features, including bigrams, without renormalization. They describe a conditional feature-weight game rather than rewritten sentences. The illustrated example's maximum recorded endpoint-game pair interaction is \\m{PostWordInteractionMax}; zero endpoint interactions do not imply a quadratic continuous probability response. LIME~\\cite{lime} and classifier TreeSHAP address related local-explanation questions but were not matched experimental arms, so this study does not establish superiority over either.",
+      "metrics": [
+        "PostWordInteractionMax"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
+      "section": "Local word explanations answer a separate question",
+      "context": "\\caption{Local word responses. Left: fidelity on unused perturbations. Center: the highest-error example, document \\m{WordExampleIndex}. Right: signed interactions in its zero/full-retention coalition game, with diagonal masked and all zero pair values annotated. The symmetric color-scale floor is a display choice, not evidence of nonzero interaction.}\\end{figure}",
       "metrics": [
         "WordExampleIndex"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
+      "section": "Phase B: comparing model quality, latency and adaptation",
+      "context": "All analyses newly added to the completed campaign are post hoc: paired document bootstrap, capacity-matched comparison, reference sensitivity, transformation diagnostics and interaction omission checks. Table~\\ref{tab:bootstrap} uses \\m{PostBootstrapCount} paired document resamples~\\cite{bootstrap}, applying each resample jointly to all frozen classifiers before averaging within method. Every difference interval includes zero. These intervals quantify document-sampling uncertainty conditional on the trained models; they neither provide more independent optimizer searches nor account for unobserved movie-level clustering.",
+      "metrics": [
+        "PostBootstrapCount"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
+      "section": "Phase B: comparing model quality, latency and adaptation",
+      "context": "\\caption{Post-hoc paired bootstrap differences in mean test macro F1, with percentile \\m{BIntervalLevel}\\% bounds. The same documents are resampled jointly for every frozen classifier. These intervals do not test equivalence or quantify uncertainty over future optimizer runs.}\\label{tab:bootstrap}\\end{table}",
+      "metrics": [
+        "BIntervalLevel"
       ],
       "text_metrics": []
     },
@@ -264,9 +337,47 @@
     {
       "document": "report.tex",
       "section": "Phase B: comparing model quality, latency and adaptation",
-      "context": "No method produces a searched configuration whose block-mean latency meets the recorded \\m{BCap}\\,$\\mu$s threshold, and none of the final selected models meets it either. This is a negative feasibility result under the chosen definition. The run still supplies valid accuracy and timing observations and useful Pareto comparisons, but it does not demonstrate successful optimization under an externally justified latency requirement.",
+      "context": "No searched block-mean or final selected latency meets the original \\m{BCap}\\,$\\mu$s threshold. Every frozen selection is below the post-hoc capacity-matched reference of \\m{PostCapacity}\\,$\\mu$s. These comparisons use development calibration on different fixed inputs and settings; they are not application-level feasibility guarantees. Table~\\ref{tab:operational} retains both comparisons and reports search costs: equal fit budgets did not produce equal elapsed cost. Latency SD across selections is not independent timing-session repeatability, and surrogate prediction error is not an estimate of timing noise.",
       "metrics": [
-        "BCap"
+        "BCap",
+        "PostCapacity"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
+      "section": "Phase B: comparing model quality, latency and adaptation",
+      "context": "\\caption{Post-hoc operational comparisons. Counts are out of \\m{BRepeats} frozen selections per method. Search seconds are mean $\\pm$ sample SD across repeats, including recorded evaluation time and analysis/sampling overhead. Shared preprocessing, calibration, confirmation, final refits and local word analysis are excluded.}\\label{tab:operational}\\end{table}",
+      "metrics": [
+        "BRepeats"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
+      "section": "Phase B: comparing model quality, latency and adaptation",
+      "context": "\\caption{Post-hoc development-only reference sensitivity. Top: mean selected depth across searches. Bottom: selections changed from the original rule, out of \\m{BRepeats} per method. Every cell uses the same observed configurations; the grid is not a new search or test-set comparison.}\\label{fig:sensitivity}\\end{figure}",
+      "metrics": [
+        "BRepeats"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
+      "section": "Limitations and threats to validity",
+      "context": "\\item \\textbf{Replication and information allocation.} Phase B has \\m{BRepeats} search repeats and only \\m{PostAdaptiveCoordinates} infill coordinates per sequential search. It cannot establish modest method advantages or general conclusions about adaptive design. Phase A compares replicated planned coordinates with broader fixed-split searches. The frozen-model document bootstrap does not resolve either asymmetry. No matched random-search, default-XGBoost or linear-text-classifier arm was included in Phase B.",
+      "metrics": [
+        "BRepeats",
+        "PostAdaptiveCoordinates"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
+      "section": "Limitations and threats to validity",
+      "context": "\\item \\textbf{Design geometry and explanation.} Face-centered CCD concentrates observations at corners, axial points and repeated centers. Space-filling computer-experiment designs~\\cite{sacks,santner} offer a relevant alternative for GP modeling. Global confirmation favors coverage; it is not the same target as finding a good local operating point. Shared-data explanation agreement is not ground truth. The local word study covers \\m{BWordDocs} selected documents and a small conditional perturbation game.",
+      "metrics": [
+        "BWordDocs"
       ],
       "text_metrics": []
     },
@@ -330,7 +441,7 @@
     {
       "document": "a_confirmation.tex",
       "section": "table",
-      "context": "Balanced & \\m{ABalancedPred} & [\\m{ABalancedLower}, \\m{ABalancedUpper}] & \\m{ABalancedObs} \\\\",
+      "context": "Balanced & \\m{ABalancedPred} & $[\\m{ABalancedLower}, \\m{ABalancedUpper}]$ & \\m{ABalancedObs} \\\\",
       "metrics": [
         "ABalancedPred",
         "ABalancedLower",
@@ -342,7 +453,7 @@
     {
       "document": "a_confirmation.tex",
       "section": "table",
-      "context": "Accuracy & \\m{AAccuracyPred} & [\\m{AAccuracyLower}, \\m{AAccuracyUpper}] & \\m{AAccuracyObs} \\\\",
+      "context": "Accuracy & \\m{AAccuracyPred} & $[\\m{AAccuracyLower}, \\m{AAccuracyUpper}]$ & \\m{AAccuracyObs} \\\\",
       "metrics": [
         "AAccuracyPred",
         "AAccuracyLower",
@@ -354,10 +465,11 @@
     {
       "document": "a_benchmark.tex",
       "section": "table",
-      "context": "Repeated DOE compromise & \\m{ABenchAError} & \\m{ABenchASd} & \\m{ABenchALatency} \\\\",
+      "context": "Repeated DOE compromise & \\m{ABenchAError} & \\m{ABenchASd} & \\m{PostWithinA} & \\m{ABenchALatency} \\\\",
       "metrics": [
         "ABenchAError",
         "ABenchASd",
+        "PostWithinA",
         "ABenchALatency"
       ],
       "text_metrics": []
@@ -365,10 +477,11 @@
     {
       "document": "a_benchmark.tex",
       "section": "table",
-      "context": "Repeated DOE accuracy & \\m{ABenchBError} & \\m{ABenchBSd} & \\m{ABenchBLatency} \\\\",
+      "context": "Repeated DOE accuracy & \\m{ABenchBError} & \\m{ABenchBSd} & \\m{PostWithinB} & \\m{ABenchBLatency} \\\\",
       "metrics": [
         "ABenchBError",
         "ABenchBSd",
+        "PostWithinB",
         "ABenchBLatency"
       ],
       "text_metrics": []
@@ -376,10 +489,11 @@
     {
       "document": "a_benchmark.tex",
       "section": "table",
-      "context": "MO-TPE & \\m{ABenchCError} & \\m{ABenchCSd} & \\m{ABenchCLatency} \\\\",
+      "context": "MO-TPE & \\m{ABenchCError} & \\m{ABenchCSd} & \\m{PostWithinC} & \\m{ABenchCLatency} \\\\",
       "metrics": [
         "ABenchCError",
         "ABenchCSd",
+        "PostWithinC",
         "ABenchCLatency"
       ],
       "text_metrics": []
@@ -387,10 +501,11 @@
     {
       "document": "a_benchmark.tex",
       "section": "table",
-      "context": "Constrained TPE & \\m{ABenchDError} & \\m{ABenchDSd} & \\m{ABenchDLatency} \\\\",
+      "context": "Constrained TPE & \\m{ABenchDError} & \\m{ABenchDSd} & \\m{PostWithinD} & \\m{ABenchDLatency} \\\\",
       "metrics": [
         "ABenchDError",
         "ABenchDSd",
+        "PostWithinD",
         "ABenchDLatency"
       ],
       "text_metrics": []
@@ -398,10 +513,11 @@
     {
       "document": "a_benchmark.tex",
       "section": "table",
-      "context": "Accuracy-focused TPE & \\m{ABenchEError} & \\m{ABenchESd} & \\m{ABenchELatency} \\\\",
+      "context": "Accuracy-focused TPE & \\m{ABenchEError} & \\m{ABenchESd} & \\m{PostWithinE} & \\m{ABenchELatency} \\\\",
       "metrics": [
         "ABenchEError",
         "ABenchESd",
+        "PostWithinE",
         "ABenchELatency"
       ],
       "text_metrics": []
@@ -409,10 +525,11 @@
     {
       "document": "a_benchmark.tex",
       "section": "table",
-      "context": "Random search & \\m{ABenchFError} & \\m{ABenchFSd} & \\m{ABenchFLatency} \\\\",
+      "context": "Random search & \\m{ABenchFError} & \\m{ABenchFSd} & \\m{PostWithinF} & \\m{ABenchFLatency} \\\\",
       "metrics": [
         "ABenchFError",
         "ABenchFSd",
+        "PostWithinF",
         "ABenchFLatency"
       ],
       "text_metrics": []
@@ -555,164 +672,271 @@
     {
       "document": "b_anova.tex",
       "section": "table",
-      "context": "Classification loss & Main Effects & \\m{Anovavalloss1F} & \\m{Anovavalloss1P} \\\\",
+      "context": "Classification loss & Main Effects & \\m{Anovavalloss1SS} & \\m{Anovavalloss1Df} \\\\",
       "metrics": [
-        "Anovavalloss1F",
-        "Anovavalloss1P"
+        "Anovavalloss1SS",
+        "Anovavalloss1Df"
       ],
       "text_metrics": []
     },
     {
       "document": "b_anova.tex",
       "section": "table",
-      "context": "& Pairwise Interactions & \\m{Anovavalloss2F} & \\m{Anovavalloss2P} \\\\",
+      "context": "& Pairwise Interactions & \\m{Anovavalloss2SS} & \\m{Anovavalloss2Df} \\\\",
       "metrics": [
-        "Anovavalloss2F",
-        "Anovavalloss2P"
+        "Anovavalloss2SS",
+        "Anovavalloss2Df"
       ],
       "text_metrics": []
     },
     {
       "document": "b_anova.tex",
       "section": "table",
-      "context": "& Curvature (Quadratic) & \\m{Anovavalloss3F} & \\m{Anovavalloss3P} \\\\",
+      "context": "& Curvature (Quadratic) & \\m{Anovavalloss3SS} & \\m{Anovavalloss3Df} \\\\",
       "metrics": [
-        "Anovavalloss3F",
-        "Anovavalloss3P"
+        "Anovavalloss3SS",
+        "Anovavalloss3Df"
       ],
       "text_metrics": []
     },
     {
       "document": "b_anova.tex",
       "section": "table",
-      "context": "& Blocks & \\m{Anovavalloss4F} & \\m{Anovavalloss4P} \\\\",
+      "context": "& Blocks & \\m{Anovavalloss4SS} & \\m{Anovavalloss4Df} \\\\",
       "metrics": [
-        "Anovavalloss4F",
-        "Anovavalloss4P"
+        "Anovavalloss4SS",
+        "Anovavalloss4Df"
       ],
       "text_metrics": []
     },
     {
       "document": "b_anova.tex",
       "section": "table",
-      "context": "CPU latency & Main Effects & \\m{Anovalatencyus1F} & \\m{Anovalatencyus1P} \\\\",
+      "context": "CPU latency & Main Effects & \\m{Anovalatencyus1SS} & \\m{Anovalatencyus1Df} \\\\",
       "metrics": [
-        "Anovalatencyus1F",
-        "Anovalatencyus1P"
+        "Anovalatencyus1SS",
+        "Anovalatencyus1Df"
       ],
       "text_metrics": []
     },
     {
       "document": "b_anova.tex",
       "section": "table",
-      "context": "& Pairwise Interactions & \\m{Anovalatencyus2F} & \\m{Anovalatencyus2P} \\\\",
+      "context": "& Pairwise Interactions & \\m{Anovalatencyus2SS} & \\m{Anovalatencyus2Df} \\\\",
       "metrics": [
-        "Anovalatencyus2F",
-        "Anovalatencyus2P"
+        "Anovalatencyus2SS",
+        "Anovalatencyus2Df"
       ],
       "text_metrics": []
     },
     {
       "document": "b_anova.tex",
       "section": "table",
-      "context": "& Curvature (Quadratic) & \\m{Anovalatencyus3F} & \\m{Anovalatencyus3P} \\\\",
+      "context": "& Curvature (Quadratic) & \\m{Anovalatencyus3SS} & \\m{Anovalatencyus3Df} \\\\",
       "metrics": [
-        "Anovalatencyus3F",
-        "Anovalatencyus3P"
+        "Anovalatencyus3SS",
+        "Anovalatencyus3Df"
       ],
       "text_metrics": []
     },
     {
       "document": "b_anova.tex",
       "section": "table",
-      "context": "& Blocks & \\m{Anovalatencyus4F} & \\m{Anovalatencyus4P} \\\\",
+      "context": "& Blocks & \\m{Anovalatencyus4SS} & \\m{Anovalatencyus4Df} \\\\",
       "metrics": [
-        "Anovalatencyus4F",
-        "Anovalatencyus4P"
+        "Anovalatencyus4SS",
+        "Anovalatencyus4Df"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_interaction_checks.tex",
+      "section": "table",
+      "context": "Static CCD & \\m{PostLeverageARank} & \\m{PostLeverageAOmit} & \\m{PostLeverageAShare} \\\\",
+      "metrics": [
+        "PostLeverageARank",
+        "PostLeverageAOmit",
+        "PostLeverageAShare"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_interaction_checks.tex",
+      "section": "table",
+      "context": "Sequential CCD & \\m{PostLeverageBRank} & \\m{PostLeverageBOmit} & \\m{PostLeverageBShare} \\\\",
+      "metrics": [
+        "PostLeverageBRank",
+        "PostLeverageBOmit",
+        "PostLeverageBShare"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_interaction_checks.tex",
+      "section": "table",
+      "context": "MO-TPE & \\m{PostLeverageCRank} & \\m{PostLeverageCOmit} & \\m{PostLeverageCShare} \\\\",
+      "metrics": [
+        "PostLeverageCRank",
+        "PostLeverageCOmit",
+        "PostLeverageCShare"
       ],
       "text_metrics": []
     },
     {
       "document": "b_validation.tex",
       "section": "table",
-      "context": "Static CCD & Loss & \\m{ConfirmAvallossError} & \\m{ConfirmAvallossBias} & \\m{ConfirmAvallossCoverage}\\% & \\m{ConfirmAvallossBoundary} \\\\",
+      "context": "Static CCD & Loss & RSM & \\m{PostConfirmA0RSMError} & \\m{PostConfirmA0RSMBias} & \\m{PostConfirmA0RSMCoverage} & \\m{PostConfirmA0RSMBoundary} \\\\",
       "metrics": [
-        "ConfirmAvallossError",
-        "ConfirmAvallossBias",
-        "ConfirmAvallossCoverage",
-        "ConfirmAvallossBoundary"
+        "PostConfirmA0RSMError",
+        "PostConfirmA0RSMBias",
+        "PostConfirmA0RSMCoverage",
+        "PostConfirmA0RSMBoundary"
       ],
       "text_metrics": []
     },
     {
       "document": "b_validation.tex",
       "section": "table",
-      "context": "Static CCD & Latency & \\m{ConfirmAlatencyusError} & \\m{ConfirmAlatencyusBias} & \\m{ConfirmAlatencyusCoverage}\\% & \\m{ConfirmAlatencyusBoundary} \\\\",
+      "context": "Static CCD & Loss & GP & \\m{PostConfirmA0GPError} & \\m{PostConfirmA0GPBias} & \\m{PostConfirmA0GPCoverage} & \\m{PostConfirmA0GPBoundary} \\\\",
       "metrics": [
-        "ConfirmAlatencyusError",
-        "ConfirmAlatencyusBias",
-        "ConfirmAlatencyusCoverage",
-        "ConfirmAlatencyusBoundary"
+        "PostConfirmA0GPError",
+        "PostConfirmA0GPBias",
+        "PostConfirmA0GPCoverage",
+        "PostConfirmA0GPBoundary"
       ],
       "text_metrics": []
     },
     {
       "document": "b_validation.tex",
       "section": "table",
-      "context": "Sequential CCD & Loss & \\m{ConfirmBvallossError} & \\m{ConfirmBvallossBias} & \\m{ConfirmBvallossCoverage}\\% & \\m{ConfirmBvallossBoundary} \\\\",
+      "context": "Static CCD & Latency & RSM & \\m{PostConfirmA1RSMError} & \\m{PostConfirmA1RSMBias} & \\m{PostConfirmA1RSMCoverage} & \\m{PostConfirmA1RSMBoundary} \\\\",
       "metrics": [
-        "ConfirmBvallossError",
-        "ConfirmBvallossBias",
-        "ConfirmBvallossCoverage",
-        "ConfirmBvallossBoundary"
+        "PostConfirmA1RSMError",
+        "PostConfirmA1RSMBias",
+        "PostConfirmA1RSMCoverage",
+        "PostConfirmA1RSMBoundary"
       ],
       "text_metrics": []
     },
     {
       "document": "b_validation.tex",
       "section": "table",
-      "context": "Sequential CCD & Latency & \\m{ConfirmBlatencyusError} & \\m{ConfirmBlatencyusBias} & \\m{ConfirmBlatencyusCoverage}\\% & \\m{ConfirmBlatencyusBoundary} \\\\",
+      "context": "Static CCD & Latency & GP & \\m{PostConfirmA1GPError} & \\m{PostConfirmA1GPBias} & \\m{PostConfirmA1GPCoverage} & \\m{PostConfirmA1GPBoundary} \\\\",
       "metrics": [
-        "ConfirmBlatencyusError",
-        "ConfirmBlatencyusBias",
-        "ConfirmBlatencyusCoverage",
-        "ConfirmBlatencyusBoundary"
+        "PostConfirmA1GPError",
+        "PostConfirmA1GPBias",
+        "PostConfirmA1GPCoverage",
+        "PostConfirmA1GPBoundary"
       ],
       "text_metrics": []
     },
     {
       "document": "b_validation.tex",
       "section": "table",
-      "context": "MO-TPE & Loss & \\m{ConfirmCvallossError} & \\m{ConfirmCvallossBias} & \\m{ConfirmCvallossCoverage}\\% & \\m{ConfirmCvallossBoundary} \\\\",
+      "context": "Sequential CCD & Loss & RSM & \\m{PostConfirmB0RSMError} & \\m{PostConfirmB0RSMBias} & \\m{PostConfirmB0RSMCoverage} & \\m{PostConfirmB0RSMBoundary} \\\\",
       "metrics": [
-        "ConfirmCvallossError",
-        "ConfirmCvallossBias",
-        "ConfirmCvallossCoverage",
-        "ConfirmCvallossBoundary"
+        "PostConfirmB0RSMError",
+        "PostConfirmB0RSMBias",
+        "PostConfirmB0RSMCoverage",
+        "PostConfirmB0RSMBoundary"
       ],
       "text_metrics": []
     },
     {
       "document": "b_validation.tex",
       "section": "table",
-      "context": "MO-TPE & Latency & \\m{ConfirmClatencyusError} & \\m{ConfirmClatencyusBias} & \\m{ConfirmClatencyusCoverage}\\% & \\m{ConfirmClatencyusBoundary} \\\\",
+      "context": "Sequential CCD & Loss & GP & \\m{PostConfirmB0GPError} & \\m{PostConfirmB0GPBias} & \\m{PostConfirmB0GPCoverage} & \\m{PostConfirmB0GPBoundary} \\\\",
       "metrics": [
-        "ConfirmClatencyusError",
-        "ConfirmClatencyusBias",
-        "ConfirmClatencyusCoverage",
-        "ConfirmClatencyusBoundary"
+        "PostConfirmB0GPError",
+        "PostConfirmB0GPBias",
+        "PostConfirmB0GPCoverage",
+        "PostConfirmB0GPBoundary"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_validation.tex",
+      "section": "table",
+      "context": "Sequential CCD & Latency & RSM & \\m{PostConfirmB1RSMError} & \\m{PostConfirmB1RSMBias} & \\m{PostConfirmB1RSMCoverage} & \\m{PostConfirmB1RSMBoundary} \\\\",
+      "metrics": [
+        "PostConfirmB1RSMError",
+        "PostConfirmB1RSMBias",
+        "PostConfirmB1RSMCoverage",
+        "PostConfirmB1RSMBoundary"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_validation.tex",
+      "section": "table",
+      "context": "Sequential CCD & Latency & GP & \\m{PostConfirmB1GPError} & \\m{PostConfirmB1GPBias} & \\m{PostConfirmB1GPCoverage} & \\m{PostConfirmB1GPBoundary} \\\\",
+      "metrics": [
+        "PostConfirmB1GPError",
+        "PostConfirmB1GPBias",
+        "PostConfirmB1GPCoverage",
+        "PostConfirmB1GPBoundary"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_validation.tex",
+      "section": "table",
+      "context": "MO-TPE & Loss & RSM & \\m{PostConfirmC0RSMError} & \\m{PostConfirmC0RSMBias} & \\m{PostConfirmC0RSMCoverage} & \\m{PostConfirmC0RSMBoundary} \\\\",
+      "metrics": [
+        "PostConfirmC0RSMError",
+        "PostConfirmC0RSMBias",
+        "PostConfirmC0RSMCoverage",
+        "PostConfirmC0RSMBoundary"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_validation.tex",
+      "section": "table",
+      "context": "MO-TPE & Loss & GP & \\m{PostConfirmC0GPError} & \\m{PostConfirmC0GPBias} & \\m{PostConfirmC0GPCoverage} & \\m{PostConfirmC0GPBoundary} \\\\",
+      "metrics": [
+        "PostConfirmC0GPError",
+        "PostConfirmC0GPBias",
+        "PostConfirmC0GPCoverage",
+        "PostConfirmC0GPBoundary"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_validation.tex",
+      "section": "table",
+      "context": "MO-TPE & Latency & RSM & \\m{PostConfirmC1RSMError} & \\m{PostConfirmC1RSMBias} & \\m{PostConfirmC1RSMCoverage} & \\m{PostConfirmC1RSMBoundary} \\\\",
+      "metrics": [
+        "PostConfirmC1RSMError",
+        "PostConfirmC1RSMBias",
+        "PostConfirmC1RSMCoverage",
+        "PostConfirmC1RSMBoundary"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_validation.tex",
+      "section": "table",
+      "context": "MO-TPE & Latency & GP & \\m{PostConfirmC1GPError} & \\m{PostConfirmC1GPBias} & \\m{PostConfirmC1GPCoverage} & \\m{PostConfirmC1GPBoundary} \\\\",
+      "metrics": [
+        "PostConfirmC1GPError",
+        "PostConfirmC1GPBias",
+        "PostConfirmC1GPCoverage",
+        "PostConfirmC1GPBoundary"
       ],
       "text_metrics": []
     },
     {
       "document": "b_benchmark.tex",
       "section": "table",
-      "context": "Static CCD & $\\m{BAFone} \\pm \\m{BAFoneSd}$ & \\m{BALogloss} & \\m{BALatency} & $\\m{BAHv} \\pm \\m{BAHvSd}$ \\\\",
+      "context": "Static CCD & $\\m{BAFone} \\pm \\m{BAFoneSd}$ & $\\m{BALogloss} \\pm \\m{PostLoglossSdA}$ & $\\m{BALatency} \\pm \\m{PostLatencySdA}$ & $\\m{BAHv} \\pm \\m{BAHvSd}$ \\\\",
       "metrics": [
         "BAFone",
         "BAFoneSd",
         "BALogloss",
+        "PostLoglossSdA",
         "BALatency",
+        "PostLatencySdA",
         "BAHv",
         "BAHvSd"
       ],
@@ -721,12 +945,14 @@
     {
       "document": "b_benchmark.tex",
       "section": "table",
-      "context": "Sequential CCD & $\\m{BBFone} \\pm \\m{BBFoneSd}$ & \\m{BBLogloss} & \\m{BBLatency} & $\\m{BBHv} \\pm \\m{BBHvSd}$ \\\\",
+      "context": "Sequential CCD & $\\m{BBFone} \\pm \\m{BBFoneSd}$ & $\\m{BBLogloss} \\pm \\m{PostLoglossSdB}$ & $\\m{BBLatency} \\pm \\m{PostLatencySdB}$ & $\\m{BBHv} \\pm \\m{BBHvSd}$ \\\\",
       "metrics": [
         "BBFone",
         "BBFoneSd",
         "BBLogloss",
+        "PostLoglossSdB",
         "BBLatency",
+        "PostLatencySdB",
         "BBHv",
         "BBHvSd"
       ],
@@ -735,14 +961,85 @@
     {
       "document": "b_benchmark.tex",
       "section": "table",
-      "context": "MO-TPE & $\\m{BCFone} \\pm \\m{BCFoneSd}$ & \\m{BCLogloss} & \\m{BCLatency} & $\\m{BCHv} \\pm \\m{BCHvSd}$ \\\\",
+      "context": "MO-TPE & $\\m{BCFone} \\pm \\m{BCFoneSd}$ & $\\m{BCLogloss} \\pm \\m{PostLoglossSdC}$ & $\\m{BCLatency} \\pm \\m{PostLatencySdC}$ & $\\m{BCHv} \\pm \\m{BCHvSd}$ \\\\",
       "metrics": [
         "BCFone",
         "BCFoneSd",
         "BCLogloss",
+        "PostLoglossSdC",
         "BCLatency",
+        "PostLatencySdC",
         "BCHv",
         "BCHvSd"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_bootstrap.tex",
+      "section": "table",
+      "context": "Static CCD -- Sequential CCD & \\m{PostPairADifference} & \\m{PostPairALower} & \\m{PostPairAUpper} \\\\",
+      "metrics": [
+        "PostPairADifference",
+        "PostPairALower",
+        "PostPairAUpper"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_bootstrap.tex",
+      "section": "table",
+      "context": "Static CCD -- MO-TPE & \\m{PostPairBDifference} & \\m{PostPairBLower} & \\m{PostPairBUpper} \\\\",
+      "metrics": [
+        "PostPairBDifference",
+        "PostPairBLower",
+        "PostPairBUpper"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_bootstrap.tex",
+      "section": "table",
+      "context": "Sequential CCD -- MO-TPE & \\m{PostPairCDifference} & \\m{PostPairCLower} & \\m{PostPairCUpper} \\\\",
+      "metrics": [
+        "PostPairCDifference",
+        "PostPairCLower",
+        "PostPairCUpper"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_operational.tex",
+      "section": "table",
+      "context": "Static CCD & \\m{PostOperationalAPooled} & \\m{PostOperationalAMatched} & $\\m{PostOperationalASeconds} \\pm \\m{PostOperationalASecondsSd}$ \\\\",
+      "metrics": [
+        "PostOperationalAPooled",
+        "PostOperationalAMatched",
+        "PostOperationalASeconds",
+        "PostOperationalASecondsSd"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_operational.tex",
+      "section": "table",
+      "context": "Sequential CCD & \\m{PostOperationalBPooled} & \\m{PostOperationalBMatched} & $\\m{PostOperationalBSeconds} \\pm \\m{PostOperationalBSecondsSd}$ \\\\",
+      "metrics": [
+        "PostOperationalBPooled",
+        "PostOperationalBMatched",
+        "PostOperationalBSeconds",
+        "PostOperationalBSecondsSd"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_operational.tex",
+      "section": "table",
+      "context": "MO-TPE & \\m{PostOperationalCPooled} & \\m{PostOperationalCMatched} & $\\m{PostOperationalCSeconds} \\pm \\m{PostOperationalCSecondsSd}$ \\\\",
+      "metrics": [
+        "PostOperationalCPooled",
+        "PostOperationalCMatched",
+        "PostOperationalCSeconds",
+        "PostOperationalCSecondsSd"
       ],
       "text_metrics": []
     }
@@ -751,6 +1048,7 @@
     "phase_a_workflow.pdf",
     "phase_a_design.pdf",
     "phase_a_blocking.pdf",
+    "phase_a_diagnostics.pdf",
     "phase_a_error_surface.png",
     "phase_a_latency.png",
     "phase_a_tradeoff.png",
@@ -763,7 +1061,8 @@
     "phase_b_confirmation.pdf",
     "phase_b_words.pdf",
     "phase_b_pareto.pdf",
-    "phase_b_progress.pdf"
+    "phase_b_progress.pdf",
+    "phase_b_sensitivity.pdf"
   ],
   "documents": [
     "report.tex",
@@ -774,10 +1073,13 @@
     "b_design.tex",
     "b_agreement.tex",
     "b_anova.tex",
+    "b_interaction_checks.tex",
     "b_validation.tex",
-    "b_benchmark.tex"
+    "b_benchmark.tex",
+    "b_bootstrap.tex",
+    "b_operational.tex"
   ],
-  "bibliography_sha256": "e2780a8ac4c480c9001312142cdd10fbcad6cdecb069322b3e0de83c5d55260b",
+  "bibliography_sha256": "ee563a2268409994257f389f18d508fae49a13ec7c80c3a5486bc408e99cf3c8",
   "exclusions": {
     "references.tex": "Bibliographic metadata; no project observations.",
     "numbers.tex": "Generated definitions checked against the source-backed metric registry.",
