@@ -85,6 +85,15 @@ jobs:
           pdflatex -halt-on-error -interaction=nonstopmode -output-directory="$RUNNER_TEMP/paper" report.tex
           pdftotext -layout report.pdf "$RUNNER_TEMP/published.txt"
           pdftotext -layout "$RUNNER_TEMP/paper/report.pdf" "$RUNNER_TEMP/rebuilt.txt"
-          python -c 'import os,pathlib,re; p=pathlib.Path(os.environ["RUNNER_TEMP"]); normalize=lambda s: re.sub(r"\s+", "", s); assert normalize((p/"published.txt").read_text()) == normalize((p/"rebuilt.txt").read_text()), "Rebuilt PDF text differs from the published manuscript"'
+          python - <<'PY'
+          import os, pathlib, re
+          directory = pathlib.Path(os.environ['RUNNER_TEMP'])
+          normalize = lambda text: re.sub(r'\s+', '', text)
+          published = normalize((directory/'published.txt').read_text())
+          rebuilt = normalize((directory/'rebuilt.txt').read_text())
+          if published != rebuilt:
+              first = next((i for i, pair in enumerate(zip(published, rebuilt)) if pair[0] != pair[1]), min(len(published), len(rebuilt)))
+              raise SystemExit('Rebuilt PDF text differs near: '+repr(published[max(0, first-80):first+160])+' versus '+repr(rebuilt[max(0, first-80):first+160]))
+          PY
       - name: Verify evidence remained unchanged
         run: python report/verify_report.py --check

@@ -265,7 +265,7 @@ for name,paths in original_inputs.items():
     figure_sources[name]+=[str(p.relative_to(ROOT)).replace('\\','/') for p in paths]
 
 # New Phase B figures use observations from the published study only.
-plt.rcParams.update({'font.size':11,'axes.spines.top':False,'axes.spines.right':False,'savefig.bbox':'tight'})
+plt.rcParams.update({'font.size':11,'axes.spines.top':False,'axes.spines.right':False,'savefig.bbox':'tight','pdf.compression':0})
 colors={'static_doe':'#3566a1','doe':'#d47b26','tpe':'#27856c'}
 fig,axes=plt.subplots(1,2,figsize=(10,3.8))
 for method,label in labels.items():
