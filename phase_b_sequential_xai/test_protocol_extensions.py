@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import tempfile
 import json
 import hashlib
+from copy import deepcopy
 import numpy as np
 from scipy import sparse
 
@@ -22,15 +23,21 @@ class ProtocolTests(unittest.TestCase):
         config = BenchmarkConfig(mode='smoke', warmup_inferences=3, timed_inferences=5, n_trees=100)
         path = directory/'imdb_protocol_calibration.json'
         identity = freeze_protocol(path, options, config, 'fixture-hash',
-            panels={'0': [0, 1]} if options.latency_panel_size > 1 else {}, calibration_tree_grid=[100])
+            panels={'0': [0, 1]} if options.latency_panel_size > 1 else {},
+            calibration_tree_grid=[100], calibration_eta_grid=[0., -1.])
         environment = dict(replication_protocol_sha256=identity)
         if options.latency_panel_size > 1:
             environment.update(latency_panel_indices=[0, 1], latency_timed_panel_positions=[0, 1, 0, 1, 0])
-        row = dict(n_trees=100, block_id=0, latency=dict(environment=environment,
+        row = dict(n_trees=100, block_id=0, val_macro_f1=.75, coded_params=dict(x1=0.,x2=0.,x3=0.,x4=0.), latency=dict(environment=environment,
             n_warmup=3, n_timed=5, predict_raw_us=[1.]*5, inplace_raw_us=[1.]*5, predict_median_us=1.))
-        (directory/'imdb_pilot.json').write_text(json.dumps(dict(dataset_sha256='fixture-hash', observations=[row])))
+        low_rate = deepcopy(row); low_rate['coded_params']['x1'] = -1.
+        pilot = directory/'imdb_pilot.json'
+        pilot.write_text(json.dumps(dict(dataset_sha256='fixture-hash', observations=[row, low_rate])))
         (directory/'imdb_calibration.json').write_text(json.dumps(dict(dataset_sha256='fixture-hash',
-            dataset_path='fixture.csv', replication_protocol_options=asdict(options), replication_protocol_sha256=identity)))
+            dataset_path='fixture.csv', replication_protocol_options=asdict(options), replication_protocol_sha256=identity,
+            pilot_sha256=hashlib.sha256(pilot.read_bytes()).hexdigest(), selected_tree_count=100,
+            latency_threshold_us=1., hv_ref_latency_us=2., calibration_fits=2)))
+        config.latency_threshold_us = 1.; config.hv_ref_loss = 1.; config.hv_ref_latency_us = 2.
         (directory/'imdb_config.json').write_text(json.dumps(asdict(config)))
         return config, row, path
 
@@ -93,7 +100,8 @@ class ProtocolTests(unittest.TestCase):
             _, row, path = self.calibration_fixture(directory)
             records, extended = validate_calibration(directory, 'imdb', ProtocolOptions(latency_panel_size=2), 'fixture-hash')
             self.assertTrue(extended)
-            self.assertEqual(records, [row])
+            self.assertEqual(len(records), 2)
+            self.assertEqual(records[0], row)
             with self.assertRaisesRegex(ValueError, 'dataset hashes differ'):
                 validate_calibration(directory, 'imdb', ProtocolOptions(latency_panel_size=2), 'changed-dataset')
             with self.assertRaisesRegex(ValueError, 'same latency panel'):
@@ -107,6 +115,49 @@ class ProtocolTests(unittest.TestCase):
             pilot.write_text(json.dumps(dict(dataset_sha256='fixture-hash', observations=[row])))
             with self.assertRaisesRegex(ValueError, 'protocol identity'):
                 validate_calibration_records(pilot, path, 'fixture-hash')
+
+    def test_completed_calibration_pilot_digest_rejects_tampering(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            self.calibration_fixture(directory)
+            pilot = directory/'imdb_pilot.json'
+            observations = json.loads(pilot.read_text())
+            observations['observations'][0]['latency']['predict_median_us'] = 42.
+            pilot.write_text(json.dumps(observations))
+            with self.assertRaisesRegex(ValueError, 'pilot bytes differ'):
+                validate_calibration(directory, 'imdb', ProtocolOptions(latency_panel_size=2), 'fixture-hash')
+
+    def test_calibration_requires_every_frozen_tree_eta_coordinate_exactly_once(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            _, _, protocol = self.calibration_fixture(directory)
+            pilot = directory/'imdb_pilot.json'
+            original = json.loads(pilot.read_text())
+            missing = deepcopy(original); missing['observations'].pop()
+            duplicate = deepcopy(original); duplicate['observations'].append(deepcopy(duplicate['observations'][0]))
+            wrong_eta = deepcopy(original); wrong_eta['observations'][0]['coded_params']['x1'] = .5
+            wrong_coordinate = deepcopy(original); wrong_coordinate['observations'][0]['coded_params']['x2'] = .5
+            for changed in [missing, duplicate, wrong_eta, wrong_coordinate]:
+                with self.subTest(observations=changed):
+                    pilot.write_text(json.dumps(changed))
+                    with self.assertRaisesRegex(ValueError, 'tree-by-eta grid'):
+                        validate_calibration_records(pilot, protocol, 'fixture-hash')
+
+    def test_calibration_summary_and_config_follow_frozen_selection_rule(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            self.calibration_fixture(directory)
+            summary = directory/'imdb_calibration.json'
+            original = json.loads(summary.read_text())
+            for field, value in [('selected_tree_count', 600), ('latency_threshold_us', 42.), ('calibration_fits', 1)]:
+                summary.write_text(json.dumps({**original, field: value}))
+                with self.assertRaisesRegex(ValueError, 'frozen selection rule'):
+                    validate_calibration(directory, 'imdb', ProtocolOptions(latency_panel_size=2), 'fixture-hash')
+            summary.write_text(json.dumps(original))
+            config = directory/'imdb_config.json'
+            config.write_text(json.dumps({**json.loads(config.read_text()), 'n_trees': 600}))
+            with self.assertRaisesRegex(ValueError, 'frozen selection rule'):
+                validate_calibration(directory, 'imdb', ProtocolOptions(latency_panel_size=2), 'fixture-hash')
 
     def test_legacy_calibration_reuse_is_limited_to_default_options(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -194,6 +245,11 @@ class ProtocolTests(unittest.TestCase):
         @dataclass
         class Latency:
             predict_median_us: float
+            environment: dict
+            n_warmup: int
+            n_timed: int
+            predict_raw_us: list
+            inplace_raw_us: list
         @dataclass
         class Evaluation:
             n_trees: int
@@ -201,8 +257,8 @@ class ProtocolTests(unittest.TestCase):
             natural_params: dict
             val_macro_f1: float
             latency: Latency
-        root = Path(__file__).resolve().parents[1]/'results'
-        with tempfile.TemporaryDirectory(prefix='protocol-unit-', dir=root) as temporary:
+            block_id: int
+        with tempfile.TemporaryDirectory(prefix='protocol-unit-') as temporary:
             directory = Path(temporary)
             (directory/'imdb.csv').write_text('synthetic fixture only')
             output = directory/'calibration'
@@ -215,8 +271,15 @@ class ProtocolTests(unittest.TestCase):
                     self.assertEqual(contract['options']['threshold_mode'], 'capacity_matched')
                     self.assertEqual(contract['calibration_tree_grid'], [100, 300, 600])
                     self.assertTrue(identity)
+                    median = cfg.n_trees+(1 if point.coded['x1']==0 else 3)
+                    latency = Latency(median,
+                        dict(replication_protocol_sha256=identity,
+                            latency_panel_indices=contract['latency']['development_panels']['0'],
+                            latency_timed_panel_positions=[i % 4 for i in range(cfg.timed_inferences)]),
+                        cfg.warmup_inferences, cfg.timed_inferences,
+                        [median]*cfg.timed_inferences, [median]*cfg.timed_inferences)
                     return Evaluation(cfg.n_trees, point.coded, dict(learning_rate=.05),
-                        .7+cfg.n_trees/3000, Latency(cfg.n_trees+(1 if point.coded['x1']==0 else 3)))
+                        .7+cfg.n_trees/3000, latency, block)
                 return evaluate
             with (patch.object(run_phase_b, 'load_sentiment_csv', return_value=(['fixture'], np.array([0]), None, 'fixture-hash')),
                  patch.object(run_phase_b, 'create_strictly_isolated_partitions', return_value=parts),
@@ -225,6 +288,9 @@ class ProtocolTests(unittest.TestCase):
             self.assertEqual(result['selected_tree_count'], 600)
             self.assertEqual(result['latency_threshold_us'], 602)
             self.assertEqual(result['replication_protocol_options']['latency_panel_size'], 4)
+            records, extended = validate_calibration(output, 'imdb', options, 'fixture-hash')
+            self.assertTrue(extended)
+            self.assertEqual(len(records), 6)
 
     def test_default_calibration_rejects_existing_evidence_before_writes_or_training(self):
         import run_phase_b

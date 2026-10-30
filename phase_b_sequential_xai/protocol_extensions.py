@@ -4,6 +4,7 @@ These options define new measurements. They never reinterpret archived timings
 or turn feature-weight perturbations into causal language edits.
 """
 from dataclasses import asdict, dataclass, replace
+from collections import Counter
 from pathlib import Path
 import hashlib
 import json
@@ -47,6 +48,13 @@ def capacity_threshold(records, selected_trees, mode):
     return float(np.median([r['latency']['predict_median_us'] for r in eligible]))
 
 
+def selected_calibration_capacity(records, tree_grid, *, low_eta=-1., max_f1_decrease=.005):
+    low_rate = [r for r in records if r['coded_params']['x1'] == low_eta]
+    reference = next(r for r in low_rate if r['n_trees'] == max(tree_grid))
+    return min(r['n_trees'] for r in low_rate
+               if r['val_macro_f1'] >= reference['val_macro_f1']-max_f1_decrease)
+
+
 def load_replication_config(values, options):
     """Retain core validation while explicitly extending research panel warmups."""
     values = dict(values)
@@ -83,7 +91,7 @@ def length_panel(lengths, size):
             if count for chunk in np.array_split(strata[index], count)]
 
 
-def freeze_protocol(path, options, config, dataset_sha256, *, panels=None, calibration_files=(), calibration_tree_grid=()):
+def freeze_protocol(path, options, config, dataset_sha256, *, panels=None, calibration_files=(), calibration_tree_grid=(), calibration_eta_grid=()):
     """Create an exclusive protocol/source record before any classifier evaluation."""
     from datetime import datetime, timezone
     path = Path(path)
@@ -91,6 +99,8 @@ def freeze_protocol(path, options, config, dataset_sha256, *, panels=None, calib
     payload = dict(protocol='optional-replication-v1', declared_at_utc=datetime.now(timezone.utc).isoformat(),
         options=asdict(options), training_config=asdict(config), dataset_sha256=dataset_sha256,
         calibration_tree_grid=list(calibration_tree_grid),
+        calibration_eta_grid=list(calibration_eta_grid),
+        capacity_rule=dict(low_eta=-1., max_f1_decrease=.005) if calibration_tree_grid else None,
         source_sha256={p.name: hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest() for p in sources},
         calibration_sha256={Path(p).name: hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in calibration_files},
         calibration_paths={Path(p).name: Path(p).resolve().relative_to(path.parent.resolve()).as_posix() for p in calibration_files},
@@ -169,8 +179,15 @@ def validate_calibration_records(pilot_path, protocol_path, dataset_sha256):
     identity = hashlib.sha256(protocol_path.read_bytes()).hexdigest()
     _check_sources(contract)
     _check_panel_records(pilot['observations'], contract, identity)
-    if set(r['n_trees'] for r in pilot['observations']) != set(contract['calibration_tree_grid']):
-        raise ValueError('Calibration capacities differ from the frozen grid')
+    factors = ('x1', 'x2', 'x3', 'x4')
+    expected = Counter((trees, 0, (eta, 0., 0., 0.))
+        for trees in contract['calibration_tree_grid'] for eta in contract['calibration_eta_grid'])
+    if not expected or any(set(row['coded_params']) != set(factors) for row in pilot['observations']):
+        raise ValueError('Calibration coordinates differ from the frozen tree-by-eta grid')
+    observed = Counter((row['n_trees'], row['block_id'], tuple(row['coded_params'][factor] for factor in factors))
+                       for row in pilot['observations'])
+    if observed != expected:
+        raise ValueError('Calibration observations differ from the complete frozen tree-by-eta grid')
     for name, expected in contract['calibration_sha256'].items():
         source = protocol_path.parent/contract['calibration_paths'][name]
         if hashlib.sha256(source.read_bytes()).hexdigest() != expected:
@@ -194,12 +211,25 @@ def validate_calibration(directory, dataset_name, options, dataset_sha256):
     identity = hashlib.sha256(protocol_path.read_bytes()).hexdigest()
     if metadata.get('replication_protocol_sha256') != identity:
         raise ValueError('Calibration summary omits or changes its source protocol identity')
+    if metadata.get('pilot_sha256') != hashlib.sha256(pilot_path.read_bytes()).hexdigest():
+        raise ValueError('Completed calibration pilot bytes differ from their summary digest')
     contract = json.loads(protocol_path.read_text())
     if metadata.get('replication_protocol_options') != contract['options']:
         raise ValueError('Calibration summary options differ from their frozen protocol')
     if contract['options']['latency_panel_size'] != options.latency_panel_size:
         raise ValueError('Recalibrate using the same latency panel size as the main experiment')
-    return validate_calibration_records(pilot_path, protocol_path, dataset_sha256), True
+    records = validate_calibration_records(pilot_path, protocol_path, dataset_sha256)
+    selected = selected_calibration_capacity(records, contract['calibration_tree_grid'], **contract['capacity_rule'])
+    threshold = capacity_threshold(records, selected, contract['options']['threshold_mode'])
+    reference = 2.*max(row['latency']['predict_median_us'] for row in records)
+    config = json.loads((directory/f'{dataset_name}_config.json').read_text())
+    expected_config = {**contract['training_config'], 'n_trees': selected, 'latency_threshold_us': threshold,
+                       'hv_ref_loss': 1., 'hv_ref_latency_us': reference}
+    if (config != expected_config or metadata['selected_tree_count'] != selected
+            or metadata['latency_threshold_us'] != threshold or metadata['hv_ref_latency_us'] != reference
+            or metadata['calibration_fits'] != len(records)):
+        raise ValueError('Calibration capacity, threshold, or saved config differs from the frozen selection rule')
+    return records, True
 
 
 class PanelProfiler(WarmedLatencyProfiler):

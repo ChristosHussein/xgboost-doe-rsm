@@ -62,7 +62,7 @@ from xgb_doe_xai.word_study import check_word_study, run_word_study
 from xgb_doe_xai.xai import compare_anova_vs_shap, extract_anova_attributions
 from protocol_extensions import (ProtocolOptions, capacity_threshold, freeze_protocol, panel_indices,
     evaluator as replication_evaluator, GatedPanelFinalEvaluator, run_consistent_word_study, check_protocol,
-    snapshot_calibration, validate_calibration, load_replication_config)
+    snapshot_calibration, validate_calibration, load_replication_config, selected_calibration_capacity)
 
 SOURCES = {
     "imdb": "https://huggingface.co/datasets/stanfordnlp/imdb/resolve/e6281661ce1c48d982bc483cf8a173c1bbeb5d31/plain_text",
@@ -256,7 +256,8 @@ def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb"
     protocol_sha = None
     if options.active:
         protocol_sha = freeze_protocol(output_dir/f'{dataset_name}_protocol_calibration.json', options, cfg, checksum,
-            panels=panel_indices(parts, options.latency_panel_size) if options.latency_panel_size > 1 else {}, calibration_files=[contract_file], calibration_tree_grid=contract['tree_grid'])
+            panels=panel_indices(parts, options.latency_panel_size) if options.latency_panel_size > 1 else {},
+            calibration_files=[contract_file], calibration_tree_grid=contract['tree_grid'], calibration_eta_grid=contract['eta_grid'])
     evaluator = replication_evaluator(parts, cfg, options, protocol_sha)
     records = []
 
@@ -274,10 +275,7 @@ def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb"
     write_json(output_dir / f"{dataset_name}_pilot.json", dict(dataset_sha256=checksum, observations=records))
 
     # Evaluate tree capacity rule
-    low_eta_records = [r for r in records if r["coded_params"]["x1"] == -1.0]
-    largest = next(r for r in low_eta_records if r["n_trees"] == max(contract["tree_grid"]))
-    eligible_trees = [r["n_trees"] for r in low_eta_records if r["val_macro_f1"] >= largest["val_macro_f1"] - 0.005]
-    cfg.n_trees = min(eligible_trees)
+    cfg.n_trees = selected_calibration_capacity(records, contract['tree_grid'])
     latencies = [r["latency"]["predict_median_us"] for r in records]
     cfg.latency_threshold_us = capacity_threshold(records, cfg.n_trees, options.threshold_mode)
     cfg.hv_ref_loss = 1.0
@@ -298,6 +296,7 @@ def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb"
     if options.active:
         calib_summary['replication_protocol_options'] = asdict(options)
         calib_summary['replication_protocol_sha256'] = protocol_sha
+        calib_summary['pilot_sha256'] = file_sha256(output_dir/f'{dataset_name}_pilot.json')
     write_json(output_dir / f"{dataset_name}_calibration.json", calib_summary)
     print(f"\nCalibration complete for {dataset_name}:")
     print(f"  Selected Tree Count: {cfg.n_trees}")
@@ -430,7 +429,8 @@ def run_smoke_test(output_dir: Path, device: str = "cpu", options: ProtocolOptio
     if options.active:
         pilot_protocol = output_dir/'smoke_protocol_calibration.json'
         pilot_sha = freeze_protocol(pilot_protocol, options, cfg, checksum,
-            panels=panel_indices(parts, options.latency_panel_size) if options.latency_panel_size > 1 else {}, calibration_tree_grid=[2,5])
+            panels=panel_indices(parts, options.latency_panel_size) if options.latency_panel_size > 1 else {},
+            calibration_tree_grid=[2,5], calibration_eta_grid=[0., -1.])
         # A small development-only timing pilot exercises threshold selection.
         pilot = []
         evaluate = replication_evaluator(parts, cfg, options, pilot_sha)
