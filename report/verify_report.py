@@ -183,7 +183,7 @@ def main():
         (OUT/'verification.json').write_text(json.dumps(result, indent=2)+'\n', encoding='utf-8')
     if args.seal:
         require(args.write, '--seal requires --write')
-        manifest = dict(paper='report.pdf', revision_tag='paper-2026-10', files=publication_files(),
+        manifest = dict(paper='report.pdf', revision_tag='paper-2026-10-r2', files=publication_files(),
                         evidence_archive_sha256=digest(ROOT/'evidence/phase_b.zip'),
                         reference_source_archive_sha256=digest(ROOT/'evidence/phase_a_sources.zip'),
                         reference_environment_sha256=digest(ROOT/'requirements-reproduction.txt'))

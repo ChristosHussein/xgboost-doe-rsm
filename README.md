@@ -23,7 +23,7 @@ The paper is [report/report.pdf](report/report.pdf), with source in [report/repo
 ```powershell
 git clone https://github.com/ChristosHussein/xgboost-doe-rsm.git
 cd xgboost-doe-rsm
-git checkout paper-2026-10
+git checkout paper-2026-10-r2
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements-reproduction.txt

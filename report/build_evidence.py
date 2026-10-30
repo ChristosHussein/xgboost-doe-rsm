@@ -180,7 +180,6 @@ for method,label in labels.items():
         for key,title,fmt in [('learning_rate','Rate','.4f'),('max_depth','Depth','.0f'),('subsample','Sample','.4f'),('reg_lambda','Lambda','.4f')]:
             row.append(metric(prefix+title,r['natural_params'][key],S/'final_results.json',method+': repeat '+str(r['replicate'])+' natural_params.'+key,fmt,'protocol'))
         selection_rows.append(row)
-table('b_selected',['Method','Repeat','Learning rate','Depth','Subsample','Regularization'],selection_rows)
 table('b_agreement',['Method','Factor rank correlation','Interaction correlation'],agreement)
 words=read(B/'imdb_words/observations.json')['documents']
 metric('BWordDocs',len(words),B/'imdb_words/observations.json','documents count','.0f')

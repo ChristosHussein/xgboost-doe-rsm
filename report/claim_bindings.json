@@ -255,7 +255,7 @@
     {
       "document": "report.tex",
       "section": "Phase B: comparing model quality, latency and adaptation",
-      "context": "Every frozen selection uses the lower depth boundary, \\m{BSelectedDepth}. The reported scores therefore describe shallow compromise models chosen by the common accuracy--latency rule; the full selected settings are listed in the appendix.",
+      "context": "Every frozen selection uses the lower depth boundary, \\m{BSelectedDepth}. The reported scores therefore describe shallow compromise models chosen by the common accuracy--latency rule.",
       "metrics": [
         "BSelectedDepth"
       ],
@@ -277,18 +277,6 @@
       "metrics": [],
       "text_metrics": [
         "AcceleratorName"
-      ]
-    },
-    {
-      "document": "report.tex",
-      "section": "Technical definitions and interpretation",
-      "context": "The sentiment run records Python \\PythonVersion{}, XGBoost \\XGBoostVersion{} and an \\AcceleratorName{} for training. CPU timing records identify the processor as \\texttt{\\InferenceProcessor{}}. Timing measurements are specific to that environment and the declared input operation.",
-      "metrics": [],
-      "text_metrics": [
-        "AcceleratorName",
-        "InferenceProcessor",
-        "XGBoostVersion",
-        "PythonVersion"
       ]
     },
     {
@@ -757,123 +745,6 @@
         "BCHvSd"
       ],
       "text_metrics": []
-    },
-    {
-      "document": "b_selected.tex",
-      "section": "table",
-      "context": "Static CCD & \\m{SelectionstaticdoeARepeat} & \\m{SelectionstaticdoeARate} & \\m{SelectionstaticdoeADepth} & \\m{SelectionstaticdoeASample} & \\m{SelectionstaticdoeALambda} \\\\",
-      "metrics": [
-        "SelectionstaticdoeARepeat",
-        "SelectionstaticdoeARate",
-        "SelectionstaticdoeADepth",
-        "SelectionstaticdoeASample",
-        "SelectionstaticdoeALambda"
-      ],
-      "text_metrics": []
-    },
-    {
-      "document": "b_selected.tex",
-      "section": "table",
-      "context": "Static CCD & \\m{SelectionstaticdoeBRepeat} & \\m{SelectionstaticdoeBRate} & \\m{SelectionstaticdoeBDepth} & \\m{SelectionstaticdoeBSample} & \\m{SelectionstaticdoeBLambda} \\\\",
-      "metrics": [
-        "SelectionstaticdoeBRepeat",
-        "SelectionstaticdoeBRate",
-        "SelectionstaticdoeBDepth",
-        "SelectionstaticdoeBSample",
-        "SelectionstaticdoeBLambda"
-      ],
-      "text_metrics": []
-    },
-    {
-      "document": "b_selected.tex",
-      "section": "table",
-      "context": "Static CCD & \\m{SelectionstaticdoeCRepeat} & \\m{SelectionstaticdoeCRate} & \\m{SelectionstaticdoeCDepth} & \\m{SelectionstaticdoeCSample} & \\m{SelectionstaticdoeCLambda} \\\\",
-      "metrics": [
-        "SelectionstaticdoeCRepeat",
-        "SelectionstaticdoeCRate",
-        "SelectionstaticdoeCDepth",
-        "SelectionstaticdoeCSample",
-        "SelectionstaticdoeCLambda"
-      ],
-      "text_metrics": []
-    },
-    {
-      "document": "b_selected.tex",
-      "section": "table",
-      "context": "Sequential CCD & \\m{SelectiondoeARepeat} & \\m{SelectiondoeARate} & \\m{SelectiondoeADepth} & \\m{SelectiondoeASample} & \\m{SelectiondoeALambda} \\\\",
-      "metrics": [
-        "SelectiondoeARepeat",
-        "SelectiondoeARate",
-        "SelectiondoeADepth",
-        "SelectiondoeASample",
-        "SelectiondoeALambda"
-      ],
-      "text_metrics": []
-    },
-    {
-      "document": "b_selected.tex",
-      "section": "table",
-      "context": "Sequential CCD & \\m{SelectiondoeBRepeat} & \\m{SelectiondoeBRate} & \\m{SelectiondoeBDepth} & \\m{SelectiondoeBSample} & \\m{SelectiondoeBLambda} \\\\",
-      "metrics": [
-        "SelectiondoeBRepeat",
-        "SelectiondoeBRate",
-        "SelectiondoeBDepth",
-        "SelectiondoeBSample",
-        "SelectiondoeBLambda"
-      ],
-      "text_metrics": []
-    },
-    {
-      "document": "b_selected.tex",
-      "section": "table",
-      "context": "Sequential CCD & \\m{SelectiondoeCRepeat} & \\m{SelectiondoeCRate} & \\m{SelectiondoeCDepth} & \\m{SelectiondoeCSample} & \\m{SelectiondoeCLambda} \\\\",
-      "metrics": [
-        "SelectiondoeCRepeat",
-        "SelectiondoeCRate",
-        "SelectiondoeCDepth",
-        "SelectiondoeCSample",
-        "SelectiondoeCLambda"
-      ],
-      "text_metrics": []
-    },
-    {
-      "document": "b_selected.tex",
-      "section": "table",
-      "context": "MO-TPE & \\m{SelectiontpeARepeat} & \\m{SelectiontpeARate} & \\m{SelectiontpeADepth} & \\m{SelectiontpeASample} & \\m{SelectiontpeALambda} \\\\",
-      "metrics": [
-        "SelectiontpeARepeat",
-        "SelectiontpeARate",
-        "SelectiontpeADepth",
-        "SelectiontpeASample",
-        "SelectiontpeALambda"
-      ],
-      "text_metrics": []
-    },
-    {
-      "document": "b_selected.tex",
-      "section": "table",
-      "context": "MO-TPE & \\m{SelectiontpeBRepeat} & \\m{SelectiontpeBRate} & \\m{SelectiontpeBDepth} & \\m{SelectiontpeBSample} & \\m{SelectiontpeBLambda} \\\\",
-      "metrics": [
-        "SelectiontpeBRepeat",
-        "SelectiontpeBRate",
-        "SelectiontpeBDepth",
-        "SelectiontpeBSample",
-        "SelectiontpeBLambda"
-      ],
-      "text_metrics": []
-    },
-    {
-      "document": "b_selected.tex",
-      "section": "table",
-      "context": "MO-TPE & \\m{SelectiontpeCRepeat} & \\m{SelectiontpeCRate} & \\m{SelectiontpeCDepth} & \\m{SelectiontpeCSample} & \\m{SelectiontpeCLambda} \\\\",
-      "metrics": [
-        "SelectiontpeCRepeat",
-        "SelectiontpeCRate",
-        "SelectiontpeCDepth",
-        "SelectiontpeCSample",
-        "SelectiontpeCLambda"
-      ],
-      "text_metrics": []
     }
   ],
   "figures": [
@@ -904,8 +775,7 @@
     "b_agreement.tex",
     "b_anova.tex",
     "b_validation.tex",
-    "b_benchmark.tex",
-    "b_selected.tex"
+    "b_benchmark.tex"
   ],
   "bibliography_sha256": "e2780a8ac4c480c9001312142cdd10fbcad6cdecb069322b3e0de83c5d55260b",
   "exclusions": {

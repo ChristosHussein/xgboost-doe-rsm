@@ -14,7 +14,7 @@
 
 \usepackage{hyperref,xurl,listings}
 
-\hypersetup{colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black,pdftitle={Learning and Optimizing XGBoost with Planned Experiments: From Blocked Response Surfaces to Explainable Sequential Search},pdfauthor={Christos Chousein Sounios}}
+\hypersetup{colorlinks=true,linkcolor=blue!55!black,citecolor=blue!55!black,urlcolor=blue!55!black,pdftitle={Learning and Optimizing XGBoost with Planned Experiments: From Blocked Response Surfaces to Explainable Sequential Search},pdfauthor={Christos Chousein Sounios}}
 
 \input{numbers.tex}
 
@@ -177,7 +177,7 @@ The perturbed inputs are conditional TF-IDF vectors. Other weights, including bi
 \begin{table}[!htbp]\centering\small\resizebox{\textwidth}{!}{\input{b_benchmark.tex}}
 \caption{Phase B results. Test metrics average the frozen selected classifier from each search repeat. Development hypervolume summarizes each observed search front under its declared reference. The reported dispersions are sample standard deviations across search repeats. Larger F1 and hypervolume are preferable; smaller log loss and latency are preferable.}\label{tab:bbench}\end{table}
 Observed test macro F1 is almost the same across methods. The sequential choice has the highest mean in this run, while MO-TPE has the lowest mean selected latency. Static CCD has the highest mean development hypervolume. These small differences do not establish a decisive winner, and absence of a decisive difference does not establish statistical equivalence.
-Every frozen selection uses the lower depth boundary, \m{BSelectedDepth}. The reported scores therefore describe shallow compromise models chosen by the common accuracy--latency rule; the full selected settings are listed in the appendix.
+Every frozen selection uses the lower depth boundary, \m{BSelectedDepth}. The reported scores therefore describe shallow compromise models chosen by the common accuracy--latency rule.
 No method produces a searched configuration whose block-mean latency meets the recorded \m{BCap}\,$\mu$s threshold, and none of the final selected models meets it either. This is a negative feasibility result under the chosen definition. The run still supplies valid accuracy and timing observations and useful Pareto comparisons, but it does not demonstrate successful optimization under an externally justified latency requirement.
 The sequential design does not demonstrate a clear improvement over static CCD on the present budgets and acquisition rule. It retains explanatory structure and supports a functioning feedback loop, but reallocation of a small amount of replication to infill did not yield an unambiguous performance gain. A broader claim about evaluation savings would require an explicit target-quality analysis with appropriate repetition, not simply equal final fit counts.
 \begin{figure}[!htbp]\centering\includegraphics[width=\textwidth]{figures/phase_b_pareto.pdf}
@@ -193,11 +193,11 @@ The two phases therefore provide complementary evidence for a method of investig
 Planned experiments can support useful XGBoost selection while making hyperparameter effects, interactions and uncertainty visible. Phase A established that explanatory structure and exposed the limits of a global response surface and inconsistent verification. Phase B implemented a more explicit explanatory feedback loop and obtained similar observed classifier quality to TPE, with more accurate DOE quadratic predictions at reserved settings and strong interaction agreement between statistical and surrogate-based explanations. The small sequential extension did not demonstrate a clear advantage over static CCD, and no method met the declared latency threshold. The defensible contribution is a reproducible way to connect design, explanation, acquisition and confirmation while keeping uncertainty and unfavorable evidence visible; stronger efficiency and generalization claims require further independent evidence.
 \section{Reproducibility and execution}
 \subsection{Obtain the repository and install the environment}
-The code, manuscript and lossless saved-result archive are available at \url{https://github.com/ChristosHussein/xgboost-doe-rsm}. The fixed tag \texttt{paper-2026-10} identifies this paper's revision. The following PowerShell commands use the repository root and the pinned reference environment:
+The code, manuscript and lossless saved-result archive are available at \url{https://github.com/ChristosHussein/xgboost-doe-rsm}. The fixed tag \texttt{paper-2026-10-r2} identifies this paper's revision. The following PowerShell commands use the repository root and the pinned reference environment:
 \begin{lstlisting}
 git clone https://github.com/ChristosHussein/xgboost-doe-rsm.git
 cd xgboost-doe-rsm
-git checkout paper-2026-10
+git checkout paper-2026-10-r2
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements-reproduction.txt
@@ -246,23 +246,4 @@ To rebuild the paper's tables and figures from the published observations, run \
 \clearpage
 \addcontentsline{toc}{section}{References}
 \input{references.tex}
-\clearpage
-\appendix
-\section{Technical definitions and interpretation}
-The quadratic response model has the form
-\[
-\widehat y(\mathbf{x},b)=\beta_0+\sum_i\beta_i x_i+\sum_i\beta_{ii}x_i^2+\sum_{i<j}\beta_{ij}x_ix_j+\gamma_b.
-\]
-
-Here $x_i$ are coded hyperparameters and $\gamma_b$ is a fitted nuisance-block effect. The linear terms describe slopes, squared terms describe curvature, and cross-products describe pairwise interactions. Coding gives the factors comparable numerical scales; it does not make all natural settings equally spaced when a logarithmic transformation is used.
-
-The GP is fitted to coordinate-level mean responses, while the RSM retains block-level observations. Its covariance is a scaled Mat\'ern kernel with separately fitted factor length scales plus white noise; responses are standardized during fitting. The acquisition score multiplies combined GP uncertainty by the square root of distance to the nearest existing or reserved coordinate. Objective uncertainties are divided by their hypervolume reference coordinates before combination. The appendix's selected settings identify the models summarized in the main results table.
-
-The sentiment run records Python \PythonVersion{}, XGBoost \XGBoostVersion{} and an \AcceleratorName{} for training. CPU timing records identify the processor as \texttt{\InferenceProcessor{}}. Timing measurements are specific to that environment and the declared input operation.
-
-\begin{table}[!htbp]\centering\small\input{b_selected.tex}
-\caption{Frozen Phase B selections in natural hyperparameter units. Repeat labels identify searches; they are not independent datasets. These settings are chosen from development responses before test evaluation.}\end{table}
-
-Benchmark dispersion describes variation between search-level summaries. Phase A first averages retraining outcomes within each selection; Phase B averages its frozen selected classifiers. Development-front hypervolume and selected-model test scores describe separate stages. Interval coverage is a model diagnostic on the sampled coordinates and folds, rather than evidence of reliability across independently sampled datasets.
-
 \end{document}
