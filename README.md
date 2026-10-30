@@ -23,7 +23,7 @@ The paper is [report/report.pdf](report/report.pdf), with source in [report/repo
 ```powershell
 git clone https://github.com/ChristosHussein/xgboost-doe-rsm.git
 cd xgboost-doe-rsm
-git checkout paper-2026-10-r2
+git checkout paper-2026-10-r3
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements-reproduction.txt
@@ -38,6 +38,8 @@ python phase_b_sequential_xai/run_phase_b.py --stage all --dataset full_imdb --d
 ```
 
 Use `--device cpu` for CPU training. Prediction latency uses CPU in either case. CUDA requires compatible hardware, driver and XGBoost installation.
+
+For a new replication, the direct Phase B command also accepts `--threshold-mode capacity_matched`, `--latency-panel-size 32`, and `--consistent-tfidf-perturbations`. These options define new measurements; they do not alter the published observations. Use matching options for calibration and the main run, with a fresh output directory. The default protocol remains available for historical reproduction. See the paper's execution appendix and [replication protocol](specifications/Replication%20protocol.md) for scope and remaining design requirements.
 
 Check the published results without retraining:
 

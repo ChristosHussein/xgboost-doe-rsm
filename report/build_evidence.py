@@ -26,9 +26,18 @@ if args.check:
     with tempfile.TemporaryDirectory() as temporary:
         destination=Path(temporary)
         subprocess.run([sys.executable,__file__,'--output',str(destination)],check=True)
-        changed=[str(p.relative_to(destination)) for p in destination.rglob('*')
-                 if p.is_file() and (not (args.output/p.relative_to(destination)).exists()
-                 or p.read_bytes()!=(args.output/p.relative_to(destination)).read_bytes())]
+        from posthoc_publication import semantic_equal
+        changed=[]
+        for p in destination.rglob('*'):
+            if not p.is_file(): continue
+            existing=args.output/p.relative_to(destination)
+            same=existing.exists() and p.read_bytes()==existing.read_bytes()
+            if not same and existing.exists() and p.name in ['posthoc_results.json','metric_registry.json']:
+                current=json.loads(p.read_text());previous=json.loads(existing.read_text())
+                same=semantic_equal(current,previous)
+                if same and p.name=='metric_registry.json':
+                    same=all(format(r['value'],r['format'])==format(previous['metrics'][key]['value'],r['format']) for key,r in current['metrics'].items())
+            if not same: changed.append(str(p.relative_to(destination)))
         if changed:
             raise SystemExit('Stale generated publication files: '+', '.join(changed))
     print('All generated tables, metrics and figures match their source observations.')
@@ -90,7 +99,7 @@ for label,n in [('Balanced','confirmation_runs.csv'),('Accuracy','confirmation_r
     metric('A'+label+'Bias',frame.val_rmse.mean()-estimate,A/n,'mean val_rmse minus confirmation.json prediction')
     for i,side in enumerate(['Lower','Upper']):metric('A'+label+side,interval[i],A/'confirmation.json',label+' prediction interval '+side)
 table('a_confirmation',['Candidate','Predicted','Interval','Observed'],[
-    [label,metric_name, '['+'\\m{A'+label+'Lower}, \\m{A'+label+'Upper}]','\\m{A'+label+'Obs}']
+    [label,metric_name, '$['+'\\m{A'+label+'Lower}, \\m{A'+label+'Upper}]$','\\m{A'+label+'Obs}']
     for label,metric_name in [('Balanced','\\m{ABalancedPred}'),('Accuracy','\\m{AAccuracyPred}')]])
 evaluations=pd.read_csv(V/'final_evaluations.csv'); finala=pd.read_csv(V/'final_summary.csv')
 assert (evaluations.status=='completed').all()
@@ -141,6 +150,7 @@ metric('BSearch',sum(summary['search_fits'].values()),S/'summary.json','sum sear
 metric('BConfirmationFits',summary['confirmation_fits'],S/'summary.json','confirmation_fits','.0f')
 metric('BFinalFits',summary['final_fits'],S/'summary.json','final_fits','.0f')
 metric('BFitsPerSearch',summary['search_fits']['doe']/cfg['search_replicates'],S/'summary.json','search_fits.doe / config.search_replicates','.0f','protocol')
+metric('PostProposalBudget',summary['search_fits']['doe']/cfg['search_replicates']/cfg['n_nuisance_blocks'],S/'summary.json','search_fits.doe / config.search_replicates / config.n_nuisance_blocks','.0f','protocol')
 metric('BRateLow',contract['factors']['x1']['low'],S/'measurement_contract.json','factors.x1.low','.2f','protocol')
 metric('CalSmallTrees',min(r['n_trees'] for r in read(ROOT/'results/phase_b_calibration/imdb_pilot.json')['observations']),ROOT/'results/phase_b_calibration/imdb_pilot.json','minimum n_trees','.0f','protocol')
 metric('BHours',read(B/'experiment_summary.json')['wall_seconds']/3600,B/'experiment_summary.json','wall_seconds/3600','.2f')
@@ -227,8 +237,10 @@ for response,title in [('val_loss','Classification loss'),('latency_us','CPU lat
         j=snap['source'].index(group);identifier=response.replace('_','')+str(j)
         f=metric('Anova'+identifier+'F',snap['f_stat'][j],S/'snapshot_0_doe_2.json',response+': '+group+' F','.2f')
         p=metric('Anova'+identifier+'P',snap['p_value'][j],S/'snapshot_0_doe_2.json',response+': '+group+' p','.2g')
-        anova_rows.append([title if group=='  Main Effects' else '',group.strip().replace('2-Factor','Pairwise'),f,p])
-table('b_anova',['Response','Term group','F statistic','Nominal p'],anova_rows)
+        ss=metric('Anova'+identifier+'SS',snap['sum_sq'][j],S/'snapshot_0_doe_2.json',response+': '+group+' partial sum of squares','.4g')
+        df=metric('Anova'+identifier+'Df',snap['df'][j],S/'snapshot_0_doe_2.json',response+': '+group+' degrees of freedom','.0f','protocol')
+        anova_rows.append([title if group=='  Main Effects' else '',group.strip().replace('2-Factor','Pairwise'),ss,df])
+table('b_anova',['Response','Term group','Partial SS','df'],anova_rows)
 confirmation_rows=[]
 for i,(method,label) in enumerate(labels.items()):
     for response,title in [('val_loss','Loss'),('latency_us','Latency')]:
@@ -359,6 +371,26 @@ axes[0].bar(np.arange(1,len(words)+1),word_errors,color='#3566a1');axes[0].set(x
 x=np.array(document['confirmation']['predicted']);y=np.array(document['confirmation']['observed']);axes[1].scatter(x,y,s=15,color='#d47b26');lo=min(x.min(),y.min());hi=max(x.max(),y.max());axes[1].plot([lo,hi],[lo,hi],'k--');axes[1].set(xlabel='RSM probability',ylabel='Classifier probability',title='Most difficult local example')
 mat=np.array(document['shap']['interaction_matrix_shap']);np.fill_diagonal(mat,0);im=axes[2].imshow(mat,cmap='Oranges');axes[2].set_xticks(range(4),document['words'],rotation=25,ha='right');axes[2].set_yticks(range(4),document['words']);axes[2].set_title('Word-pair SHAP strength');fig.colorbar(im,ax=axes[2],shrink=.7)
 save_figure(fig,'phase_b_words.pdf',[B/'imdb_words/observations.json'])
+from posthoc_publication import emit, residual_diagnostics
+posthoc=emit(ROOT,OUT,metric,table)
+figure_sources['phase_a_diagnostics.pdf']=[p.relative_to(ROOT).as_posix() for p in residual_diagnostics(ROOT,OUT)]
+sources.update(posthoc['source_sha256'])
+sources['report/posthoc_analysis.py']=source_digest(ROOT/'report/posthoc_analysis.py')
+figure_sources['phase_b_sensitivity.pdf']=['report/posthoc_results.json','results/phase_b/imdb/evaluations.jsonl']
+figure_sources['phase_b_confirmation.pdf']=['report/posthoc_results.json','results/phase_b/imdb/evaluations.jsonl']
+from presentation_figures import build as presentation_figures
+for name,paths in presentation_figures(ROOT,OUT/'figures').items():
+    figure_sources[name]=[p.relative_to(ROOT).as_posix() for p in paths]
+metric('PostWordInteractionMax',np.max(np.abs(np.array(document['shap']['raw_interaction_values'])[0][np.triu_indices(4,1)])),B/'imdb_words/observations.json','illustrated highest-RMSE document: maximum absolute endpoint-game pair interaction','.4f')
+metric('PostAdaptiveCoordinates',cfg['adaptive_cycles']*cfg['infill_per_cycle'],S/'measurement_contract.json','config.adaptive_cycles * config.infill_per_cycle','.0f','protocol')
+for name,definition in [('Error',aconfig['desirability']['Y1_RMSE']),('Latency',aconfig['desirability']['Y2_Latency'])]:
+    for side,key in [('Low','L'),('High','U')]:metric('Desirability'+name+side,definition[key],ROOT/'phase_a_rsm_blocking/config.yaml','desirability.'+name+'.'+key,'.3f','protocol')
+import ast
+tree=ast.parse((ROOT/'phase_a_rsm_blocking/analysis.py').read_text())
+definition=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='derringer_suich_desirability')
+defaults={arg.arg:ast.literal_eval(v) for arg,v in zip(definition.args.args[-len(definition.args.defaults):],definition.args.defaults)}
+if len({defaults[k] for k in ['s','t','w1','w2']})!=1:raise ValueError('Desirability statement requires equal recorded default exponents and weights')
+metric('DesirabilityExponent',defaults['s'],ROOT/'phase_a_rsm_blocking/analysis.py','derringer_suich_desirability: common default s,t,w1,w2','.0f','protocol')
 tex='\n'.join('\\expandafter\\def\\csname metric'+k+'\\endcsname{'+show(k)+'}' for k in registry)
 (OUT/'numbers.tex').write_text(tex,encoding='utf-8',newline='\n')
 accelerator=contract['accelerator'].split(',')[0]

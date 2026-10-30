@@ -60,6 +60,9 @@ from xgb_doe_xai.study_reporting import load_rows, reconstruct_summary
 from xgb_doe_xai.surrogates import PolynomialRSMSurrogate
 from xgb_doe_xai.word_study import check_word_study, run_word_study
 from xgb_doe_xai.xai import compare_anova_vs_shap, extract_anova_attributions
+from protocol_extensions import (ProtocolOptions, capacity_threshold, freeze_protocol, panel_indices,
+    evaluator as replication_evaluator, GatedPanelFinalEvaluator, run_consistent_word_study, check_protocol,
+    snapshot_calibration, validate_calibration, load_replication_config, selected_calibration_capacity)
 
 SOURCES = {
     "imdb": "https://huggingface.co/datasets/stanfordnlp/imdb/resolve/e6281661ce1c48d982bc483cf8a173c1bbeb5d31/plain_text",
@@ -208,9 +211,12 @@ def prepare_datasets(data_dir: Path) -> dict:
     return results
 
 
-def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb", training_threads: int = 4, device: str = "auto") -> dict:
+def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb", training_threads: int = 4, device: str = "auto", options: ProtocolOptions | None = None) -> dict:
     """Run development-only capacity and latency calibration to resolve underfitting and establish thresholds."""
     output_dir.mkdir(parents=True, exist_ok=True)
+    options = options or ProtocolOptions()
+    if any(output_dir.iterdir()):
+        raise FileExistsError('Calibration requires a fresh output directory; existing evidence is not overwritten')
     contract_file = output_dir / "calibration_contract.json"
     contract = dict(
         declared_at_utc=datetime.now(timezone.utc).isoformat(),
@@ -223,6 +229,10 @@ def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb"
         latency_limit="median uncached classic latency across calibration fits",
         reference="loss 1.0, latency 2x max calibration median latency",
     )
+    if options.active:
+        contract['replication_protocol_options'] = asdict(options)
+        if options.threshold_mode == 'capacity_matched':
+            contract['latency_limit'] = 'median uncached classic latency across calibration fits at selected tree count'
     write_json(contract_file, contract)
 
     csv_path = data_dir / f"{dataset_name}.csv"
@@ -239,10 +249,16 @@ def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb"
         include_static_baseline=True,
         device=dev,
     )
+    cfg.warmup_inferences = max(cfg.warmup_inferences, options.latency_panel_size)
     parts = create_strictly_isolated_partitions(
         texts, labels, cfg.holdout_ratio, cfg.n_nuisance_blocks, cfg.random_seed, max_features=10000, official_holdout_mask=mask
     )
-    evaluator = make_development_evaluator(parts, cfg)
+    protocol_sha = None
+    if options.active:
+        protocol_sha = freeze_protocol(output_dir/f'{dataset_name}_protocol_calibration.json', options, cfg, checksum,
+            panels=panel_indices(parts, options.latency_panel_size) if options.latency_panel_size > 1 else {},
+            calibration_files=[contract_file], calibration_tree_grid=contract['tree_grid'], calibration_eta_grid=contract['eta_grid'])
+    evaluator = replication_evaluator(parts, cfg, options, protocol_sha)
     records = []
 
     print(f"\n--- Running Development Calibration on {dataset_name.upper()} ---")
@@ -259,12 +275,9 @@ def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb"
     write_json(output_dir / f"{dataset_name}_pilot.json", dict(dataset_sha256=checksum, observations=records))
 
     # Evaluate tree capacity rule
-    low_eta_records = [r for r in records if r["coded_params"]["x1"] == -1.0]
-    largest = next(r for r in low_eta_records if r["n_trees"] == max(contract["tree_grid"]))
-    eligible_trees = [r["n_trees"] for r in low_eta_records if r["val_macro_f1"] >= largest["val_macro_f1"] - 0.005]
-    cfg.n_trees = min(eligible_trees)
+    cfg.n_trees = selected_calibration_capacity(records, contract['tree_grid'])
     latencies = [r["latency"]["predict_median_us"] for r in records]
-    cfg.latency_threshold_us = float(np.median(latencies))
+    cfg.latency_threshold_us = capacity_threshold(records, cfg.n_trees, options.threshold_mode)
     cfg.hv_ref_loss = 1.0
     cfg.hv_ref_latency_us = float(2.0 * max(latencies))
 
@@ -280,6 +293,10 @@ def run_calibration(data_dir: Path, output_dir: Path, dataset_name: str = "imdb"
         capacity_rule_satisfied=True,
         underfitting_resolved=None,  # A relative capacity rule cannot prove adequate learning.
     )
+    if options.active:
+        calib_summary['replication_protocol_options'] = asdict(options)
+        calib_summary['replication_protocol_sha256'] = protocol_sha
+        calib_summary['pilot_sha256'] = file_sha256(output_dir/f'{dataset_name}_pilot.json')
     write_json(output_dir / f"{dataset_name}_calibration.json", calib_summary)
     print(f"\nCalibration complete for {dataset_name}:")
     print(f"  Selected Tree Count: {cfg.n_trees}")
@@ -295,9 +312,13 @@ def run_experiment_study(
     dataset_name: str = "imdb",
     training_threads: int = 4,
     device: str = "auto",
+    options: ProtocolOptions | None = None,
 ) -> dict:
     """Execute the full experimental comparison across Static CCD, Sequential CCD, and MO-TPE."""
     output_dir.mkdir(parents=True, exist_ok=True)
+    options = options or ProtocolOptions()
+    if (output_dir/dataset_name).exists() or (output_dir/f'{dataset_name}_words').exists():
+        raise FileExistsError('Use a fresh study destination; published observations are not overwritten')
     cfg_file = calibration_dir / f"{dataset_name}_config.json"
     calib_file = calibration_dir / f"{dataset_name}_calibration.json"
     if not cfg_file.exists() or not calib_file.exists():
@@ -306,11 +327,14 @@ def run_experiment_study(
     cfg_dict = json.loads(cfg_file.read_text(encoding="utf-8"))
     cfg_dict["training_threads"] = training_threads
     cfg_dict["device"] = resolve_device(device)
-    cfg = BenchmarkConfig(**cfg_dict)
-
     calib_meta = json.loads(calib_file.read_text(encoding="utf-8"))
+    pilot_file = calibration_dir/f'{dataset_name}_pilot.json'
     csv_path = Path(calib_meta["dataset_path"])
     texts, labels, mask, checksum = load_sentiment_csv(csv_path)
+    records, has_calibration_protocol = validate_calibration(calibration_dir, dataset_name, options, checksum)
+    cfg = load_replication_config(cfg_dict, options)
+    cfg.latency_threshold_us = capacity_threshold(records, cfg.n_trees, options.threshold_mode)
+    cfg.warmup_inferences = max(cfg.warmup_inferences, options.latency_panel_size)
 
     parts = create_strictly_isolated_partitions(
         texts, labels, cfg.holdout_ratio, cfg.n_nuisance_blocks, cfg.random_seed, max_features=cfg.max_features, official_holdout_mask=mask
@@ -326,15 +350,30 @@ def run_experiment_study(
 
     t_start = time.perf_counter()
     study_output = output_dir / dataset_name
+    protocol_sha = None
+    if options.active or has_calibration_protocol:
+        calibration_files = [cfg_file, calib_file, pilot_file]
+        calibration_plan = calibration_dir/'calibration_contract.json'
+        if calibration_plan.exists():
+            calibration_files.append(calibration_plan)
+        calibration_protocol = calibration_dir/f'{dataset_name}_protocol_calibration.json'
+        if calibration_protocol.exists():
+            calibration_files.append(calibration_protocol)
+        retained_calibration = snapshot_calibration(calibration_files, output_dir/f'{dataset_name}_calibration_inputs')
+        protocol_sha = freeze_protocol(output_dir/f'{dataset_name}_protocol_study.json', options, cfg, checksum,
+            panels=panel_indices(parts, options.latency_panel_size) if options.latency_panel_size > 1 else {},
+            calibration_files=retained_calibration)
+    final_evaluator = GatedPanelFinalEvaluator(parts.final_evaluator, options, protocol_sha) if protocol_sha is not None else parts.final_evaluator
     summary = run_study(
         cfg,
-        make_development_evaluator(parts, cfg),
+        replication_evaluator(parts, cfg, options, protocol_sha),
         study_output,
         dataset_id=f"{dataset_name}-experiment-v1",
         dataset_sha256=checksum,
         evidence_kind="research",
-        final_evaluator=parts.final_evaluator,
+        final_evaluator=final_evaluator,
     )
+    check_protocol(study_output, require_words=False)
     analysis = analyze_study(study_output)
     write_json(output_dir / f"{dataset_name}_analysis.json", analysis)
 
@@ -343,7 +382,11 @@ def run_experiment_study(
     selections = json.loads((study_output / "selected.json").read_text(encoding="utf-8"))
     best_doe = next(r for r in selections if r["method"] == "doe" and r["replicate"] == 0)
     word_output = output_dir / f"{dataset_name}_words"
-    run_word_study(parts, cfg, best_doe, word_output)
+    if options.consistent_tfidf_perturbations:
+        run_consistent_word_study(parts, cfg, best_doe, word_output, protocol_sha)
+    else:
+        run_word_study(parts, cfg, best_doe, word_output)
+    check_protocol(study_output)
 
     total_wall_sec = time.perf_counter() - t_start
     write_json(
@@ -354,9 +397,12 @@ def run_experiment_study(
     return summary
 
 
-def run_smoke_test(output_dir: Path, device: str = "cpu") -> dict:
+def run_smoke_test(output_dir: Path, device: str = "cpu", options: ProtocolOptions | None = None) -> dict:
     """Fast 25-second synthetic smoke verification testing all pipelines, exports, and integrity gates."""
     output_dir.mkdir(parents=True, exist_ok=True)
+    options = options or ProtocolOptions()
+    if options.active and any(output_dir.iterdir()):
+        raise FileExistsError('Opt-in smoke checks require a fresh output directory')
     print("\n--- Running Fast Synthetic Smoke Demonstration ---")
     cfg = BenchmarkConfig(
         mode="smoke",
@@ -371,24 +417,54 @@ def run_smoke_test(output_dir: Path, device: str = "cpu") -> dict:
         include_static_baseline=True,
         device=resolve_device(device),
     )
+    cfg.warmup_inferences = max(cfg.warmup_inferences, options.latency_panel_size)
+    cfg.timed_inferences = max(cfg.timed_inferences, options.latency_panel_size)
     texts, labels = generate_synthetic_sentiment_corpus(240, cfg.random_seed)
     checksum = digest([texts, labels.tolist()])
     parts = create_strictly_isolated_partitions(
         texts, labels, cfg.holdout_ratio, cfg.n_nuisance_blocks, cfg.random_seed, max_features=500, official_holdout_mask=None
     )
     study_output = output_dir / "smoke_study"
+    protocol_sha = None
+    if options.active:
+        pilot_protocol = output_dir/'smoke_protocol_calibration.json'
+        pilot_sha = freeze_protocol(pilot_protocol, options, cfg, checksum,
+            panels=panel_indices(parts, options.latency_panel_size) if options.latency_panel_size > 1 else {},
+            calibration_tree_grid=[2,5], calibration_eta_grid=[0., -1.])
+        # A small development-only timing pilot exercises threshold selection.
+        pilot = []
+        evaluate = replication_evaluator(parts, cfg, options, pilot_sha)
+        for trees in (2, 5):
+            cfg.n_trees = trees
+            for rate in (0., -1.):
+                point = DesignPoint(f'SMOKE_CAL_{trees}_{rate}', 'calibration', dict(x1=rate,x2=0.,x3=0.,x4=0.), 0)
+                pilot.append(asdict(evaluate(point, 0, cfg.random_seed, cfg)))
+        cfg.n_trees = 5
+        cfg.latency_threshold_us = capacity_threshold(pilot, cfg.n_trees, options.threshold_mode)
+        pilot_file = output_dir/'smoke_calibration.json'
+        write_json(pilot_file, dict(dataset_sha256=checksum, tree_grid=[2,5], observations=pilot))
+        protocol_sha = freeze_protocol(output_dir/'smoke_protocol.json', options, cfg, checksum,
+            panels=panel_indices(parts, options.latency_panel_size) if options.latency_panel_size > 1 else {},
+            calibration_files=[pilot_file, pilot_protocol])
+    if study_output.exists() and options.active:
+        raise FileExistsError('Opt-in smoke checks require a fresh output directory')
     if study_output.exists():
         import shutil
         shutil.rmtree(study_output)
     summary = run_study(
         cfg,
-        make_development_evaluator(parts, cfg),
+        replication_evaluator(parts, cfg, options, protocol_sha),
         study_output,
         dataset_id="synthetic-smoke-v1",
         dataset_sha256=checksum,
         evidence_kind="smoke",
-        final_evaluator=parts.final_evaluator,
+        final_evaluator=GatedPanelFinalEvaluator(parts.final_evaluator, options, protocol_sha) if options.active else parts.final_evaluator,
     )
+    check_protocol(study_output, require_words=False)
+    if options.consistent_tfidf_perturbations:
+        selection = next(r for r in json.loads((study_output/'selected.json').read_text()) if r['method']=='doe')
+        run_consistent_word_study(parts, cfg, selection, output_dir/'smoke_words', protocol_sha, documents=2)
+    check_protocol(study_output)
     analysis = analyze_study(study_output)
     write_json(output_dir / "smoke_analysis.json", analysis)
     check_study(study_output)
@@ -408,6 +484,7 @@ def generate_all_findings(study_dir: Path, findings_dir: Path, dataset_name: str
     study_path = study_dir if (study_dir / "evaluations.jsonl").exists() else (study_dir / dataset_name)
     if not (study_path / "evaluations.jsonl").exists():
         raise FileNotFoundError(f"Evaluations file not found in {study_path}")
+    check_protocol(study_path)
 
     print(f"\n--- Generating Findings from {study_path} to {findings_dir} ---")
     contract = json.loads((study_path / "measurement_contract.json").read_text(encoding="utf-8"))
@@ -690,18 +767,28 @@ def main():
     parser.add_argument("--training-threads", type=int, default=4)
     parser.add_argument("--device", choices=["auto", "cuda", "cpu"], default="auto", help="Compute device for XGBoost training")
     parser.add_argument("--check", type=Path, help="Verify study evidence integrity and fail-closed checks")
+    parser.add_argument('--threshold-mode', choices=['pooled', 'capacity_matched'], default='pooled', help='Development calibration threshold rule; changes define a new replication')
+    parser.add_argument('--latency-panel-size', type=int, default=1, help='Label-free length-stratified single-document timing panel (1 preserves historical first-row timing)')
+    parser.add_argument('--consistent-tfidf-perturbations', action='store_true', help='Couple active word-pair attenuations and L2-normalize local feature perturbations')
     args = parser.parse_args()
+    if args.stage == 'words':
+        parser.error('The local word study runs with --stage run or --stage all; words is not a standalone stage')
+    try:
+        options = ProtocolOptions(args.threshold_mode, args.latency_panel_size, args.consistent_tfidf_perturbations)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     dataset_name = "imdb" if args.dataset == "full_imdb" else "yelp"
 
     if args.check:
         check_study(args.check)
+        check_protocol(args.check)
         print(f"Verified study integrity in {args.check}: All checksums and reconstructions valid.")
         return 0
 
     if args.stage == "smoke":
         smoke_dir = args.output_dir
-        run_smoke_test(smoke_dir, device=args.device)
+        run_smoke_test(smoke_dir, device=args.device, options=options)
         generate_all_findings(smoke_dir / "smoke_study", args.findings_dir, dataset_name="synthetic")
         return 0
 
@@ -709,10 +796,10 @@ def main():
         prepare_datasets(args.data_dir)
 
     if args.stage in ("calibrate", "all"):
-        run_calibration(args.data_dir, args.calibration_dir, dataset_name=dataset_name, training_threads=args.training_threads, device=args.device)
+        run_calibration(args.data_dir, args.calibration_dir, dataset_name=dataset_name, training_threads=args.training_threads, device=args.device, options=options)
 
     if args.stage in ("run", "all"):
-        run_experiment_study(args.data_dir, args.calibration_dir, args.output_dir, dataset_name=dataset_name, training_threads=args.training_threads, device=args.device)
+        run_experiment_study(args.data_dir, args.calibration_dir, args.output_dir, dataset_name=dataset_name, training_threads=args.training_threads, device=args.device, options=options)
 
     if args.stage in ("generate-findings", "all"):
         generate_all_findings(args.output_dir / dataset_name, args.findings_dir, dataset_name=dataset_name)

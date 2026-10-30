@@ -15,6 +15,8 @@ import tempfile
 
 from verify_evidence import audit
 from verify_words import verify_words
+from posthoc_analysis import build as build_posthoc
+from posthoc_publication import semantic_equal
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = Path(__file__).resolve().parent
@@ -72,11 +74,13 @@ def claim_contexts(directory, registry):
         if name == 'report.tex':
             body = re.sub(r'\\begin\{lstlisting\}.*?\\end\{lstlisting\}', '', body, flags=re.S)
             body = re.sub(r'\\\[.*?\\\]', '', body, flags=re.S)
+            body = re.sub(r'\\begin\{equation\}.*?\\end\{equation\}', '', body, flags=re.S)
             body = re.sub(r'\\(?:texttt|url)\{[^}]*\}', '', body)
             body = re.sub(r'\\includegraphics(?:\[[^]]*\])?\{[^}]*\}', '', body)
             body = re.sub(r'\\set(?:counter|length)\{[^}]*\}\{[^}]*\}', '', body)
         body = re.sub(r'\\m\{[^}]+\}', '', body)
         body = re.sub(r'\bF1\b', 'F-score', body)
+        body = body.replace('R^2','R-squared')
         require(not re.findall(r'\d+(?:\.\d+)?', body), 'Unbound numerical observation in '+name)
     references = (directory/'references.tex').read_text(encoding='utf-8')
     citations = {item.strip() for group in re.findall(r'\\cite\{([^}]+)\}', manuscript) for item in group.split(',')}
@@ -126,11 +130,11 @@ def self_test(registry):
         verify_contexts(target, registry)
         table = target/'b_validation.tex'
         original = table.read_text()
-        table.write_text(original.replace('ConfirmAvallossError', 'ConfirmCvallossError'))
+        table.write_text(original.replace('PostConfirmA0RSMError', 'PostConfirmC0RSMError'))
         rejects('valid metric under wrong method', lambda: verify_contexts(target, registry))
         table.write_text(original.replace('Static CCD', 'MO-TPE', 1))
         rejects('method label changed', lambda: verify_contexts(target, registry))
-        table.write_text(original.replace('\\m{ConfirmAvallossError}', '0.54321'))
+        table.write_text(original.replace('\\m{PostConfirmA0RSMError}', '0.54321'))
         rejects('unbound observation', lambda: verify_contexts(target, registry))
         table.write_text(original)
         added = target/'additional_results.md'
@@ -161,18 +165,31 @@ def main():
     args = parser.parse_args()
     registry = read(OUT/'metric_registry.json')
     if args.bind:
-        (OUT/'claim_bindings.json').write_text(json.dumps(claim_contexts(OUT, registry), indent=2)+'\n', encoding='utf-8')
+        (OUT/'claim_bindings.json').write_text(json.dumps(claim_contexts(OUT, registry), indent=2)+'\n', encoding='utf-8', newline='\n')
         print('Reviewed scientific claim contexts recorded.')
         return
     verify_sources(ROOT, registry['source_sha256'])
     contexts = verify_contexts(OUT, registry)
     reconstruction = audit(ROOT, registry)
     word_replay = verify_words(ROOT)
+    posthoc = build_posthoc(ROOT)
+    require(semantic_equal(posthoc,read(OUT/'posthoc_results.json')), 'Post-hoc results differ from saved observations')
+    posthoc_count=0
+    for key,definition in registry['metrics'].items():
+        selector=definition['selector']
+        if not selector.startswith('POST_HOC:'): continue
+        path,scale=selector[len('POST_HOC:'):].rsplit(':scale=',1)
+        value=posthoc
+        for element in json.loads(path): value=value[element]
+        value*=float(scale)
+        require(semantic_equal(float(value),definition['value']) and format(value,definition['format'])==format(definition['value'],definition['format']), 'Post-hoc metric context/value differs: '+key)
+        posthoc_count+=1
     counts = Counter(key for context in contexts['contexts'] for key in context['metrics'])
     result = dict(verdict='VERIFIED WITH DECLARED LIMITATIONS',
         bound_occurrences=sum(counts.values()), used_metrics=len(counts),
         unbound_empirical_literals=0, evidence_hashes_checked=len(registry['source_sha256']),
         metrics_by_occurrence=dict(counts), reconstruction=reconstruction, word_model_replay=word_replay,
+        posthoc_verification=dict(status='POST_HOC',source_metrics_checked=posthoc_count,uncertainty='Paired document bootstrap conditions on frozen models; search replication remains unchanged.'),
         limitations=['Historical evaluation-set exposure limits external generalization.',
                      'Shared folds and few search repeats limit method-level inference.',
                      'Single-input CPU timings do not estimate deployment latency.',
@@ -180,14 +197,14 @@ def main():
     if args.self_test:
         print('Negative tests rejected:', ', '.join(self_test(registry)))
     if args.write:
-        (OUT/'verification.json').write_text(json.dumps(result, indent=2)+'\n', encoding='utf-8')
+        (OUT/'verification.json').write_text(json.dumps(result, indent=2)+'\n', encoding='utf-8', newline='\n')
     if args.seal:
         require(args.write, '--seal requires --write')
-        manifest = dict(paper='report.pdf', revision_tag='paper-2026-10-r2', files=publication_files(),
+        manifest = dict(paper='report.pdf', revision_tag='paper-2026-10-r3', files=publication_files(),
                         evidence_archive_sha256=digest(ROOT/'evidence/phase_b.zip'),
                         reference_source_archive_sha256=digest(ROOT/'evidence/phase_a_sources.zip'),
                         reference_environment_sha256=digest(ROOT/'requirements-reproduction.txt'))
-        (OUT/'publication.json').write_text(json.dumps(manifest, indent=2)+'\n', encoding='utf-8')
+        (OUT/'publication.json').write_text(json.dumps(manifest, indent=2)+'\n', encoding='utf-8', newline='\n')
     if args.check:
         require(result == read(OUT/'verification.json'), 'Saved verification summary is stale')
         published = read(OUT/'publication.json')
