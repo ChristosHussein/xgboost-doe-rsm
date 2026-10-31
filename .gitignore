@@ -49,3 +49,6 @@ output/
 phase_b_sequential_xai/data/*.parquet
 phase_b_sequential_xai/data/*.zip
 phase_b_sequential_xai/results/
+
+# Local project specifications
+/specifications/
