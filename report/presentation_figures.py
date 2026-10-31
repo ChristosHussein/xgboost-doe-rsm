@@ -68,7 +68,7 @@ def _housing(root, out):
     axes[0].scatter(front[:, 0], front[:, 1], s=30, marker='s', color=METHODS['historical_preplanned_doe_desirability'][1])
     axes[0].set(title='Development candidate fronts', xlabel='Validation RMSE (fixed development split)',
                 ylabel='Search CPU latency (microseconds)')
-    axes[1].set(title='Frozen selections on held-out housing data',
+    axes[1].set(title='Frozen selections on housing test partition',
                 xlabel='Mean test RMSE (bars: retraining SD)',
                 ylabel='CPU latency (microseconds; bars: session SD)')
     for ax in axes:
@@ -97,7 +97,9 @@ def _words(root, out):
     axes[1].plot([low, high], [low, high], 'k--', lw=1)
     axes[1].set(xlabel='Quadratic-surface probability', ylabel='Classifier probability',
                 title=f'Document {index+1}: reserved perturbations')
-    matrix = np.asarray(document['shap']['raw_interaction_values'], dtype=float)
+    interaction_index = int(np.argmax([np.max(np.abs(np.asarray(d['shap']['raw_interaction_values'])[0][np.triu_indices(4,1)])) for d in documents]))
+    interaction_document = documents[interaction_index]
+    matrix = np.asarray(interaction_document['shap']['raw_interaction_values'], dtype=float)
     if matrix.shape != (1, 4, 4):
         raise ValueError('Word illustration requires its recorded single Shapley evaluation')
     matrix = matrix[0].copy()
@@ -112,10 +114,10 @@ def _words(root, out):
         label = f'{value:.1e}' if 0 < abs(value) < 1e-4 else f'{value:.4f}'
         axes[2].text(j, i, label, ha='center', va='center', fontsize=8,
                      color='white' if abs(value) > .65*limit else 'black')
-    axes[2].set_xticks(range(4), document['words'], rotation=35, ha='right')
-    axes[2].set_yticks(range(4), document['words'])
+    axes[2].set_xticks(range(4), interaction_document['words'], rotation=35, ha='right')
+    axes[2].set_yticks(range(4), interaction_document['words'])
     subtitle = 'All recorded pair interactions are zero' if largest == 0 else 'Signed pair effects; diagonal omitted'
-    axes[2].set_title('Word-pair Shapley interactions\n'+subtitle, fontsize=10)
+    axes[2].set_title(f'Document {interaction_index+1}: pair interactions\n'+subtitle, fontsize=10)
     colorbar = fig.colorbar(image, ax=axes[2], shrink=.75, fraction=.045, pad=.04)
     colorbar.set_label('Probability contribution', fontsize=8)
     colorbar.formatter.set_powerlimits((0, 0)); colorbar.update_ticks()
@@ -131,7 +133,7 @@ def _workflow(root, out):
         'planned': (.16, .82, 'Planned or augmented\nconfigurations', '#e8f0fa'),
         'measure': (.16, .49, 'Measure development\nloss and latency', '#e8f0fa'),
         'fit': (.50, .49, 'Fit blocked RSM\nand GP responses', '#e5f1e9'),
-        'acquire': (.50, .82, 'Acquire: GP uncertainty\n× √(nearest-point distance)', '#e5f1e9'),
+        'acquire': (.50, .82, 'Acquire: GP uncertainty\nÃ— âˆš(nearest-point distance)', '#e5f1e9'),
         'diagnose': (.84, .49, 'ANOVA / SHAP\ndiagnostics', '#eee7f4'),
         'select': (.16, .16, 'Final compromise from\nobserved search candidates', '#fff0de'),
         'confirm': (.70, .16, 'Assess response predictions at\nreserved configurations', '#fff0de'),

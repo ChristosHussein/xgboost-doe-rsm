@@ -3,7 +3,7 @@
 Can designed experiments select useful XGBoost configurations, explain hyperparameter effects, and guide further evaluations efficiently?
 
 - **Phase A:** California Housing regression, blocked CCD, response surfaces and optimizer comparison.
-- **Phase B:** IMDb sentiment classification, static and sequential CCD versus MO-TPE, ANOVA–SHAP comparison and independent configuration confirmation.
+- **Phase B:** IMDb sentiment classification, static and sequential CCD versus MO-TPE, ANOVAâ€“SHAP comparison and independent configuration confirmation.
 
 The paper is [report/report.pdf](report/report.pdf), with source in [report/report.tex](report/report.tex).
 
@@ -23,7 +23,7 @@ The paper is [report/report.pdf](report/report.pdf), with source in [report/repo
 ```powershell
 git clone https://github.com/ChristosHussein/xgboost-doe-rsm.git
 cd xgboost-doe-rsm
-git checkout paper-2026-10-r3
+git checkout paper-2026-10-r4
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements-reproduction.txt
