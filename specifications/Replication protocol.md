@@ -35,3 +35,9 @@ Use matching panel settings for calibration and the study. Supplemental contract
 Preserve every observation and unsuccessful search. Report per-search outcomes, uncertainty over independent searches/outer partitions, paired document uncertainty conditional on frozen models, and timing-session variability separately. State how multiplicity and dependence are handled. Do not interpret a nonsignificant difference as equivalence. Evaluate surrogate uncertainty empirically rather than assuming a working quadratic interval is calibrated.
 
 Generate numerical report content from registered evidence and verify method/response/target bindings. Publish the immutable data manifests, protocol, exact code revision, analysis environment, and independently rebuilt report together. A subset pilot checks execution and development calibration; it cannot substitute for the prespecified confirmatory study.
+
+## Confirmation independence and attribution targets
+
+Generate confirmation coordinates only after all search decisions are frozen, using an independent seeded space-filling distribution; do not pass these coordinates to acquisition or repulsion. Declare boundary stress tests separately from the primary domain-average target. Preserve the historical implementation for replay; these changes require a new study implementation and fresh observations.
+
+Compare SHAP between RSM and GP on identical background and query coordinates, and compare attribution methods only after matching linear/main versus total-effect targets. Report all selected configurations. Use independently repeated timing sessions and equal-wall-clock stopping arms with matched preprocessing accounting. Retain failure examples alongside any post-hoc nonzero-interaction illustration; classifier TreeSHAP should be a separately labelled sanity check with a clearly distinct background/game.

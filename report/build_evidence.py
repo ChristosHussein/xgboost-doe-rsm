@@ -391,6 +391,43 @@ definition=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name
 defaults={arg.arg:ast.literal_eval(v) for arg,v in zip(definition.args.args[-len(definition.args.defaults):],definition.args.defaults)}
 if len({defaults[k] for k in ['s','t','w1','w2']})!=1:raise ValueError('Desirability statement requires equal recorded default exponents and weights')
 metric('DesirabilityExponent',defaults['s'],ROOT/'phase_a_rsm_blocking/analysis.py','derringer_suich_desirability: common default s,t,w1,w2','.0f','protocol')
+
+# A classifier-level TreeSHAP additivity sanity check; no classifier is refitted.
+import xgboost as xgb
+from scipy import sparse
+word_model=B/'imdb_words/classifier.ubj'; word_inputs=B/'imdb_words/inputs.npz'
+booster=xgb.Booster();booster.load_model(word_model);booster.set_param({'device':'cpu','nthread':1})
+dmatrix=xgb.DMatrix(sparse.load_npz(word_inputs),nthread=1)
+contributions=booster.predict(dmatrix,pred_contribs=True)
+margin=booster.predict(dmatrix,output_margin=True)
+metric('TreeShapDocuments',len(margin),word_inputs,'saved development documents for classifier TreeSHAP check','.0f')
+metric('TreeShapAdditivity',np.max(np.abs(contributions.astype(float).sum(axis=1)-margin)),word_model,'max abs(sum exact tree-path-dependent TreeSHAP contributions including bias minus raw classifier margin)','.3e')
+sources[word_inputs.relative_to(ROOT).as_posix()]=source_digest(word_inputs)
+
+# Source-bound configuration and same-surrogate explanation disclosures.
+selected=read(S/'selected.json'); rows=[]
+from xgb_doe_xai.config import uncode_configuration
+for i,r in enumerate(sorted(selected,key=lambda r:(r['method'],r['replicate']))):
+    natural=uncode_configuration(r['coded_params']); prefix='Selected'+chr(65+i)
+    cells=[labels[r['method']],metric(prefix+'Repeat',r['replicate'],S/'selected.json',r['method']+': saved replicate index '+str(r['replicate']),'.0f','protocol')]
+    for j,(key,value) in enumerate(natural.items()):cells.append(metric(prefix+chr(65+j),value,S/'selected.json',r['method']+':'+str(r['replicate'])+':'+key,'.5g'))
+    rows.append(cells)
+table('b_selected',['Method','Repeat index','Learning rate','Depth','Subsample','Regularization'],rows)
+confirmation=read(A/'confirmation.json'); rows=[]
+for i,(label,values) in enumerate([('Compromise',confirmation['x_star_coded']),('Accuracy',confirmation['Single_Objective_Optimum']['x_coded'])]):
+    rows.append([label]+[metric('ACoord'+chr(65+i)+chr(65+j),v,A/'confirmation.json',label+': coded factor '+str(j+1),'.5f') for j,v in enumerate(values)])
+table('a_coordinates',['Candidate','Rate','Depth','Subsample','Regularization'],rows)
+rows=[]
+for i,(method,label) in enumerate(labels.items()):
+    cells=[label]
+    for model in ['rsm','gp']:
+        for field in ['spearman_rho','interaction_correlation']:
+            paths=[S/f"snapshot_{rep}_{method}_{cfg['adaptive_cycles'] if method=='doe' else 'final'}.json" for rep in range(cfg['search_replicates'])]
+            value=np.mean([read(p)['val_loss']['comparisons'][model][field] for p in paths])
+            for p in paths:sources[p.relative_to(ROOT).as_posix()]=source_digest(p)
+            cells.append(metric('Matched'+chr(65+i)+model+field.replace('_',''),value,paths[0],'mean across repeats: val_loss.comparisons.'+model+'.'+field,'.3f'))
+    rows.append(cells)
+table('b_same_model',['Sampling','RSM rank','RSM pairs','GP rank','GP pairs'],rows)
 tex='\n'.join('\\expandafter\\def\\csname metric'+k+'\\endcsname{'+show(k)+'}' for k in registry)
 (OUT/'numbers.tex').write_text(tex,encoding='utf-8',newline='\n')
 accelerator=contract['accelerator'].split(',')[0]

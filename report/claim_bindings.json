@@ -85,8 +85,8 @@
     },
     {
       "document": "report.tex",
-      "section": "Confirmation revealed boundary optimism",
-      "context": "Table~\\ref{tab:aconfirm} compares the surface with confirmation on new data-split seeds, disjoint from the design's split seeds but using the same housing dataset. The compromise candidate's observed validation RMSE falls within its interval. The accuracy-focused candidate lies above its upper bound; its observed-minus-predicted gap is \\m{AAccuracyBias} RMSE. These are working-model intervals from a demonstrably imperfect surface; the gap combines model inadequacy and split variation rather than identifying either cause alone.",
+      "section": "Confirmation of a selected response-surface optimum",
+      "context": "Table~\\ref{tab:aconfirm} compares the surface with confirmation on new data-split seeds, disjoint from the design's split seeds but using the same housing dataset. The compromise candidate's observed validation RMSE falls within its interval. The accuracy-focused candidate lies above its upper bound; its observed-minus-predicted gap is \\m{AAccuracyBias} RMSE. Table~\\ref{tab:acoordinates} gives the full coded coordinates: the accuracy candidate is interior in rate and depth but on the upper subsample and regularization faces. Its interval is for a fixed candidate, without adjustment for selecting an argmin from the fitted surface. Selection-induced optimism (the optimizer's curse)~\\cite{optimizerscurse} is therefore another possible contributor; this experiment does not isolate it. These are working-model intervals from a demonstrably imperfect surface; the gap combines model inadequacy and split variation rather than identifying either cause alone.",
       "metrics": [
         "AAccuracyBias"
       ],
@@ -94,7 +94,7 @@
     },
     {
       "document": "report.tex",
-      "section": "Confirmation revealed boundary optimism",
+      "section": "Confirmation of a selected response-surface optimum",
       "context": "\\caption{Phase A validation-RMSE confirmation. Model-based \\m{AIntervalLevel}\\% prediction intervals target the mean of \\m{AConfirmationCount} confirmation runs per candidate; the observed column is that mean. The intervals do not cover every possible future dataset outcome.}\\label{tab:aconfirm}\\end{table}",
       "metrics": [
         "AIntervalLevel",
@@ -105,7 +105,7 @@
     {
       "document": "report.tex",
       "section": "Optimizer comparison and latency feasibility",
-      "context": "Table~\\ref{tab:abench} summarizes \\m{ARepeats} searches per method, with \\m{AEvaluationCount} retraining evaluations per selection. Its error SD describes variability between search-level mean test errors. The displayed zero for DOE accuracy reflects repeated selection of the same configuration and the same evaluation seeds; it does not mean error-free prediction or zero retraining variability.",
+      "context": "Table~\\ref{tab:abench} summarizes \\m{ARepeats} search repetitions per stochastic optimizer and repeated DOE selections, with \\m{AEvaluationCount} retraining evaluations per selection. Its error SD describes variability between search-level mean test errors. The displayed zero for DOE accuracy reflects repeated selection of the same configuration and the same evaluation seeds; it does not mean error-free prediction or zero retraining variability.",
       "metrics": [
         "ARepeats",
         "AEvaluationCount"
@@ -252,7 +252,7 @@
     {
       "document": "report.tex",
       "section": "New hyperparameter coordinates test response predictions",
-      "context": "The experiment reserves \\m{BConfirm} coordinates before search. A fixed seeded generator draws uniformly in coded space, projects depth onto its integer grid and excludes duplicate or initial-design coordinates. Alternating accepted coordinates are additionally assigned to opposite learning-rate faces. Near-boundary values in any factor are tagged using the declared cutoff. Only the coordinates are known during design; their measured responses are excluded from acquisition and surrogate fitting.",
+      "context": "The experiment reserves \\m{BConfirm} coordinates before search. A fixed seeded generator draws uniformly in coded space, projects depth onto its integer grid and excludes duplicate or initial-design coordinates. Alternating accepted coordinates are additionally assigned to opposite learning-rate faces. This deliberately boundary-enriched stress test is not a uniform estimate of domain-average surrogate error. Near-boundary values in any factor are tagged using the declared cutoff. Only the coordinates are known during design; their measured responses are excluded from acquisition and surrogate fitting.",
       "metrics": [
         "BConfirm"
       ],
@@ -292,7 +292,7 @@
     {
       "document": "report.tex",
       "section": "Local word explanations answer a separate question",
-      "context": "The original perturbations attenuate selected unigram weights while fixing other features, including bigrams, without renormalization. They describe a conditional feature-weight game rather than rewritten sentences. The illustrated example's maximum recorded endpoint-game pair interaction is \\m{PostWordInteractionMax}; zero endpoint interactions do not imply a quadratic continuous probability response. LIME~\\cite{lime} and classifier TreeSHAP address related local-explanation questions but were not matched experimental arms, so this study does not establish superiority over either.",
+      "context": "The original perturbations attenuate selected unigram weights while fixing other features, including bigrams, without renormalization. They describe a conditional feature-weight game rather than rewritten sentences. The highest-error example's maximum recorded endpoint-game pair interaction is \\m{PostWordInteractionMax}; zero endpoint interactions do not imply a quadratic continuous probability response. LIME~\\cite{lime} and classifier TreeSHAP address related local-explanation questions but were not matched experimental arms, so this study does not establish superiority over either.",
       "metrics": [
         "PostWordInteractionMax"
       ],
@@ -301,9 +301,19 @@
     {
       "document": "report.tex",
       "section": "Local word explanations answer a separate question",
-      "context": "\\caption{Local word responses. Left: fidelity on unused perturbations. Center: the highest-error example, document \\m{WordExampleIndex}. Right: signed interactions in its zero/full-retention coalition game, with diagonal masked and all zero pair values annotated. The symmetric color-scale floor is a display choice, not evidence of nonzero interaction.}\\end{figure}",
+      "context": "\\caption{Local word responses. Left: fidelity on unused perturbations. Center: the highest-error example, document \\m{WordExampleIndex}. Right: the saved document with the largest absolute endpoint-game pair interaction, selected post hoc to illustrate nonzero interactions, with the diagonal masked. The center remains the highest-error example and illustrates a quadratic-surrogate failure mode. These panels describe different documents; neither is a representative sample.}\\end{figure}",
       "metrics": [
         "WordExampleIndex"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "report.tex",
+      "section": "Local word explanations answer a separate question",
+      "context": "A post-hoc classifier TreeSHAP sanity check uses all saved \\m{TreeShapDocuments} development inputs. Exact tree-path-dependent contributions over the full feature vector, including the bias term, sum to the raw classifier margin with maximum absolute residual \\m{TreeShapAdditivity}. This verifies additivity only: its full-vocabulary, raw-margin game differs from the selected-word probability perturbation game and does not validate the quadratic surrogate or its pair interactions.",
+      "metrics": [
+        "TreeShapDocuments",
+        "TreeShapAdditivity"
       ],
       "text_metrics": []
     },
@@ -337,7 +347,7 @@
     {
       "document": "report.tex",
       "section": "Phase B: comparing model quality, latency and adaptation",
-      "context": "No searched block-mean or final selected latency meets the original \\m{BCap}\\,$\\mu$s threshold. Every frozen selection is below the post-hoc capacity-matched reference of \\m{PostCapacity}\\,$\\mu$s. These comparisons use development calibration on different fixed inputs and settings; they are not application-level feasibility guarantees. Table~\\ref{tab:operational} retains both comparisons and reports search costs: equal fit budgets did not produce equal elapsed cost. Latency SD across selections is not independent timing-session repeatability, and surrogate prediction error is not an estimate of timing noise.",
+      "context": "No searched block-mean or final selected latency meets the original \\m{BCap}\\,$\\mu$s threshold. This is a placement of calibration-derived reference lines, not evidence that a method is operationally superior. No independent timing-session repeatability was collected for these comparisons, so small clearances cannot be distinguished from session variation. Every frozen selection is below the post-hoc capacity-matched reference of \\m{PostCapacity}\\,$\\mu$s. These comparisons use development calibration on different fixed inputs and settings; they are not application-level feasibility guarantees. Table~\\ref{tab:operational} retains both comparisons and reports search costs: equal fit budgets did not produce equal elapsed cost. Latency SD across selections is not independent timing-session repeatability, and surrogate prediction error is not an estimate of timing noise.",
       "metrics": [
         "BCap",
         "PostCapacity"
@@ -459,6 +469,30 @@
         "AAccuracyLower",
         "AAccuracyUpper",
         "AAccuracyObs"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "a_coordinates.tex",
+      "section": "table",
+      "context": "Compromise & \\m{ACoordAA} & \\m{ACoordAB} & \\m{ACoordAC} & \\m{ACoordAD} \\\\",
+      "metrics": [
+        "ACoordAA",
+        "ACoordAB",
+        "ACoordAC",
+        "ACoordAD"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "a_coordinates.tex",
+      "section": "table",
+      "context": "Accuracy & \\m{ACoordBA} & \\m{ACoordBB} & \\m{ACoordBC} & \\m{ACoordBD} \\\\",
+      "metrics": [
+        "ACoordBA",
+        "ACoordBB",
+        "ACoordBC",
+        "ACoordBD"
       ],
       "text_metrics": []
     },
@@ -750,6 +784,42 @@
       "text_metrics": []
     },
     {
+      "document": "b_same_model.tex",
+      "section": "table",
+      "context": "Static CCD & \\m{MatchedArsmspearmanrho} & \\m{MatchedArsminteractioncorrelation} & \\m{MatchedAgpspearmanrho} & \\m{MatchedAgpinteractioncorrelation} \\\\",
+      "metrics": [
+        "MatchedArsmspearmanrho",
+        "MatchedArsminteractioncorrelation",
+        "MatchedAgpspearmanrho",
+        "MatchedAgpinteractioncorrelation"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_same_model.tex",
+      "section": "table",
+      "context": "Sequential CCD & \\m{MatchedBrsmspearmanrho} & \\m{MatchedBrsminteractioncorrelation} & \\m{MatchedBgpspearmanrho} & \\m{MatchedBgpinteractioncorrelation} \\\\",
+      "metrics": [
+        "MatchedBrsmspearmanrho",
+        "MatchedBrsminteractioncorrelation",
+        "MatchedBgpspearmanrho",
+        "MatchedBgpinteractioncorrelation"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_same_model.tex",
+      "section": "table",
+      "context": "MO-TPE & \\m{MatchedCrsmspearmanrho} & \\m{MatchedCrsminteractioncorrelation} & \\m{MatchedCgpspearmanrho} & \\m{MatchedCgpinteractioncorrelation} \\\\",
+      "metrics": [
+        "MatchedCrsmspearmanrho",
+        "MatchedCrsminteractioncorrelation",
+        "MatchedCgpspearmanrho",
+        "MatchedCgpinteractioncorrelation"
+      ],
+      "text_metrics": []
+    },
+    {
       "document": "b_interaction_checks.tex",
       "section": "table",
       "context": "Static CCD & \\m{PostLeverageARank} & \\m{PostLeverageAOmit} & \\m{PostLeverageAShare} \\\\",
@@ -1008,6 +1078,123 @@
       "text_metrics": []
     },
     {
+      "document": "b_selected.tex",
+      "section": "table",
+      "context": "Sequential CCD & \\m{SelectedARepeat} & \\m{SelectedAA} & \\m{SelectedAB} & \\m{SelectedAC} & \\m{SelectedAD} \\\\",
+      "metrics": [
+        "SelectedARepeat",
+        "SelectedAA",
+        "SelectedAB",
+        "SelectedAC",
+        "SelectedAD"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_selected.tex",
+      "section": "table",
+      "context": "Sequential CCD & \\m{SelectedBRepeat} & \\m{SelectedBA} & \\m{SelectedBB} & \\m{SelectedBC} & \\m{SelectedBD} \\\\",
+      "metrics": [
+        "SelectedBRepeat",
+        "SelectedBA",
+        "SelectedBB",
+        "SelectedBC",
+        "SelectedBD"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_selected.tex",
+      "section": "table",
+      "context": "Sequential CCD & \\m{SelectedCRepeat} & \\m{SelectedCA} & \\m{SelectedCB} & \\m{SelectedCC} & \\m{SelectedCD} \\\\",
+      "metrics": [
+        "SelectedCRepeat",
+        "SelectedCA",
+        "SelectedCB",
+        "SelectedCC",
+        "SelectedCD"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_selected.tex",
+      "section": "table",
+      "context": "Static CCD & \\m{SelectedDRepeat} & \\m{SelectedDA} & \\m{SelectedDB} & \\m{SelectedDC} & \\m{SelectedDD} \\\\",
+      "metrics": [
+        "SelectedDRepeat",
+        "SelectedDA",
+        "SelectedDB",
+        "SelectedDC",
+        "SelectedDD"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_selected.tex",
+      "section": "table",
+      "context": "Static CCD & \\m{SelectedERepeat} & \\m{SelectedEA} & \\m{SelectedEB} & \\m{SelectedEC} & \\m{SelectedED} \\\\",
+      "metrics": [
+        "SelectedERepeat",
+        "SelectedEA",
+        "SelectedEB",
+        "SelectedEC",
+        "SelectedED"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_selected.tex",
+      "section": "table",
+      "context": "Static CCD & \\m{SelectedFRepeat} & \\m{SelectedFA} & \\m{SelectedFB} & \\m{SelectedFC} & \\m{SelectedFD} \\\\",
+      "metrics": [
+        "SelectedFRepeat",
+        "SelectedFA",
+        "SelectedFB",
+        "SelectedFC",
+        "SelectedFD"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_selected.tex",
+      "section": "table",
+      "context": "MO-TPE & \\m{SelectedGRepeat} & \\m{SelectedGA} & \\m{SelectedGB} & \\m{SelectedGC} & \\m{SelectedGD} \\\\",
+      "metrics": [
+        "SelectedGRepeat",
+        "SelectedGA",
+        "SelectedGB",
+        "SelectedGC",
+        "SelectedGD"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_selected.tex",
+      "section": "table",
+      "context": "MO-TPE & \\m{SelectedHRepeat} & \\m{SelectedHA} & \\m{SelectedHB} & \\m{SelectedHC} & \\m{SelectedHD} \\\\",
+      "metrics": [
+        "SelectedHRepeat",
+        "SelectedHA",
+        "SelectedHB",
+        "SelectedHC",
+        "SelectedHD"
+      ],
+      "text_metrics": []
+    },
+    {
+      "document": "b_selected.tex",
+      "section": "table",
+      "context": "MO-TPE & \\m{SelectedIRepeat} & \\m{SelectedIA} & \\m{SelectedIB} & \\m{SelectedIC} & \\m{SelectedID} \\\\",
+      "metrics": [
+        "SelectedIRepeat",
+        "SelectedIA",
+        "SelectedIB",
+        "SelectedIC",
+        "SelectedID"
+      ],
+      "text_metrics": []
+    },
+    {
       "document": "b_operational.tex",
       "section": "table",
       "context": "Static CCD & \\m{PostOperationalAPooled} & \\m{PostOperationalAMatched} & $\\m{PostOperationalASeconds} \\pm \\m{PostOperationalASecondsSd}$ \\\\",
@@ -1068,18 +1255,21 @@
     "report.tex",
     "factors.tex",
     "a_confirmation.tex",
+    "a_coordinates.tex",
     "a_benchmark.tex",
     "b_calibration.tex",
     "b_design.tex",
     "b_agreement.tex",
     "b_anova.tex",
+    "b_same_model.tex",
     "b_interaction_checks.tex",
     "b_validation.tex",
     "b_benchmark.tex",
     "b_bootstrap.tex",
+    "b_selected.tex",
     "b_operational.tex"
   ],
-  "bibliography_sha256": "ee563a2268409994257f389f18d508fae49a13ec7c80c3a5486bc408e99cf3c8",
+  "bibliography_sha256": "6760eab617018dd4790f29e1ba934fc6c616b8df7aaf4fdbaecc3b2670c5495f",
   "exclusions": {
     "references.tex": "Bibliographic metadata; no project observations.",
     "numbers.tex": "Generated definitions checked against the source-backed metric registry.",
